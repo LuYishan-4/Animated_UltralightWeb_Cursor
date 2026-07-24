@@ -2,7 +2,7 @@
 
 #include <Ultralight/Ultralight.h>
 #include <AppCore/AppCore.h>
-
+#include "UserConfig.hpp"
 #include <filesystem>
 #include <memory>
 #include <vector>
@@ -23,7 +23,7 @@ public:
     ~UltralightHtmlEffect();
 
 
-    bool initialize(const ConfigValues& config );
+    bool initialize(const ConfigValues& uconfig );
 
 
     bool load(
@@ -41,7 +41,7 @@ public:
     );
 
 
-    void reload(const ConfigValues& config);
+    void reload(const ConfigValues& uconfig);
 
 bool resize(const int&  width,const int&  height);
 

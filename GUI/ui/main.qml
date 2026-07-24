@@ -334,6 +334,19 @@ SimpleKCM {
                               kcm.backend.cursorHeight =
                                 value
                     }
+
+                    // *** 新增：是否開啟自動隱藏 ***
+                    CheckBox {
+                        Kirigami.FormData.label:
+                            qsTr("Auto Hide")
+
+                        checked:
+                              kcm.backend.autoHide
+
+                        onToggled:
+                              kcm.backend.autoHide =
+                                checked
+                    }
                 }
 
                 RowLayout {
