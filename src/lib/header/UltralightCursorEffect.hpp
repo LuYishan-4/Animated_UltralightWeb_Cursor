@@ -62,8 +62,6 @@ public:
         return 99;
     }
 
-     void reconfigure(ReconfigureFlags flags) override;
-
     static bool supported();
 
 
@@ -88,10 +86,7 @@ private:
 
     void showCursor();
 
-
-
     GLTexture* ensureCursorTexture();
-
 
 private:
 
@@ -105,12 +100,7 @@ private:
 
     std::unique_ptr<GLTexture> m_cursorTexture;
 
-
-
-
-
-
-
+    bool is_auto_hide = true;
 
     QPointF m_cursorPoint;
 

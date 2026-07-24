@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include <vector>
-
+#include <functional>
 namespace UltralightWebCursorM
 {
 
@@ -17,11 +17,11 @@ struct ConfigValues {
     std::string configver;
     std::string html;
     std::string sdk;
-    std::string blacklist;
-    std::string width;
-    std::string height;
-    std::string enabled;
-    std::string isautohide;
+    std::vector<std::string> blacklist;
+    int width;
+    int height;
+    bool enabled;
+    bool isautohide;
 };
 
 class UserConfig
@@ -44,17 +44,17 @@ public:
 
 private:
     UserConfig();
-    UserConfig(const UserConfig&) = delete;
+   UserConfig(const UserConfig&) = delete;
     UserConfig& operator=(const UserConfig&) = delete;
-    struct BindItem {
+   struct BindItem {
         std::string key;
         std::string defaultValue;
-        std::string* pField;
+        std::function<void(const std::string&)> updater;
     };
 
     std::vector<BindItem> schema_;
     std::string configPath_; 
     std::unordered_map<std::string, std::string> data_;
 };
-
+#define UserConfigimp (::UltralightWebCursorM::UserConfig::instance()->values)
 } 

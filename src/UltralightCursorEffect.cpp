@@ -1,70 +1,26 @@
 #include "lib/header/UltralightCursorEffect.hpp"
 #include "lib/header/KwinMouseProvider.hpp"
-
-
-
-
 #include "core/rendertarget.h"
 #include "core/renderviewport.h"
 #include "effect/effecthandler.h"
 #include "opengl/glutils.h"
-
-
-
 #include <QDBusConnection>
 #include <QImage>
-
 #include <iostream>
 
 
 
-namespace KWin
-{
+namespace KWin{
 
 
 
-UltralightCursorEffect::UltralightCursorEffect()
-{
-
-    qDebug() << "[UltralightCursorEffect] constructor";
-    m_html =
-        std::make_unique<
-            UltralightWebCursorM::UltralightHtmlEffect
-        >();
-    qDebug() << "[UltralightCursorEffect] htmldone";
-    UltralightWebCursorM::UserConfig config;
-    qDebug() << "[UltralightCursorEffect] configdone";
-    config.load();
-    auto html = config.readKeyValue("html");
-    auto sdk = config.readKeyValue("sdk");
-    auto widthStr = config.readKeyValue("width");
-    auto heightStr = config.readKeyValue("height");
-
-    qDebug() << "width =" << QString::fromStdString(widthStr);
-    qDebug() << "height =" << QString::fromStdString(heightStr);
-
-    int width = std::stoi(widthStr);
-    int height = std::stoi(heightStr);
-    qDebug() << "[UltralightCursorEffect] conficccccc";
-    m_blacklist.setBlacklist(config.getBlacklist());
-
-
-    config.save();
-
-
-    if(!m_html->initialize(
-        html,
-        sdk,
-        width,
-        height
-    ))
-    {
-        std::cerr
-            << "[UltralightCursorEffect] init failed\n";
+UltralightCursorEffect::UltralightCursorEffect(){
+    m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect >();
+    if(!m_html->initialize(UserConfigimp)){
         m_html.reset();
         return;
     }
-
+    is_auto_hide = UserConfigimp.isautohide;
     m_mouseProvider =std::make_unique<KwinMouseProvider>();
     qDebug() << "[UltralightCursorEffect] gggggggggggggg";
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
@@ -86,11 +42,8 @@ UltralightCursorEffect::UltralightCursorEffect()
 
 m_mouseProvider->initialize();
 
-
-
-    qDebug() << "[UltralightCursorEffect] codsfsfsfsfsfsfsfscc";
-    QDBusConnection::sessionBus().registerObject(
-        QStringLiteral("/UltralightCursor"),
+QDBusConnection::sessionBus().registerObject(
+    QStringLiteral("/UltralightCursor"),
         this,
         QDBusConnection::ExportAllSlots
     );
@@ -99,6 +52,9 @@ m_mouseProvider->initialize();
 }
 
     UltralightCursorEffect::~UltralightCursorEffect(){
+            if (effects) effects->showCursor();
+
+
         m_cursorTexture.reset();
         m_mouseProvider.reset();
         m_html.reset();
@@ -122,23 +78,11 @@ m_mouseProvider->initialize();
         effects->addRepaintFull();
     }
     void UltralightCursorEffect::reloadHtml(){
-        //m_cursorTexture.reset();
-        UltralightWebCursorM::UserConfig config;
-       config.load();
-        auto html = config.readKeyValue("html");
-      auto sdk = config.readKeyValue("sdk");
-       auto widthStr = config.readKeyValue("width");
-       auto heightStr = config.readKeyValue("height");
-       int width = std::stoi(widthStr);
-       int height = std::stoi(heightStr);
-        if(!m_html)   return;
-        m_html->reload(html,sdk,width,height);
+        if(!m_html)return;
+        is_auto_hide = UserConfigimp.isautohide;
+        m_html->reload(UserConfigimp);
         effects->addRepaintFull();
-
     }
-    void UltralightCursorEffect::reconfigure(ReconfigureFlags flags){
-    Q_UNUSED(flags)
-}
     bool UltralightCursorEffect::isBlacklisted() const {
          auto window = effects->activeWindow();
           if(!window) return false;
@@ -163,18 +107,13 @@ m_mouseProvider->initialize();
             m_html->stride(),
             QImage::Format_ARGB32_Premultiplied
         );
-
         m_cursorTexture =
             GLTexture::upload(
             image.copy()
         );
-
         if(!m_cursorTexture)return nullptr;
-
         m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
-
         m_html->clearNewFrame();
-
         return m_cursorTexture.get();
     }
 
@@ -193,7 +132,18 @@ m_mouseProvider->initialize();
             screen
         );
         if(isBlacklisted()) return;
+        if(is_auto_hide){
+            connect(effects, &EffectsHandler::cursorShapeChanged, this, [this]() {
+             if (!m_html) return;
+            if (effects->isCursorHidden()) {
+                m_html->setEnabled(false);
+           } else {
+                m_html->setEnabled(true);
+            }
 
+            effects->addRepaintFull();       
+         });
+        }
         if (screen && !screen->geometry().contains(effects->cursorPos().toPoint())) return;
         GLTexture* texture =ensureCursorTexture();
         if(!texture){

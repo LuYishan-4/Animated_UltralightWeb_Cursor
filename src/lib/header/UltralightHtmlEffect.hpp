@@ -23,11 +23,7 @@ public:
     ~UltralightHtmlEffect();
 
 
-    bool initialize(
-        const std::string& path,
-        const std::string& perpath,
-        const int&  width,const int&  height
-    );
+    bool initialize(const ConfigValues& config );
 
 
     bool load(
@@ -45,9 +41,7 @@ public:
     );
 
 
-    void reload(const std::string& path,
-        const std::string& perpath,
-        const int&  width,const int&  height);
+    void reload(const ConfigValues& config);
 
 bool resize(const int&  width,const int&  height);
 

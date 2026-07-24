@@ -9,14 +9,24 @@
 #include <QDebug>
 #include "Quick/PluginPath/PluginPath.hpp"
 #include "header/GlobalConstas.hpp"
-
-
 namespace fs = std::filesystem;
-
 namespace UltralightWebCursorM{
-
 fs::path g_sdkInitialPath;
 fs::path g_htmlInitialPath;
+
+
+static std::vector<std::string> parseCsv(const std::string& str) {
+    std::vector<std::string> res;
+    std::stringstream ss(str);
+    std::string item;
+    while (std::getline(ss, item, ',')) {
+        if (!item.empty()) {
+            res.push_back(item);
+        }
+    }
+    return res;
+}
+
 UserConfig* UserConfig::instance() {
     static UserConfig inst;
     return &inst;
@@ -24,22 +34,23 @@ UserConfig* UserConfig::instance() {
 
 UserConfig::UserConfig(){
     const char* home = std::getenv("HOME");
-    if(home)configPath_ = std::string(home) + "/.config/ultralightwebcursor/config.ini";
+    if(home) configPath_ = std::string(home) + "/.config/ultralightwebcursor/config.ini";
     auto base = KWin::PluginPath::dataDir();
     g_sdkInitialPath = base / "sdk" / "ultralight-free-sdk-1.4.0-linux-x64";
     g_htmlInitialPath = g_sdkInitialPath / "resources";
-    schema_ =  {
-        {"configver","1.0.0",&values.configver},
-        {"html", (g_htmlInitialPath / "default" / "index.html").string(), &values.html},
-        {"sdk", g_sdkInitialPath.string(),&values.sdk},
-        {"blacklist", "",&values.blacklist},
-        {"width",     "128", &values.width},
-        {"height",    "128",&values.height},
-        {"enabled",   "true",&values.enabled},
-        {"isautohide",   "true",&values.isautohide}
+    schema_ = {
+        {"configver",  "1.0.0", [this](const std::string& v){ values.configver = v; }},
+        {"html",       (g_htmlInitialPath / "default" / "index.html").string(), [this](const std::string& v){ values.html = v; }},
+        {"sdk",        g_sdkInitialPath.string(), [this](const std::string& v){ values.sdk = v; }},
+        {"blacklist",  "",      [this](const std::string& v){ values.blacklist = parseCsv(v); }},
+        {"width",      "128",   [this](const std::string& v){ values.width = v.empty() ? 128 : std::stoi(v); }},
+        {"height",     "128",   [this](const std::string& v){ values.height = v.empty() ? 128 : std::stoi(v); }},
+        {"enabled",    "true",  [this](const std::string& v){ values.enabled = (v == "true"); }},
+        {"isautohide", "true",  [this](const std::string& v){ values.isautohide = (v == "true"); }}
     };
     load();
 }
+
 bool UserConfig::load(){
     data_.clear();
     if(configPath_.empty()) return false;
@@ -47,20 +58,31 @@ bool UserConfig::load(){
     if(!file.is_open()) {
         for (const auto& item : schema_) {
             data_[item.key] = item.defaultValue;
-            *(item.pField) = item.defaultValue;
+            item.updater(item.defaultValue);
         }
         return save();
     }
     std::string line;
     while(std::getline(file, line)){
         auto pos = line.find('=');
-        if(pos == std::string::npos)continue;
+        if(pos == std::string::npos) continue;
         data_[line.substr(0, pos)] = line.substr(pos + 1);
     }
-    for (const auto& item : schema_) {
-        if (data_.find(item.key) == data_.end())data_[item.key] = item.defaultValue;
-        *(item.pField) = data_[item.key]; 
+    bool needReSave = false;
+    if (data_["configver"] != GloablContast::Version) {
+        data_["configver"] = GloablContast::Version;
+        needReSave = true;
     }
+
+    for (const auto& item : schema_) {
+        if (data_.find(item.key) == data_.end()) {
+            data_[item.key] = item.defaultValue;
+            needReSave = true;
+        }
+        item.updater(data_[item.key]);
+    }
+    
+    if (needReSave)save();
     return true;
 }
 
@@ -79,7 +101,7 @@ void UserConfig::setKeyValue(const std::string& key, const std::string& path){
     data_[key] = path;
     for (const auto& item : schema_) {
         if (item.key == key) {
-            *(item.pField) = path; 
+            item.updater(path);
             break;
         }
     }
@@ -97,7 +119,7 @@ std::string UserConfig::readKeyValue(const std::string& key) const{
 std::vector<std::string> UserConfig::getBlacklist() const{
     std::vector<std::string> result;
     auto it = data_.find("blacklist");
-    if(it == data_.end() || it->second.empty())return result;
+    if(it == data_.end() || it->second.empty()) return result;
     std::stringstream ss(it->second);
     std::string item;
     while(std::getline(ss, item, ',')){
@@ -119,7 +141,7 @@ void UserConfig::appendBlacklist(const std::string& app) {
     while (pos != std::string::npos) {
         bool match_start = (pos == 0 || current_list[pos - 1] == ',');
         bool match_end = (pos + app.length() == current_list.length() || current_list[pos + app.length()] == ',');
-        if (match_start && match_end)return; 
+        if (match_start && match_end) return; 
         
         pos = current_list.find(app, pos + 1);
     }
@@ -142,12 +164,14 @@ void UserConfig::removeBlacklist(const std::string& app){
     setKeyValue("blacklist", new_value);
     save();
 }
+
 bool UserConfig::uploadTheme(const std::string& path, const std::string& themeName){
     std::error_code ec;
     fs::path src(path);
     if (!fs::exists(src, ec) || ec){
         qDebug() << "src not exists:" << ec.message().c_str();
         return false;
+    }
     if (!fs::is_directory(src, ec) || ec){
         qDebug() << "src is not directory:" << ec.message().c_str();
         return false;
