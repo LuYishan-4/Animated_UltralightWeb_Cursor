@@ -3,14 +3,11 @@ kcoreaddons_add_plugin(
     INSTALL_NAMESPACE "kwin/effects/plugins"
 )
 
-file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.hpp"
-)
+
 
 target_sources(ultralightwebcursor PRIVATE
     UltralightCursorEffect.cpp
-    ${LIB_SOURCES}
+     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 target_include_directories(ultralightwebcursor
     PRIVATE

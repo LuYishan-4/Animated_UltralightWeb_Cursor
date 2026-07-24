@@ -73,7 +73,11 @@ int SettingsBackend::cursorHeight() const
 {
     return cursorHeight_;
 }
-
+ 
+bool SettingsBackend::autoHide() const
+{
+    return autoHide_;
+}
 
 
 void SettingsBackend::setHtmlPath(const QString& path)
@@ -176,62 +180,22 @@ void SettingsBackend::setStatusMessage(
 
 void SettingsBackend::reload()
 {
-    config_.load();
+       
+    UltralightWebCursorM::UserConfig::instance()->load();
 
-
-
-    htmlPath_ =
-        QString::fromStdString(
-            config_.readKeyValue("html")
-        );
-
-
-
-    sdkPath_ =
-        QString::fromStdString(
-            config_.readKeyValue("sdk")
-        );
-
-
-
-    enabled_ =config_.readKeyValue("enabled")  == "true";
-
-
+    htmlPath_     = QString::fromStdString(UserConfigimp.html);
+    sdkPath_      = QString::fromStdString(UserConfigimp.sdk);
+    enabled_      = UserConfigimp.enabled;
+    autoHide_     = UserConfigimp.isautohide;
+    cursorWidth_  = UserConfigimp.width;
+    cursorHeight_ = UserConfigimp.height;
+    currentTheme_ = QString::fromStdString(UserConfig::instance()->currentTheme());
 
     blacklist_.clear();
-
-
-    for(const auto& item :
-        config_.getBlacklist())
+    for(const auto& item : UserConfigimp.blacklist)
     {
-        blacklist_
-            << QString::fromStdString(item);
+        blacklist_ << QString::fromStdString(item);
     }
-
-
-
-
-    currentTheme_ =
-        QString::fromStdString(
-            config_.currentTheme()
-        );
-
-
-
-
-    bool ok=false;
-
-
-
-    int width =  std::stoi(config_.readKeyValue("width"));
-
-   cursorWidth_=width;
-
-
-
-    int height =std::stoi(config_.readKeyValue("height"));
-    cursorHeight_=height;
-
 
 
     loadThemes();
@@ -245,7 +209,7 @@ void SettingsBackend::reload()
     Q_EMIT currentThemeChanged();
     Q_EMIT cursorWidthChanged();
     Q_EMIT cursorHeightChanged();
-
+    Q_EMIT autoHideChanged();
 
     setStatusMessage(
         QStringLiteral("Loaded")
@@ -388,7 +352,15 @@ void SettingsBackend::loadThemes()
 
 }
 
-
+void SettingsBackend::setAutoHide(bool value)
+{
+    if(autoHide_ == value)
+        return;
+ 
+    autoHide_ = value;
+ 
+    Q_EMIT autoHideChanged();
+}
 
 
 

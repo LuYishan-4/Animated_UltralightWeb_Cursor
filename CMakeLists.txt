@@ -182,11 +182,19 @@ set(
     CMAKE_INSTALL_RPATH
     "/usr/lib/ultralightwebcursor"
 )
+file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/*.hpp"
+)
+
+add_library(ultralightwebcursor_core OBJECT ${LIB_SOURCES})
 
 
-
-
-
+target_include_directories(ultralightwebcursor_core
+    PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/header
+)
 add_subdirectory(src)
 add_subdirectory(GUI)
 

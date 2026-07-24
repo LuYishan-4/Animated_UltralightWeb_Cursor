@@ -24,6 +24,8 @@ class SettingsBackend : public QObject
     Q_PROPERTY(int cursorWidth READ cursorWidth WRITE setCursorWidth NOTIFY cursorWidthChanged)
     Q_PROPERTY(int cursorHeight READ cursorHeight WRITE setCursorHeight NOTIFY cursorHeightChanged)
 
+     Q_PROPERTY(bool autoHide READ autoHide WRITE setAutoHide NOTIFY autoHideChanged)
+ 
 public:
 
     explicit SettingsBackend(QObject* parent = nullptr);
@@ -42,7 +44,7 @@ public:
 
     int cursorWidth() const;
     int cursorHeight() const;
-
+ bool autoHide() const;
 
 
     void setHtmlPath(const QString& path);
@@ -51,7 +53,7 @@ public:
     void setCursorWidth(int value);
     void setCursorHeight(int value);
 
-
+  void setAutoHide(bool value);
     Q_INVOKABLE void save();
 
     Q_INVOKABLE void reload();
@@ -95,7 +97,7 @@ Q_SIGNALS:
     void blacklistChanged();
     void themeListChanged();
     void currentThemeChanged();
-
+  Q_EMIT autoHideChanged();
     void cursorWidthChanged();
     void cursorHeightChanged();
 
@@ -106,9 +108,6 @@ private:
 
     void loadThemes();
 
-
-    UltralightWebCursorM::UserConfig config_;
-
     QString htmlPath_;
     QString sdkPath_;
     bool enabled_ = true;
@@ -116,7 +115,7 @@ private:
     QStringList blacklist_;
     QStringList themeList_;
     QString currentTheme_;
-
+bool autoHide_ = false;
     int cursorWidth_ = 64;
     int cursorHeight_ = 64;
 
