@@ -334,8 +334,6 @@ SimpleKCM {
                               kcm.backend.cursorHeight =
                                 value
                     }
-
-                    // *** 新增：是否開啟自動隱藏 ***
                     CheckBox {
                         Kirigami.FormData.label:
                             qsTr("Auto Hide")
@@ -374,7 +372,7 @@ SimpleKCM {
 
                     Button {
                         text:
-                            qsTr("Reload HTML")
+                            qsTr("Reload")
 
                         icon.name:
                             "view-refresh"

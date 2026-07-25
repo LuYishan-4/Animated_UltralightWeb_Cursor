@@ -70,52 +70,44 @@ install(
 #
 # KAuth helper
 #
+find_package(KF6Auth REQUIRED)
 
 add_executable(
     ultralightwebcursor_helper
     khelper.cpp
+    $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
-
 
 target_link_libraries(
     ultralightwebcursor_helper
-
     PRIVATE
-
     KF6::AuthCore
     KF6::CoreAddons
     Qt6::Core
-
     ultralightwebcursor_core
-)
 
-
-
-install(
-    TARGETS
-        ultralightwebcursor_helper
-
-    DESTINATION
-         ${KDE_INSTALL_LIBEXECDIR}
-)
-
-
-
-#
-# Polkit action
-#
-
-install(
-    FILES
-        org.ultralightwebcursor.policy
-
-    DESTINATION
-    ${CMAKE_INSTALL_DATADIR}/polkit-1/actions
 )
 install(
-    FILES
-        org.ultralightwebcursor.service
+    TARGETS ultralightwebcursor_helper
+    DESTINATION ${KAUTH_HELPER_INSTALL_DIR}
+)
+kauth_install_helper_files(
+    ultralightwebcursor_helper 
+    org.ultralightwebcursor 
+    root
+)
+kauth_install_actions(
+    org.ultralightwebcursor 
+    org.ultralightwebcursor.actions
+)
 
-    DESTINATION
-        ${CMAKE_INSTALL_DATADIR}/dbus-1/system-services
+install(
+    FILES asstes/sakichansakichansakichansakichansakichansakichansakichansakichan.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps
+    RENAME org.ultralightwebcursor.svg
+)
+
+install(
+    FILES org.ultralightwebcursor.desktop
+    DESTINATION ${KDE_INSTALL_APPDIR}
 )

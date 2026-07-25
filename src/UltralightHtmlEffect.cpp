@@ -27,6 +27,8 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
     height_ = uconfig.height;
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
+    enabled_ = uconfig.enabled;
+    is_auto_hide =  uconfig.isautohide;
     qDebug() << "[UltralightCursorEffect] dddddddddddddddeccccccc" << html_path_.c_str();
     if (!platform_initialized_){
     ultralight::Config config;
@@ -112,10 +114,10 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig){
     height_ = uconfig.height;
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
-
-
-       UltralightHtmlEffect::load(html_path_ );
-       UltralightHtmlEffect::resize(width_,height_);
+    enabled_ = uconfig.enabled;
+    is_auto_hide =  uconfig.isautohide;
+    UltralightHtmlEffect::load(html_path_ );
+    UltralightHtmlEffect::resize(width_,height_);
 }
 
 void UltralightHtmlEffect::move( int x, int y,bool pressed){
@@ -143,9 +145,10 @@ void UltralightHtmlEffect::move( int x, int y,bool pressed){
     view_->set_needs_paint(true);
 }
 
-void UltralightHtmlEffect::update(){
+void UltralightHtmlEffect::update(bool ishide){
     if(!enabled_)return;
     if(!renderer_ || !view_)return;
+    if (is_auto_hide && ishide)return;
     renderer_->Update();
     view_->set_needs_paint(true);
     renderer_->Render();

@@ -115,9 +115,9 @@ private:
     QStringList blacklist_;
     QStringList themeList_;
     QString currentTheme_;
-bool autoHide_ = false;
-    int cursorWidth_ = 64;
-    int cursorHeight_ = 64;
+    bool autoHide_ = true;
+    int cursorWidth_ = 128;
+    int cursorHeight_ = 128;
 
     QString statusMessage_;
 

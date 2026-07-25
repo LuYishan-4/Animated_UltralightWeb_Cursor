@@ -39,6 +39,8 @@ KAuth::ActionReply Helper::install(
             QStringLiteral("name")
         ).toString();
 
+    
+    UltralightWebCursorM::UserConfig::instance()->load();
 
     bool ok =
         UltralightWebCursorM::UserConfig::instance()

@@ -30,8 +30,7 @@ UltralightCursorEffect::UltralightCursorEffect(){
         m_html.reset();
         return;
     }
-        qDebug() << "[UltralightCursorEffect] ggggbc";
-    is_auto_hide = UserConfigimp.isautohide;
+    qDebug() << "[UltralightCursorEffect] ggggbc";
     m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
     m_mouseProvider =std::make_unique<KwinMouseProvider>();
     qDebug() << "[UltralightCursorEffect] gggggggggggggg";
@@ -88,8 +87,6 @@ QDBusConnection::sessionBus().registerObject(
     void UltralightCursorEffect::reloadHtml(){
         UltralightWebCursorM::UserConfig::instance()->load();
         if(!m_html)return;
-        is_auto_hide = UserConfigimp.isautohide;
-        is_enable = UserConfigimp.enabled;
         m_html->reload(UserConfigimp);
         effects->addRepaintFull();
     }
@@ -102,26 +99,9 @@ QDBusConnection::sessionBus().registerObject(
 
     GLTexture* UltralightCursorEffect::ensureCursorTexture(){
 
-    if(!m_html)
-        return nullptr;
+        if(!m_html)return nullptr;
 
-    if(!is_enable)
-        return nullptr;
-
-
-    if(isBlacklisted())
-        return nullptr;
-
-
-
-    if(effects->isCursorHidden() && is_auto_hide) {
-        disable();
-        return nullptr;
-    }
-    if(!m_html->isEnabled())m_html->setEnabled(true);
-
-
-        m_html->update();
+        m_html->update(effects->isCursorHidden());
         if(m_cursorTexture &&!m_html->hasNewFrame())return m_cursorTexture.get();
 
         const uint8_t* pixels =m_html->pixels();

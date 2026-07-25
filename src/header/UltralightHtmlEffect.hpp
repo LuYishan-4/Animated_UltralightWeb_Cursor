@@ -31,7 +31,7 @@ public:
     );
 
 
-    void update();
+    void update(bool ishide);
 
 
     void move(
@@ -104,6 +104,9 @@ private:
 
 
     bool new_frame_ = false;
+
+    bool is_auto_hide = true;
+
 
 
 

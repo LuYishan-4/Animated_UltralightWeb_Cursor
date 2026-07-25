@@ -71,22 +71,17 @@ bool SettingsBackend::autoHide() const
 
 void SettingsBackend::setHtmlPath(const QString& path)
 {
-    if(htmlPath_ == path)
-        return;
-
+    if(htmlPath_ == path)return;
     htmlPath_ = path;
-
     QFileInfo info(path);
     QString themeFolder = info.absolutePath();
     QString themeName = QFileInfo(themeFolder).fileName();
-
     if(!themeFolder.isEmpty() && !themeName.isEmpty()){
         UltralightWebCursorM::UserConfig::instance()->uploadTheme(
             themeFolder.toStdString(),
             themeName.toStdString()
         );
     }
-
     Q_EMIT htmlPathChanged();
 }
 
