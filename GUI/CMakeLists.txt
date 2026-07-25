@@ -17,10 +17,10 @@ include(KDECompilerSettings NO_POLICY_SCOPE)
 kcmutils_add_qml_kcm(kcm_ultralightwebcursor)
 
 target_sources(kcm_ultralightwebcursor PRIVATE
-       main_settings.cpp
-       main_settings.hpp
-        SettingsBackend.cpp
-        SettingsBackend.hpp
+    main_settings.cpp
+    main_settings.hpp
+    SettingsBackend.cpp
+    SettingsBackend.hpp
           $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 
@@ -28,9 +28,13 @@ target_sources(kcm_ultralightwebcursor PRIVATE
 
 
 target_include_directories(kcm_ultralightwebcursor PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
+     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/config
+    ${CMAKE_SOURCE_DIR}/src/header
     ${CMAKE_SOURCE_DIR}/src/lib
-    ${CMAKE_SOURCE_DIR}/src/lib/header
+    /usr/include/kwin
+    /usr/include/kwin/core
 )
 
 

@@ -4,7 +4,7 @@
 #include <QString>
 #include <QStringList>
 
-#include "../src/lib/header/UserConfig.hpp"
+#include "../src/config/UserConfig.hpp"
 
 
 
@@ -97,7 +97,7 @@ Q_SIGNALS:
     void blacklistChanged();
     void themeListChanged();
     void currentThemeChanged();
-  Q_EMIT autoHideChanged();
+    void autoHideChanged();
     void cursorWidthChanged();
     void cursorHeightChanged();
 

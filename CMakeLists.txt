@@ -182,18 +182,30 @@ set(
     CMAKE_INSTALL_RPATH
     "/usr/lib/ultralightwebcursor"
 )
-file(GLOB_RECURSE LIB_SOURCES CONFIGURE_DEPENDS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/*.hpp"
+add_library(ultralightwebcursor_core OBJECT 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.hpp"
 )
-
-add_library(ultralightwebcursor_core OBJECT ${LIB_SOURCES})
 
 
 target_include_directories(ultralightwebcursor_core
     PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/config
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/header
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/header
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath
+    /usr/include/kwin
+    /usr/include/kwin/core
+)
+
+
+target_link_libraries(ultralightwebcursor_core
+    PUBLIC
+    Qt6::Core
+    Qt6::DBus
 )
 add_subdirectory(src)
 add_subdirectory(GUI)
@@ -206,7 +218,7 @@ set(EFFECT_LOCAL_DIR "$ENV{HOME}/.local/share/kwin/effects/ultralightwebcursor")
 install(DIRECTORY ${ULTRALIGHT_ROOT}/resources/
         DESTINATION ${EFFECT_LOCAL_DIR}/resources
 )
-install(FILES ${ULTRALIGHT_ROOT}/cacert.pem
+install(FILES ${ULTRALIGHT_ROOT}/resources/cacert.pem
         DESTINATION ${EFFECT_LOCAL_DIR}
 )
 

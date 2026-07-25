@@ -12,8 +12,8 @@
 
 #include "UltralightHtmlEffect.hpp"
 #include "MouseProvider.hpp"
-#include "UserConfig.hpp"
-#include "../BlackList/BlacklistManager.hpp"
+#include "../config/UserConfig.hpp"
+#include "../lib/BlackList/BlacklistManager.hpp"
 
 
 namespace KWin

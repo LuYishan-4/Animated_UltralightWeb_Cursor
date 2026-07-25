@@ -2,7 +2,7 @@
 
 #include <Ultralight/Ultralight.h>
 #include <AppCore/AppCore.h>
-#include "UserConfig.hpp"
+#include "../config/UserConfig.hpp"
 #include <filesystem>
 #include <memory>
 #include <vector>

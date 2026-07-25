@@ -1,5 +1,5 @@
-#include "lib/header/UltralightCursorEffect.hpp"
-#include "lib/header/KwinMouseProvider.hpp"
+#include "header/UltralightCursorEffect.hpp"
+#include "header/KwinMouseProvider.hpp"
 #include "core/rendertarget.h"
 #include "core/renderviewport.h"
 #include "effect/effecthandler.h"
@@ -11,6 +11,13 @@
 
 
 namespace KWin{
+
+
+KWIN_EFFECT_FACTORY_SUPPORTED(
+       KWin::UltralightCursorEffect,
+        "metadata.json",
+        return KWin::UltralightCursorEffect::supported();
+)
 
 
 
@@ -201,11 +208,7 @@ QDBusConnection::sessionBus().registerObject(
         return m_html != nullptr;
     }
 
-    KWIN_EFFECT_FACTORY_SUPPORTED(
-       KWin::UltralightCursorEffect,
-        "metadata.json",
-        return KWin::UltralightCursorEffect::supported();
-)
+
 
 }
 

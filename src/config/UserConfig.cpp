@@ -1,4 +1,4 @@
-#include "header/UserConfig.hpp"
+#include "UserConfig.hpp"
 #include <QDBusConnection>
 #include <cstdlib>
 #include <filesystem>
@@ -7,8 +7,8 @@
 #include <sstream>
 #include <algorithm>
 #include <QDebug>
-#include "Quick/PluginPath/PluginPath.hpp"
-#include "header/GlobalConstas.hpp"
+#include "../lib/Quick/PluginPath/PluginPath.hpp"
+#include "GlobalConstas.hpp"
 namespace fs = std::filesystem;
 namespace UltralightWebCursorM{
 fs::path g_sdkInitialPath;
