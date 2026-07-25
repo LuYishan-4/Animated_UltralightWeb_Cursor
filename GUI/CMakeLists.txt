@@ -96,13 +96,19 @@ kauth_install_helper_files(
     org.ultralightwebcursor 
     root
 )
+install(
+    FILES
+        org.ultralightwebcursor.policy
+    DESTINATION
+        ${CMAKE_CURRENT_BINARY_DIR}
+)
 kauth_install_actions(
     org.ultralightwebcursor 
     org.ultralightwebcursor.actions
 )
 
 install(
-    FILES asstes/sakichansakichansakichansakichansakichansakichansakichansakichan.svg
+    FILES assets/sakichansakichansakichansakichansakichansakichansakichansakichan.svg
     DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps
     RENAME org.ultralightwebcursor.svg
 )

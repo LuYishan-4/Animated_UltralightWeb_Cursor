@@ -148,7 +148,10 @@ void UltralightHtmlEffect::move( int x, int y,bool pressed){
 void UltralightHtmlEffect::update(bool ishide){
     if(!enabled_)return;
     if(!renderer_ || !view_)return;
-    if (is_auto_hide && ishide)return;
+    if (is_auto_hide && ishide){
+    qDebug() << "[UltralightCursorEffect] hide";
+        return;
+    }
     renderer_->Update();
     view_->set_needs_paint(true);
     renderer_->Render();
