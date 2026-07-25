@@ -101,6 +101,7 @@ private:
     std::unique_ptr<GLTexture> m_cursorTexture;
 
     bool is_auto_hide = true;
+    bool is_enable = true;
 
     QPointF m_cursorPoint;
 

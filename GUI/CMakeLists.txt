@@ -16,8 +16,6 @@ include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 
 include(GNUInstallDirs)
-
-set(KDE_INSTALL_LIBEXECDIR ${CMAKE_INSTALL_LIBEXECDIR})
 kcmutils_add_qml_kcm(kcm_ultralightwebcursor)
 
 target_sources(kcm_ultralightwebcursor PRIVATE
@@ -98,13 +96,13 @@ install(
         ultralightwebcursor_helper
 
     DESTINATION
-        ${KDE_INSTALL_LIBEXECDIR}
+         ${KDE_INSTALL_LIBEXECDIR}
 )
 
 
 
 #
-# Policy
+# Polkit action
 #
 
 install(
@@ -112,5 +110,12 @@ install(
         org.ultralightwebcursor.policy
 
     DESTINATION
-        ${KDE_INSTALL_DATADIR}/polkit-1/actions
+    ${CMAKE_INSTALL_DATADIR}/polkit-1/actions
+)
+install(
+    FILES
+        org.ultralightwebcursor.service
+
+    DESTINATION
+        ${CMAKE_INSTALL_DATADIR}/dbus-1/system-services
 )

@@ -335,7 +335,6 @@ bool SettingsBackend::uploadTheme(const QString& path)
         action.execute();
 
 
-
     if(!job)
     {
         setStatusMessage(
@@ -349,23 +348,18 @@ bool SettingsBackend::uploadTheme(const QString& path)
 
 
 
-    if(!job->exec())
-    {
-        qDebug()
-            << "KAuth error:"
-            << job->errorText();
+if(!job->exec())
+{
+    qDebug()
+        << "KAuth error:"
+        << job->errorText();
 
+    return false;
+}
 
-        setStatusMessage(
-            QStringLiteral(
-                "Authentication failed"
-            )
-        );
-
-        return false;
-    }
-
-
+qDebug()
+    << "KAuth result:"
+    << job->data();
 
     QVariantMap result =
         job->data();
