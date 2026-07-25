@@ -28,6 +28,7 @@ class UserConfig
 {
 public:
     static UserConfig* instance();
+     void ensureInitialized();
 
     ConfigValues values;
     bool load();

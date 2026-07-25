@@ -8,12 +8,10 @@ namespace KWin
 std::filesystem::path PluginPath::dataDir()
 {
     QString path =
-        QStandardPaths::writableLocation(
-            QStandardPaths::GenericDataLocation
-        );
-
-    path += QStringLiteral(
-        "/kwin/effects/ultralightwebcursor"
+        QStandardPaths::locate(
+            QStandardPaths::GenericDataLocation,
+            QStringLiteral("kwin/effects/ultralightwebcursor"),
+            QStandardPaths::LocateDirectory
         );
 
     return path.toStdString();

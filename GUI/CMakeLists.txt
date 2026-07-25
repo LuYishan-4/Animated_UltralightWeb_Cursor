@@ -14,6 +14,10 @@ find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
 include(KDEInstallDirs)
 include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
+
+include(GNUInstallDirs)
+
+set(KDE_INSTALL_LIBEXECDIR ${CMAKE_INSTALL_LIBEXECDIR})
 kcmutils_add_qml_kcm(kcm_ultralightwebcursor)
 
 target_sources(kcm_ultralightwebcursor PRIVATE
@@ -59,8 +63,54 @@ target_link_libraries(
     KF6::ConfigWidgets
     KF6::KCMUtils
     KF6::I18n
+    KF6::AuthCore
 )
 install(
     FILES kcm_ultralightwebcursor.json
     DESTINATION ${CMAKE_INSTALL_DATADIR}/kservices6
+)
+#
+# KAuth helper
+#
+
+add_executable(
+    ultralightwebcursor_helper
+    khelper.cpp
+)
+
+
+target_link_libraries(
+    ultralightwebcursor_helper
+
+    PRIVATE
+
+    KF6::AuthCore
+    KF6::CoreAddons
+    Qt6::Core
+
+    ultralightwebcursor_core
+)
+
+
+
+install(
+    TARGETS
+        ultralightwebcursor_helper
+
+    DESTINATION
+        ${KDE_INSTALL_LIBEXECDIR}
+)
+
+
+
+#
+# Policy
+#
+
+install(
+    FILES
+        org.ultralightwebcursor.policy
+
+    DESTINATION
+        ${KDE_INSTALL_DATADIR}/polkit-1/actions
 )

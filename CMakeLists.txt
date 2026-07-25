@@ -43,6 +43,7 @@ find_package(KF6 REQUIRED COMPONENTS
     ConfigWidgets
     KCMUtils
     I18n
+    Auth
 )
 
 
@@ -180,7 +181,7 @@ set(
 
 set(
     CMAKE_INSTALL_RPATH
-    "/usr/lib/ultralightwebcursor"
+     "/usr/lib/ultralightwebcursor"
 )
 add_library(ultralightwebcursor_core OBJECT 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.cpp"
@@ -212,19 +213,24 @@ add_subdirectory(GUI)
 
 
 
-set(EFFECT_LOCAL_DIR "$ENV{HOME}/.local/share/kwin/effects/ultralightwebcursor")
 
 
-install(DIRECTORY ${ULTRALIGHT_ROOT}/resources/
-        DESTINATION ${EFFECT_LOCAL_DIR}/resources
-)
-install(FILES ${ULTRALIGHT_ROOT}/resources/cacert.pem
-        DESTINATION ${EFFECT_LOCAL_DIR}
+
+
+install(
+    DIRECTORY
+        "${ULTRALIGHT_BIN}/"
+
+    DESTINATION
+        "${CMAKE_INSTALL_LIBDIR}/ultralightwebcursor"
+
+    FILES_MATCHING
+        PATTERN "*.so*"
 )
 
 
 install(DIRECTORY WebCursor/
-        DESTINATION ${EFFECT_LOCAL_DIR}/resources/default
+        DESTINATION  "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor/resources/default"
 )
 
 

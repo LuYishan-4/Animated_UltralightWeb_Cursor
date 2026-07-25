@@ -2,7 +2,7 @@
 
 #include <Ultralight/Ultralight.h>
 #include <AppCore/Platform.h>
-#include "UltralightPl/WebListener.hpp"
+#include "lib/UltralightPl/WebListener.hpp"
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -25,6 +25,9 @@ UltralightHtmlEffect::~UltralightHtmlEffect(){
 bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
     width_ = uconfig.width;
     height_ = uconfig.height;
+    html_path_ = uconfig.html;
+    m_permanentSdkPath =  uconfig.sdk;
+    qDebug() << "[UltralightCursorEffect] dddddddddddddddeccccccc" << html_path_.c_str();
     if (!platform_initialized_){
     ultralight::Config config;
     config.resource_path_prefix =
@@ -34,20 +37,22 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
     auto& platform =ultralight::Platform::instance();
     platform.set_config(config);
     platform.set_font_loader(ultralight::GetPlatformFontLoader());
-
     platform.set_file_system(
         ultralight::GetPlatformFileSystem(
             ultralight::String(
-                uconfig.sdk.c_str()
+                 m_permanentSdkPath.c_str()
             )
         )
     );
+      qDebug() << "[UltralightCursorEffect] ddddddddddddddde";
     platform_initialized_= true;
 }
     renderer_ =ultralight::Renderer::Create();
+    qDebug() << "[UltralightCursorEffect] rcf"<<width_<<height_;
     if(!renderer_) return false;
-
+    qDebug() << "[UltralightCursorEffect] rce"<<width_<<height_;
     ultralight::ViewConfig vc;
+    qDebug() << "[UltralightCursorEffect] vce"<<width_<<height_;
     vc.is_accelerated = false;
     vc.is_transparent = true;
 
@@ -59,7 +64,6 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
             nullptr
         );
     qDebug() << "[UltralightCursorEffect] width done";
-    html_path_ = uconfig.html;
     if(!view_)return false;
     listener_ =std::make_unique<LocalLoadListener>(&is_loaded_);
     view_->set_load_listener(listener_.get());
@@ -104,8 +108,14 @@ bool UltralightHtmlEffect::resize(const int&  width,const int&  height){
 }
 
 void UltralightHtmlEffect::reload(const ConfigValues& uconfig){
-       UltralightHtmlEffect::load(uconfig.html);
-       UltralightHtmlEffect::resize(uconfig.width,uconfig.height);
+    width_ = uconfig.width;
+    height_ = uconfig.height;
+    html_path_ = uconfig.html;
+    m_permanentSdkPath =  uconfig.sdk;
+
+
+       UltralightHtmlEffect::load(html_path_ );
+       UltralightHtmlEffect::resize(width_,height_);
 }
 
 void UltralightHtmlEffect::move( int x, int y,bool pressed){

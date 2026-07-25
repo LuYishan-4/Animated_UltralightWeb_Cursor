@@ -116,6 +116,8 @@ private:
 
     bool platform_initialized_=false;
 
+    std::string m_permanentSdkPath; 
+
 
 
     std::vector<uint8_t> pixel_buffer_;

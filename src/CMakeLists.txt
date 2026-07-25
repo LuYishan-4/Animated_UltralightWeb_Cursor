@@ -15,6 +15,7 @@ target_sources(ultralightwebcursor PRIVATE
     header/KwinMouseProvider.hpp
     header/UltralightHtmlEffect.hpp
     lib/BlackList/BlacklistManager.hpp
+    lib/UltralightPl/WebListener.hpp
      $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 target_include_directories(ultralightwebcursor

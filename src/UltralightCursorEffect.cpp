@@ -22,12 +22,17 @@ KWIN_EFFECT_FACTORY_SUPPORTED(
 
 
 UltralightCursorEffect::UltralightCursorEffect(){
+    qDebug() << "[UltralightCursorEffect] gfgg";
+    UltralightWebCursorM::UserConfig::instance()->load();
+    qDebug() << "[UltralightCursorEffect] gsggggg";
     m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect >();
     if(!m_html->initialize(UserConfigimp)){
         m_html.reset();
         return;
     }
+        qDebug() << "[UltralightCursorEffect] ggggbc";
     is_auto_hide = UserConfigimp.isautohide;
+    m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
     m_mouseProvider =std::make_unique<KwinMouseProvider>();
     qDebug() << "[UltralightCursorEffect] gggggggggggggg";
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
@@ -55,13 +60,9 @@ QDBusConnection::sessionBus().registerObject(
         QDBusConnection::ExportAllSlots
     );
     qDebug() << "[UltralightCursorEffect] cod";
-
 }
 
     UltralightCursorEffect::~UltralightCursorEffect(){
-            if (effects) effects->showCursor();
-
-
         m_cursorTexture.reset();
         m_mouseProvider.reset();
         m_html.reset();
@@ -85,6 +86,7 @@ QDBusConnection::sessionBus().registerObject(
         effects->addRepaintFull();
     }
     void UltralightCursorEffect::reloadHtml(){
+        UltralightWebCursorM::UserConfig::instance()->load();
         if(!m_html)return;
         is_auto_hide = UserConfigimp.isautohide;
         m_html->reload(UserConfigimp);
@@ -98,7 +100,10 @@ QDBusConnection::sessionBus().registerObject(
      }
 
     GLTexture* UltralightCursorEffect::ensureCursorTexture(){
-        if(!m_html ||!m_html->isEnabled())return nullptr;
+
+        if(!m_html ||!m_html->isEnabled() || isBlacklisted())return nullptr;
+    
+        if (effects->isCursorHidden() && is_auto_hide)return nullptr;
 
         m_html->update();
         if(m_cursorTexture &&!m_html->hasNewFrame())return m_cursorTexture.get();
@@ -138,20 +143,7 @@ QDBusConnection::sessionBus().registerObject(
             region,
             screen
         );
-        if(isBlacklisted()) return;
-        if(is_auto_hide){
-            connect(effects, &EffectsHandler::cursorShapeChanged, this, [this]() {
-             if (!m_html) return;
-            if (effects->isCursorHidden()) {
-                m_html->setEnabled(false);
-           } else {
-                m_html->setEnabled(true);
-            }
 
-            effects->addRepaintFull();       
-         });
-        }
-        if (screen && !screen->geometry().contains(effects->cursorPos().toPoint())) return;
         GLTexture* texture =ensureCursorTexture();
         if(!texture){
             effects->addRepaintFull();

@@ -35,9 +35,17 @@ UserConfig* UserConfig::instance() {
 UserConfig::UserConfig(){
     const char* home = std::getenv("HOME");
     if(home) configPath_ = std::string(home) + "/.config/ultralightwebcursor/config.ini";
+}
+
+void UserConfig::ensureInitialized() {
+    qDebug() << "[UltralightCursorEffect] e";
+    if (!schema_.empty()) {
+        return;
+    }
     auto base = KWin::PluginPath::dataDir();
     g_sdkInitialPath = base / "sdk" / "ultralight-free-sdk-1.4.0-linux-x64";
     g_htmlInitialPath = g_sdkInitialPath / "resources";
+    qDebug() << "[UltralightCursorEffect] "<<base.string();
     schema_ = {
         {"configver",  "1.0.0", [this](const std::string& v){ values.configver = v; }},
         {"html",       (g_htmlInitialPath / "default" / "index.html").string(), [this](const std::string& v){ values.html = v; }},
@@ -48,10 +56,10 @@ UserConfig::UserConfig(){
         {"enabled",    "true",  [this](const std::string& v){ values.enabled = (v == "true"); }},
         {"isautohide", "true",  [this](const std::string& v){ values.isautohide = (v == "true"); }}
     };
-    load();
 }
-
 bool UserConfig::load(){
+    ensureInitialized();
+      qDebug() << "[UltralightCursorEffect] loaddone";
     data_.clear();
     if(configPath_.empty()) return false;
     std::ifstream file(configPath_);
@@ -88,6 +96,7 @@ bool UserConfig::load(){
 
 bool UserConfig::save(){
     if(configPath_.empty()) return false;
+      qDebug() << "[UltralightCursorEffect] save";
     fs::create_directories(fs::path(configPath_).parent_path());
     std::ofstream file(configPath_);
     if(!file.is_open()) return false;
@@ -98,6 +107,7 @@ bool UserConfig::save(){
 }
 
 void UserConfig::setKeyValue(const std::string& key, const std::string& path){
+      qDebug() << "[UltralightCursorEffect]se e";
     data_[key] = path;
     for (const auto& item : schema_) {
         if (item.key == key) {

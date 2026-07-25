@@ -1,5 +1,6 @@
 #include "SettingsBackend.hpp"
-
+#include <KAuth/Action>
+#include <KAuth/ExecuteJob>
 #include <QFileInfo>
 #include <QDesktopServices>
 #include <QUrl>
@@ -79,9 +80,7 @@ void SettingsBackend::setHtmlPath(const QString& path)
     QString themeFolder = info.absolutePath();
     QString themeName = QFileInfo(themeFolder).fileName();
 
-    if(!themeFolder.isEmpty() && !themeName.isEmpty())
-    {
-        // 【核心修正】改用單例指標
+    if(!themeFolder.isEmpty() && !themeName.isEmpty()){
         UltralightWebCursorM::UserConfig::instance()->uploadTheme(
             themeFolder.toStdString(),
             themeName.toStdString()
@@ -140,9 +139,9 @@ void SettingsBackend::reload()
     htmlPath_     = QString::fromStdString(UserConfigimp.html);
     sdkPath_      = QString::fromStdString(UserConfigimp.sdk);
     enabled_      = UserConfigimp.enabled;
-    autoHide_     = UserConfigimp.isautohide; // 對齊強型別 bool 欄位
-    cursorWidth_  = UserConfigimp.width;      // 對齊強型別 int 欄位
-    cursorHeight_ = UserConfigimp.height;     // 對齊強型別 int 欄位
+    autoHide_     = UserConfigimp.isautohide; 
+    cursorWidth_  = UserConfigimp.width; 
+    cursorHeight_ = UserConfigimp.height;   
     currentTheme_ = QString::fromStdString(UserConfig::instance()->currentTheme());
 
     blacklist_.clear();
@@ -169,7 +168,6 @@ void SettingsBackend::reload()
 
 void SettingsBackend::save()
 {
-    // 取得全域唯一的 UserConfig 單例指標
     auto* userConfig = UltralightWebCursorM::UserConfig::instance();
 
     userConfig->setKeyValue(
@@ -267,38 +265,143 @@ void SettingsBackend::setAutoHide(bool value)
     Q_EMIT autoHideChanged();
 }
 
+
 bool SettingsBackend::uploadTheme(const QString& path)
 {
     qDebug() << "uploadTheme path =" << path;
 
-    QDir dir(QDir::cleanPath(path));
+
+    QDir dir(
+        QDir::cleanPath(path)
+    );
+
 
     if(!dir.exists())
     {
         setStatusMessage(
             QStringLiteral("Folder not found")
         );
+
         return false;
     }
 
-    QString name = dir.dirName();
 
-    qDebug() << "uploadTheme name =" << name;
 
-    if(UltralightWebCursorM::UserConfig::instance()->uploadTheme(
-        path.toStdString(),
-        name.toStdString()))
+    QString name =
+        dir.dirName();
+
+
+    qDebug()
+        << "uploadTheme name ="
+        << name;
+
+
+
+    KAuth::Action action(
+        QStringLiteral(
+            "org.ultralightwebcursor.install"
+        )
+    );
+
+
+    action.setHelperId(
+        QStringLiteral(
+            "org.ultralightwebcursor"
+        )
+    );
+
+
+
+    QVariantMap args;
+
+
+    args.insert(
+        QStringLiteral("path"),
+        path
+    );
+
+
+    args.insert(
+        QStringLiteral("name"),
+        name
+    );
+
+
+    action.setArguments(args);
+
+
+
+    KAuth::ExecuteJob *job =
+        action.execute();
+
+
+
+    if(!job)
+    {
+        setStatusMessage(
+            QStringLiteral(
+                "Failed to create auth job"
+            )
+        );
+
+        return false;
+    }
+
+
+
+    if(!job->exec())
+    {
+        qDebug()
+            << "KAuth error:"
+            << job->errorText();
+
+
+        setStatusMessage(
+            QStringLiteral(
+                "Authentication failed"
+            )
+        );
+
+        return false;
+    }
+
+
+
+    QVariantMap result =
+        job->data();
+
+
+
+    bool success =
+        result.value(
+            QStringLiteral("success")
+        ).toBool();
+
+
+
+    if(success)
     {
         loadThemes();
+
+
         setStatusMessage(
-            QStringLiteral("Theme uploaded")
+            QStringLiteral(
+                "Theme uploaded"
+            )
         );
+
         return true;
     }
 
+
+
     setStatusMessage(
-        QStringLiteral("Upload failed")
+        QStringLiteral(
+            "Upload failed"
+        )
     );
+
+
     return false;
 }
 

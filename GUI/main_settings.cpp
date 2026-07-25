@@ -71,10 +71,4 @@ void UIKCM::defaults()
 }
 
 
-// *** 這行是缺的東西：沒有這個巨集，KPluginFactory 根本不知道
-//     要怎麼把這個 .so 實例化成 UIKCM 物件，KCM 會直接載入失敗 ***
-//
-// 巨集第二個參數要對到實際的 metadata.json 檔名
-
-
 #include "main_settings.moc"
