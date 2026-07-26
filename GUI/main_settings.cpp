@@ -64,8 +64,8 @@ void UIKCM::defaults()
 
     m_backend->setEnabled(true);
 
-    m_backend->setCursorWidth(64);
-    m_backend->setCursorHeight(64);
+    m_backend->setCursorWidth(128);
+    m_backend->setCursorHeight(128);
 
     KQuickConfigModule::defaults();
 }

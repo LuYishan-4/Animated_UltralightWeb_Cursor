@@ -46,7 +46,7 @@ SimpleKCM {
 
                 onClicked: {
                     Qt.openUrlExternally(
-                        "https://github.com/LuYishan-4/Cursor-animation"
+                        "https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor"
                     )
                 }
             }

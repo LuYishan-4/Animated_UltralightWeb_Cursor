@@ -15,11 +15,9 @@ class SettingsBackend : public QObject
 
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
-
     Q_PROPERTY(QStringList blacklist READ blacklist NOTIFY blacklistChanged)
     Q_PROPERTY(QStringList themeList READ themeList NOTIFY themeListChanged)
     Q_PROPERTY(QString currentTheme READ currentTheme NOTIFY currentThemeChanged)
-
     Q_PROPERTY(int cursorWidth READ cursorWidth WRITE setCursorWidth NOTIFY cursorWidthChanged)
     Q_PROPERTY(int cursorHeight READ cursorHeight WRITE setCursorHeight NOTIFY cursorHeightChanged)
 

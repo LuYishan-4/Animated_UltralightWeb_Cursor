@@ -176,7 +176,7 @@ void SettingsBackend::loadThemes()
 {
     themeList_.clear();
 
-    std::filesystem::path path = g_sdkInitialPath / "resources";
+    std::filesystem::path path = g_sdkInitialPath;
 
     if(!std::filesystem::exists(path))
     {
@@ -339,7 +339,7 @@ void SettingsBackend::useTheme(const QString& name)
 void SettingsBackend::removeTheme(const QString& name)
 {
     std::filesystem::remove_all(
-        g_sdkInitialPath / "resources" / name.toStdString()
+        g_sdkInitialPath  / name.toStdString()
     );
 
     loadThemes();
@@ -349,7 +349,7 @@ void SettingsBackend::removeTheme(const QString& name)
 void SettingsBackend::openThemeFolder(const QString& name)
 {
     QString path = QString::fromStdString(
-        (g_sdkInitialPath / "resources" / name.toStdString()).string()
+        (g_sdkInitialPath  / name.toStdString()).string()
     );
 
     QDesktopServices::openUrl(
