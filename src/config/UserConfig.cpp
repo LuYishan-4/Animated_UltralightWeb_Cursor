@@ -43,12 +43,12 @@ void UserConfig::ensureInitialized() {
         return;
     }
     auto base = KWin::PluginPath::dataDir();
-    g_sdkInitialPath = base / "sdk" / "ultralight-free-sdk-1.4.0-linux-x64";
-    g_htmlInitialPath = g_sdkInitialPath / "resources";
+    g_sdkInitialPath = base;
+    g_htmlInitialPath = g_sdkInitialPath;
     qDebug() << "[UltralightCursorEffect] "<<base.string();
     schema_ = {
         {"configver",  "1.0.0", [this](const std::string& v){ values.configver = v; }},
-        {"html",       (g_htmlInitialPath / "default" / "index.html").string(), [this](const std::string& v){ values.html = v; }},
+        {"html",       (g_htmlInitialPath / "variant1-neon" / "index.html").string(), [this](const std::string& v){ values.html = v; }},
         {"sdk",        g_sdkInitialPath.string(), [this](const std::string& v){ values.sdk = v; }},
         {"blacklist",  "",      [this](const std::string& v){ values.blacklist = parseCsv(v); }},
         {"width",      "128",   [this](const std::string& v){ values.width = v.empty() ? 128 : std::stoi(v); }},

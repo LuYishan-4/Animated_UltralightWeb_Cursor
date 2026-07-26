@@ -1,0 +1,90 @@
+html, body {
+    margin: 0;
+    width: 128px;
+    height: 128px;
+    overflow: hidden;
+    background: transparent;
+}
+
+#cursor {
+    position: absolute;
+    left: 64px;
+    top: 64px;
+
+    width: 12px;
+    height: 12px;
+
+    margin-left: -6px;
+    margin-top: -6px;
+
+    border-radius: 50%;
+
+    background: rgba(0, 170, 255, 0.95);
+
+    box-shadow: 0 0 14px rgba(0, 170, 255, 0.9);
+
+    /* fade out when idle / hidden */
+    transition: opacity 0.5s ease;
+    opacity: 1;
+}
+
+#cursor.hidden {
+    opacity: 0;
+}
+
+.ring {
+    position: absolute;
+    left: 64px;
+    top: 64px;
+
+    width: 14px;
+    height: 14px;
+
+    margin-left: -7px;
+    margin-top: -7px;
+
+    border-radius: 50%;
+
+    border: 2px solid rgba(0, 170, 255, 0.8);
+
+    animation: expand 0.6s ease-out forwards;
+}
+
+@keyframes expand {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(7);
+        opacity: 0;
+    }
+}
+
+.particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+
+    margin-left: -2px;
+    margin-top: -2px;
+
+    border-radius: 50%;
+
+    background: rgba(0, 180, 255, 0.85);
+
+    pointer-events: none;
+
+    animation: particleMove 0.6s linear forwards;
+}
+
+@keyframes particleMove {
+    from {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translate(var(--x), var(--y)) scale(0);
+        opacity: 0;
+    }
+}

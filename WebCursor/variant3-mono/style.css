@@ -10,25 +10,42 @@ html, body {
     position: absolute;
     left: 64px;
     top: 64px;
-    width: 12px;
-    height: 12px;
-    margin-left: -6px;
-    margin-top: -6px;
+
+    width: 10px;
+    height: 10px;
+
+    margin-left: -5px;
+    margin-top: -5px;
+
     border-radius: 50%;
-    background: rgba(0, 170, 255, 0.95);
-    box-shadow: 0 0 14px rgba(0, 170, 255, 0.9);
-    pointer-events: none; 
+
+    background: rgba(255, 255, 255, 0.95);
+
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+
+    transition: opacity 0.5s ease;
+    opacity: 1;
+}
+
+#cursor.hidden {
+    opacity: 0;
 }
 
 .ring {
     position: absolute;
+    left: 64px;
+    top: 64px;
+
     width: 14px;
     height: 14px;
+
     margin-left: -7px;
     margin-top: -7px;
+
     border-radius: 50%;
-    border: 2px solid rgba(0, 170, 255, 0.8);
-    pointer-events: none;
+
+    border: 1.5px solid rgba(20, 20, 20, 0.85);
+
     animation: expand 0.6s ease-out forwards;
 }
 
@@ -38,20 +55,25 @@ html, body {
         opacity: 1;
     }
     to {
-        transform: scale(7);
+        transform: scale(6);
         opacity: 0;
     }
 }
 
 .particle {
     position: absolute;
-    width: 4px;
-    height: 4px;
-    margin-left: -2px;
-    margin-top: -2px;
+    width: 3px;
+    height: 3px;
+
+    margin-left: -1.5px;
+    margin-top: -1.5px;
+
     border-radius: 50%;
-    background: rgba(0, 180, 255, 0.85);
+
+    background: rgba(60, 60, 60, 0.85);
+
     pointer-events: none;
+
     animation: particleMove 0.6s linear forwards;
 }
 

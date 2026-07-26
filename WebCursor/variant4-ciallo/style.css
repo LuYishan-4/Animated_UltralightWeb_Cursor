@@ -1,0 +1,117 @@
+html, body {
+    margin: 0;
+    width: 128px;
+    height: 128px;
+    overflow: hidden;
+    background: transparent;
+}
+
+#cursor {
+    position: absolute;
+    left: 64px;
+    top: 64px;
+
+    width: 10px;
+    height: 10px;
+
+    margin-left: -5px;
+    margin-top: -5px;
+
+    border-radius: 50%;
+
+    background: rgba(255, 154, 213, 0.95);
+
+    box-shadow: 0 0 12px rgba(255, 154, 213, 0.9);
+
+    transition: opacity 0.5s ease, left 0.05s linear, top 0.05s linear;
+    opacity: 1;
+}
+
+#cursor.hidden {
+    opacity: 0;
+}
+
+/* trail left behind while moving */
+.trail {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+
+    margin-left: -3px;
+    margin-top: -3px;
+
+    border-radius: 50%;
+
+    background: rgba(142, 201, 255, 0.8);
+    box-shadow: 0 0 8px rgba(142, 201, 255, 0.6);
+
+    pointer-events: none;
+
+    animation: trailFade 0.5s ease-out forwards;
+}
+
+@keyframes trailFade {
+    from {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    to {
+        transform: scale(0.2);
+        opacity: 0;
+    }
+}
+
+/* ring burst on click, same principle as other variants */
+.ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+
+    width: 14px;
+    height: 14px;
+
+    margin-left: -7px;
+    margin-top: -7px;
+
+    border-radius: 50%;
+
+    border: 2px solid rgba(255, 154, 213, 0.85);
+
+    animation: expand 0.6s ease-out forwards;
+}
+
+@keyframes expand {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(7);
+        opacity: 0;
+    }
+}
+
+/* scattering ciallo.svg icons on click */
+.icon-particle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+
+    margin-left: -8px;
+    margin-top: -8px;
+
+    pointer-events: none;
+
+    animation: iconScatter 0.7s ease-out forwards;
+}
+
+@keyframes iconScatter {
+    from {
+        transform: translate(0, 0) scale(0.6) rotate(0deg);
+        opacity: 1;
+    }
+    to {
+        transform: translate(var(--x), var(--y)) scale(1.1) rotate(var(--r));
+        opacity: 0;
+    }
+}

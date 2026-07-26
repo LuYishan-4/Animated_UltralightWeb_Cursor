@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ciallo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd6f0"/>
+      <stop offset="50%" stop-color="#ff9ad5"/>
+      <stop offset="100%" stop-color="#8ec9ff"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#ciallo-grad)" d="
+    M32 2
+    C34 18 36 26 32 32
+    C36 34 44 36 62 32
+    C44 36 36 44 32 62
+    C30 44 28 36 2 32
+    C28 30 30 22 32 2
+    Z">
+  </path>
+  <circle cx="32" cy="32" r="4" fill="#ffffff" opacity="0.9"/>
+</svg>

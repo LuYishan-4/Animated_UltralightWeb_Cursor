@@ -78,10 +78,13 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
 bool UltralightHtmlEffect::load(const std::string& path){
     std::ifstream file(path);
     if(!file)return false;
-    std::string base ="file://" +path;
+    std::filesystem::path p(path);
+    std::filesystem::path parentDir = p.parent_path();
+    std::filesystem::path targetHtml = parentDir / "index.html"; 
+    std::string fileUrl = "file://" + targetHtml.string();
     is_loaded_ = false;
-    qDebug() << "[UltralightCursorEffect] "<<base;
-    view_->LoadURL(base.c_str());
+    qDebug() << "[UltralightCursorEffect] Target URL:" << QString::fromStdString(fileUrl);
+    view_->LoadURL(fileUrl.c_str());
     view_->set_needs_paint(true);
     return true;
 }

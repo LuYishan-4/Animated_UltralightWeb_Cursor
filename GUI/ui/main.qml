@@ -79,6 +79,7 @@ SimpleKCM {
 
         StackLayout {
             Layout.fillWidth: true
+            Layout.fillHeight: true
             currentIndex: tabBar.currentIndex
 
             // =====================================================
@@ -96,15 +97,14 @@ SimpleKCM {
                 ComboBox {
                     id: themeBox
                     Layout.fillWidth: true
-                    model:   kcm.backend.themeList
+                    model: kcm.backend.themeList
 
-                    currentIndex:
-                          kcm.backend.themeList.indexOf(
-                              kcm.backend.currentTheme
-                        )
+                    currentIndex: kcm.backend.themeList.indexOf(
+                        kcm.backend.currentTheme
+                    )
 
                     onActivated: {
-                          kcm.backend.useTheme(
+                        kcm.backend.useTheme(
                             currentText
                         )
                     }
@@ -117,29 +117,27 @@ SimpleKCM {
 
                 ListView {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 300
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 200
                     clip: true
                     spacing: Kirigami.Units.smallSpacing
-                    model:   kcm.backend.themeList
+                    model: kcm.backend.themeList
 
                     delegate: Kirigami.Card {
                         width: ListView.view.width
 
-                        header:
-                        Kirigami.Heading {
+                        header: Kirigami.Heading {
                             text: modelData
                             level: 4
                         }
 
-                        contentItem:
-                        RowLayout {
+                        contentItem: RowLayout {
                             Button {
                                 text: qsTr("Apply")
-                                icon.name:
-                                    "dialog-ok"
+                                icon.name: "dialog-ok"
 
                                 onClicked: {
-                                      kcm.backend.useTheme(
+                                    kcm.backend.useTheme(
                                         modelData
                                     )
                                 }
@@ -147,12 +145,10 @@ SimpleKCM {
 
                             Button {
                                 text: qsTr("Open")
-
-                                icon.name:
-                                    "document-open-folder"
+                                icon.name: "document-open-folder"
 
                                 onClicked: {
-                                      kcm.backend.openThemeFolder(
+                                    kcm.backend.openThemeFolder(
                                         modelData
                                     )
                                 }
@@ -160,12 +156,10 @@ SimpleKCM {
 
                             Button {
                                 text: qsTr("Delete")
-
-                                icon.name:
-                                    "edit-delete"
+                                icon.name: "edit-delete"
 
                                 onClicked: {
-                                      kcm.backend.removeTheme(
+                                    kcm.backend.removeTheme(
                                         modelData
                                     )
                                 }
@@ -176,12 +170,8 @@ SimpleKCM {
 
                 Button {
                     text: qsTr("Upload Theme")
-
-                    icon.name:
-                        "folder-upload"
-
-                    Layout.alignment:
-                        Qt.AlignRight
+                    icon.name: "folder-upload"
+                    Layout.alignment: Qt.AlignRight
 
                     onClicked:
                         themeUploadDialog.open()
@@ -193,44 +183,35 @@ SimpleKCM {
             // =====================================================
 
             ColumnLayout {
-                spacing:
-                    Kirigami.Units.largeSpacing
+                spacing: Kirigami.Units.largeSpacing
 
                 Kirigami.Heading {
-                    text:
-                        qsTr("Blacklist")
-
+                    text: qsTr("Blacklist")
                     level: 3
                 }
 
                 ListView {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 300
+                    Layout.fillHeight: true
+                    Layout.minimumHeight: 200
+                    clip: true
+                    model: kcm.backend.blacklist
 
-                    model:
-                          kcm.backend.blacklist
+                    delegate: Kirigami.Card {
+                        width: ListView.view.width
 
-                    delegate:
-                    Kirigami.Card {
-                        width:
-                            ListView.view.width
-
-                        contentItem:
-                        RowLayout {
+                        contentItem: RowLayout {
                             Label {
                                 text: modelData
                                 Layout.fillWidth: true
                             }
 
                             Button {
-                                text:
-                                    qsTr("Remove")
-
-                                icon.name:
-                                    "edit-delete"
+                                text: qsTr("Remove")
+                                icon.name: "edit-delete"
 
                                 onClicked: {
-                                      kcm.backend.removeBlacklist(
+                                    kcm.backend.removeBlacklist(
                                         modelData
                                     )
                                 }
@@ -244,22 +225,16 @@ SimpleKCM {
 
                     TextField {
                         id: blacklistInput
-
-                        placeholderText:
-                            qsTr("Application name")
-
+                        placeholderText: qsTr("Application name")
                         Layout.fillWidth: true
                     }
 
                     Button {
-                        text:
-                            qsTr("Add")
+                        text: qsTr("Add")
 
                         onClicked: {
-                            if (
-                                blacklistInput.text.length > 0
-                            ) {
-                                  kcm.backend.addBlacklist(
+                            if (blacklistInput.text.length > 0) {
+                                kcm.backend.addBlacklist(
                                     blacklistInput.text
                                 )
 
@@ -275,76 +250,60 @@ SimpleKCM {
             // =====================================================
 
             ColumnLayout {
-                spacing:
-                    Kirigami.Units.largeSpacing
+                spacing: Kirigami.Units.largeSpacing
 
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
 
                     SpinBox {
-                        Kirigami.FormData.label:
-                            qsTr("Cursor Width")
-
-                        value:
-                              kcm.backend.cursorWidth
-
+                        Kirigami.FormData.label: qsTr("Cursor Width")
+                        value: kcm.backend.cursorWidth
                         from: 1
                         to: 512
 
                         onValueModified:
-                              kcm.backend.cursorWidth =
-                                value
+                            kcm.backend.cursorWidth = value
                     }
 
                     SpinBox {
-                        Kirigami.FormData.label:
-                            qsTr("Cursor Height")
-
-                        value:
-                              kcm.backend.cursorHeight
-
+                        Kirigami.FormData.label: qsTr("Cursor Height")
+                        value: kcm.backend.cursorHeight
                         from: 1
                         to: 512
 
                         onValueModified:
-                              kcm.backend.cursorHeight =
-                                value
+                            kcm.backend.cursorHeight = value
                     }
                 }
 
                 RowLayout {
                     Button {
-                        text:
-                            qsTr("Enable")
-
-                        icon.name:
-                            "media-playback-start"
+                        text: qsTr("Enable")
+                        icon.name: "media-playback-start"
 
                         onClicked:
-                              kcm.backend.enable()
+                            kcm.backend.enable()
                     }
 
                     Button {
-                        text:
-                            qsTr("Disable")
-
-                        icon.name:
-                            "media-playback-stop"
+                        text: qsTr("Disable")
+                        icon.name: "media-playback-stop"
 
                         onClicked:
-                              kcm.backend.disable()
+                            kcm.backend.disable()
                     }
 
                     Button {
-                        text:
-                            qsTr("Reload")
-
-                        icon.name:
-                            "view-refresh"
+                        text: qsTr("Reload")
+                        icon.name: "view-refresh"
 
                         onClicked:
-                              kcm.backend.reconfigureKWin()
+                            kcm.backend.reconfigureKWin()
                     }
+                }
+
+                Item {
+                    Layout.fillHeight: true
                 }
             }
         }
@@ -355,15 +314,9 @@ SimpleKCM {
 
         Kirigami.InlineMessage {
             Layout.fillWidth: true
-
-            visible:
-                  kcm.backend.statusMessage.length > 0
-
-            text:
-                  kcm.backend.statusMessage
-
-            type:
-                Kirigami.MessageType.Information
+            visible: kcm.backend.statusMessage.length > 0
+            text: kcm.backend.statusMessage
+            type: Kirigami.MessageType.Information
         }
     }
 }
