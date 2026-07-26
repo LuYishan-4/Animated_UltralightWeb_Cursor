@@ -178,34 +178,28 @@ bool UserConfig::uploadTheme(const std::string& path, const std::string& themeNa
     std::error_code ec;
     fs::path src(path);
     if (!fs::exists(src, ec) || ec){
-        qDebug() << "src not exists:" << ec.message().c_str();
         return false;
     }
     if (!fs::is_directory(src, ec) || ec){
-        qDebug() << "src is not directory:" << ec.message().c_str();
         return false;
     }
     fs::path dst = g_sdkInitialPath / themeName;
-    qDebug() << "uploadTheme dst =" << dst.string().c_str();
     fs::remove_all(dst, ec);
+    // bullshit
     if (ec){
-        qDebug() << "remove old theme failed:" << ec.message().c_str();
         return false;
     }
     fs::create_directories(dst, ec);
     if (ec){
-        qDebug() << "create directory failed:" << ec.message().c_str();
         return false;
     }
     qDebug() << "dst exists =" << fs::exists(dst);
     fs::directory_iterator it(src, ec);
     if (ec){
-        qDebug() << "iterator failed:" << ec.message().c_str();
         return false;
     }
     for (; it != fs::directory_iterator(); it.increment(ec)){
         if (ec){
-            qDebug() << "iterator increment failed:" << ec.message().c_str();
             return false;
         }
         fs::path sourceFile = it->path();
@@ -222,37 +216,30 @@ bool UserConfig::uploadTheme(const std::string& path, const std::string& themeNa
             return false;
         }
     }
-    qDebug() << "uploadTheme success";
     return true;
 }
 
 void UserConfig::setTheme(const std::string& themeName){
-    qDebug() << "uploadTheme ii"<< themeName;
     std::string htmlPath = (g_htmlInitialPath / themeName / "index.html").string();
     setKeyValue("html", htmlPath);
     save();
 }
 bool UserConfig::removeTheme(const std::string& themeName) {
     if (themeName.empty()) {
-        qDebug() << "removeTheme failed: themeName is empty";
         return false;
     }
 
     std::error_code ec;
     fs::path dst = g_sdkInitialPath / themeName;
-    qDebug() << "removeTheme target dst =" << dst.string().c_str();
 
     if (!fs::exists(dst, ec) || ec) {
-        qDebug() << "theme does not exist or access denied:" << ec.message().c_str();
         return false; 
     }
 
     fs::remove_all(dst, ec);
     if (ec) {
-        qDebug() << "remove theme directory failed:" << ec.message().c_str();
         return false;
     }
-    qDebug() << "removeTheme success:" << themeName.c_str();
     return true;
 }
 

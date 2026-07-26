@@ -30,10 +30,9 @@ UltralightCursorEffect::UltralightCursorEffect(){
         m_html.reset();
         return;
     }
-    qDebug() << "[UltralightCursorEffect] ggggbc";
+    qDebug() << "[UltralightCursorEffect] init";
     m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
     m_mouseProvider =std::make_unique<KwinMouseProvider>();
-    qDebug() << "[UltralightCursorEffect] gggggggggggggg";
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
         if(!m_html)return;
         m_cursorPoint =
@@ -58,7 +57,6 @@ QDBusConnection::sessionBus().registerObject(
         this,
         QDBusConnection::ExportAllSlots
     );
-    qDebug() << "[UltralightCursorEffect] cod";
     }catch (const char* msg) { 
             std::cerr << "error: " << msg << "\n";
     } 
