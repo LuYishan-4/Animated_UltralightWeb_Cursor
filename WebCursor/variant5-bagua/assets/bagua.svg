@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<g fill="none" stroke="#e8c98a" stroke-width="2.4" stroke-linecap="round">
+<circle cx="64" cy="64" r="56"/>
+<circle cx="64" cy="64" r="34"/>
+<circle cx="64" cy="64" r="3"/>
+<g transform="rotate(0 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(45 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="-2.5" y2="7"/><line x1="2.5" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(90 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="-2.5" y2="0"/><line x1="2.5" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(135 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="-2.5" y2="0"/><line x1="2.5" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="-2.5" y2="7"/><line x1="2.5" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(180 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="-2.5" y2="-7"/><line x1="2.5" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(225 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="-2.5" y2="-7"/><line x1="2.5" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="-2.5" y2="7"/><line x1="2.5" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(270 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="-2.5" y2="-7"/><line x1="2.5" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="-2.5" y2="0"/><line x1="2.5" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="10.0" y2="7"/></g>
+<g transform="rotate(315 64 64) translate(64 19)"><line x1="-10.0" y1="-7" x2="-2.5" y2="-7"/><line x1="2.5" y1="-7" x2="10.0" y2="-7"/><line x1="-10.0" y1="0" x2="-2.5" y2="0"/><line x1="2.5" y1="0" x2="10.0" y2="0"/><line x1="-10.0" y1="7" x2="-2.5" y2="7"/><line x1="2.5" y1="7" x2="10.0" y2="7"/></g>
+</g>
+</svg>

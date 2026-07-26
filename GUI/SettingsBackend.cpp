@@ -337,15 +337,54 @@ void SettingsBackend::useTheme(const QString& name)
     reconfigureKWin();
 }
 
-void SettingsBackend::removeTheme(const QString& name)
+bool SettingsBackend::removeTheme(const QString& name)
 {
-    std::filesystem::remove_all(
-        g_sdkInitialPath  / name.toStdString()
-    );
+    qDebug() << "removeTheme name =" << name;
 
-    loadThemes();
-    reload();
+    if (name.isEmpty())
+    {
+        setStatusMessage(QStringLiteral("Theme name is empty"));
+        return false;
+    }
+    KAuth::Action action(QStringLiteral("org.ultralightwebcursor.install"));
+    action.setHelperId(QStringLiteral("org.ultralightwebcursor"));
+    QVariantMap args;
+    args.insert(QStringLiteral("name"), name);
+    args.insert(QStringLiteral("path"), QString());
+    args.insert(QStringLiteral("action"), QStringLiteral("uninstall")); 
+
+    action.setArguments(args);
+
+    KAuth::ExecuteJob *job = action.execute(); 
+    if (!job)
+    {
+        setStatusMessage(QStringLiteral("Failed to create auth job"));
+        return false;
+    }
+
+    if (!job->exec())
+    {
+        qDebug() << "KAuth error:" << job->errorText();
+        setStatusMessage(QStringLiteral("Authorization failed"));
+        return false;
+    }
+
+    qDebug() << "KAuth result:" << job->data();
+    QVariantMap result = job->data();
+
+    bool success = result.value(QStringLiteral("success")).toBool();
+
+    if (success)
+    {
+        loadThemes();
+        setStatusMessage(QStringLiteral("Theme removed"));
+        return true;
+    }
+
+    setStatusMessage(QStringLiteral("Remove failed"));
+    return false;
 }
+
 
 void SettingsBackend::openThemeFolder(const QString& name)
 {

@@ -232,6 +232,29 @@ void UserConfig::setTheme(const std::string& themeName){
     setKeyValue("html", htmlPath);
     save();
 }
+bool UserConfig::removeTheme(const std::string& themeName) {
+    if (themeName.empty()) {
+        qDebug() << "removeTheme failed: themeName is empty";
+        return false;
+    }
+
+    std::error_code ec;
+    fs::path dst = g_sdkInitialPath / themeName;
+    qDebug() << "removeTheme target dst =" << dst.string().c_str();
+
+    if (!fs::exists(dst, ec) || ec) {
+        qDebug() << "theme does not exist or access denied:" << ec.message().c_str();
+        return false; 
+    }
+
+    fs::remove_all(dst, ec);
+    if (ec) {
+        qDebug() << "remove theme directory failed:" << ec.message().c_str();
+        return false;
+    }
+    qDebug() << "removeTheme success:" << themeName.c_str();
+    return true;
+}
 
 std::string UserConfig::currentTheme() const{
     auto it = data_.find("html");

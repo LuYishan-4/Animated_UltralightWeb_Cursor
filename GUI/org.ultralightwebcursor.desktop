@@ -2,7 +2,6 @@
 Version=1.0
 Type=Application
 Name=UltralightWeb Cursor
-Name[zh_TW]=UltralightWeb 網頁游標設定
 Comment=Customize your system cursor with HTML, CSS, and JavaScript
 Comment[zh_TW]=使用 HTML、CSS 與 JavaScript 自訂您的系統全域動畫游標
 Exec=kcmshell6 kcm_ultralightwebcursor

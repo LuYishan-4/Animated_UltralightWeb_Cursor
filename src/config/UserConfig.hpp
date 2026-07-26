@@ -39,6 +39,7 @@ public:
     void appendBlacklist(const std::string& app);
     void removeBlacklist(const std::string& app);
     bool uploadTheme(const std::string& srcPath, const std::string& themeName);
+    bool removeTheme(const std::string& themeName);
     void setTheme(const std::string& themeName);
     std::string currentTheme() const;
 

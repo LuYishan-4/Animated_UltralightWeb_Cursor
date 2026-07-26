@@ -54,7 +54,7 @@ public:
 
     Q_INVOKABLE void useTheme(const QString& name);
 
-    Q_INVOKABLE void removeTheme(const QString& name);
+    Q_INVOKABLE bool removeTheme(const QString& name);
 
     Q_INVOKABLE void openThemeFolder(const QString& name);
 
