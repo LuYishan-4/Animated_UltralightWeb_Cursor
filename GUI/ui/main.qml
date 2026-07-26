@@ -259,7 +259,7 @@ SimpleKCM {
                         Kirigami.FormData.label: qsTr("Cursor Width")
                         value: kcm.backend.cursorWidth
                         from: 1
-                        to: 512
+                        to: 1920
 
                         onValueModified:
                             kcm.backend.cursorWidth = value
@@ -269,7 +269,7 @@ SimpleKCM {
                         Kirigami.FormData.label: qsTr("Cursor Height")
                         value: kcm.backend.cursorHeight
                         from: 1
-                        to: 512
+                        to: 1080
 
                         onValueModified:
                             kcm.backend.cursorHeight = value

@@ -88,14 +88,10 @@ QDBusConnection::sessionBus().registerObject(
         effects->addRepaintFull();
     }
     void UltralightCursorEffect::reloadHtml(){
-        try{
         UltralightWebCursorM::UserConfig::instance()->load();
         if(!m_html)return;
         m_html->reload(UserConfigimp);
         effects->addRepaintFull();
-        }catch (const char* msg) { 
-            std::cerr << "error: " << msg << "\n";
-        }    
     }
     bool UltralightCursorEffect::isBlacklisted() const {
          auto window = effects->activeWindow();

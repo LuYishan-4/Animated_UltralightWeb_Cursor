@@ -75,13 +75,15 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
 }
 
 
-bool UltralightHtmlEffect::load(const std::string& path){
+bool UltralightHtmlEffect::load(const std::string& path) {
     std::ifstream file(path);
-    if(!file)return false;
+    if (!file) {
+        qWarning() << "[UltralightCursorEffect] Failed to open file:" << QString::fromStdString(path);
+        return false;
+    }
     std::filesystem::path p(path);
-    std::filesystem::path parentDir = p.parent_path();
-    std::filesystem::path targetHtml = parentDir / "index.html"; 
-    std::string fileUrl = "file://" + targetHtml.string();
+    std::string folderName = p.parent_path().filename().string();
+    std::string fileUrl = "file:///" + folderName + "/index.html";
     is_loaded_ = false;
     qDebug() << "[UltralightCursorEffect] Target URL:" << QString::fromStdString(fileUrl);
     view_->LoadURL(fileUrl.c_str());

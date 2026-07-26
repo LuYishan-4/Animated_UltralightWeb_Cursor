@@ -334,6 +334,7 @@ void SettingsBackend::useTheme(const QString& name)
     );
 
     reload();
+    reconfigureKWin();
 }
 
 void SettingsBackend::removeTheme(const QString& name)

@@ -185,7 +185,7 @@ bool UserConfig::uploadTheme(const std::string& path, const std::string& themeNa
         qDebug() << "src is not directory:" << ec.message().c_str();
         return false;
     }
-    fs::path dst = g_sdkInitialPath / "resources" / themeName;
+    fs::path dst = g_sdkInitialPath / themeName;
     qDebug() << "uploadTheme dst =" << dst.string().c_str();
     fs::remove_all(dst, ec);
     if (ec){

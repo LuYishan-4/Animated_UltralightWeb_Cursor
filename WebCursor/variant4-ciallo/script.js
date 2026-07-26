@@ -1,6 +1,6 @@
 let mouseDown = false;
-let lastX = 64;
-let lastY = 64;
+let lastX = null;
+let lastY = null;
 
 const cursorEl = document.getElementById("cursor");
 
@@ -56,28 +56,42 @@ document.addEventListener("fullscreenchange", () => {
 });
 
 // ---- movement trail effect ----
+// NOTE: the overlay window itself is a small fixed-size view (e.g. 128x128)
+// that the host app moves to the real mouse position at the OS level.
+// So x/y passed into moveCursor() are absolute desktop coordinates, NOT
+// local coordinates inside this tiny view -- they should never be used to
+// place anything on this page directly (that's what caused the
+// stuck-in-a-corner bugs before). Everything here is drawn relative to the
+// fixed center point (64,64), exactly like variant 1-3. We only use the
+// x/y to figure out the *direction* the mouse is moving, for the trail.
 
-function spawnTrail(x, y) {
+const CENTER_X = 64;
+const CENTER_Y = 64;
+const TRAIL_MOVE_THRESHOLD = 1; // ignore sub-pixel jitter
+const TRAIL_MAX_OFFSET = 26; // how far the trail streak reaches from center
+
+function spawnTrail(offsetX, offsetY) {
     const t = document.createElement("div");
     t.className = "trail";
-    t.style.left = x + "px";
-    t.style.top = y + "px";
+    t.style.left = CENTER_X + "px";
+    t.style.top = CENTER_Y + "px";
+    t.style.setProperty("--x", offsetX + "px");
+    t.style.setProperty("--y", offsetY + "px");
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 500);
 }
 
 // ---- click effects: ring burst + scattering ciallo.svg icons ----
+// always drawn from the fixed center point, same principle as variant 1-3
 
-function clickEffect(x, y) {
+function clickEffect() {
     const ring = document.createElement("div");
     ring.className = "ring";
-    ring.style.left = x + "px";
-    ring.style.top = y + "px";
     document.body.appendChild(ring);
     setTimeout(() => ring.remove(), 600);
 }
 
-function iconParticle(x, y) {
+function iconParticle() {
     const p = document.createElement("img");
     p.src = "assets/ciallo.svg";
     p.className = "icon-particle";
@@ -87,8 +101,6 @@ function iconParticle(x, y) {
     let dy = (Math.random() - 0.5) * 100;
     let rot = (Math.random() - 0.5) * 360;
 
-    p.style.left = x + "px";
-    p.style.top = y + "px";
     p.style.setProperty("--x", dx + "px");
     p.style.setProperty("--y", dy + "px");
     p.style.setProperty("--r", rot + "deg");
@@ -97,34 +109,39 @@ function iconParticle(x, y) {
     setTimeout(() => p.remove(), 700);
 }
 
-// x, y are pixel coordinates within the 128x128 canvas.
+// x, y are the host's real desktop mouse coordinates (see
+// UltralightHtmlEffect::move in the C++ side) -- used here only to derive
+// movement direction, never as an absolute position on this page.
 // pressed indicates whether the mouse button is currently held down.
 window.moveCursor = function (x, y, pressed) {
     resetIdleTimer();
 
-    // move the cursor dot to the real position
-    cursorEl.style.left = x + "px";
-    cursorEl.style.top = y + "px";
+    if (typeof x === "number" && typeof y === "number" && lastX !== null) {
+        const dx = x - lastX;
+        const dy = y - lastY;
+        const mag = Math.sqrt(dx * dx + dy * dy);
 
-    // leave a trail while moving
-    if (x !== lastX || y !== lastY) {
-        spawnTrail(x, y);
+        if (mag > TRAIL_MOVE_THRESHOLD) {
+            const nx = (dx / mag) * TRAIL_MAX_OFFSET;
+            const ny = (dy / mag) * TRAIL_MAX_OFFSET;
+            spawnTrail(nx, ny);
+        }
     }
     lastX = x;
     lastY = y;
 
     // click just started -> burst of ring + many scattered icons
     if (pressed && !mouseDown) {
-        clickEffect(x, y);
+        clickEffect();
         for (let i = 0; i < 10; i++) {
-            iconParticle(x, y);
+            iconParticle();
         }
     }
 
     mouseDown = pressed;
 
     if (pressed) {
-        iconParticle(x, y);
+        iconParticle();
     }
 };
 
