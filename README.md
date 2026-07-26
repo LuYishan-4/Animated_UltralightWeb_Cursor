@@ -1,7 +1,7 @@
 <div align="center">
 <img src="asstes/114514.jpg" width="200" height="200">
 
-# UltralightWeb Cursor
+# Animated_UltralightWeb_Cursor
 
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![AUR](https://img.shields.io/badge/AUR-ultralightwebcursor--git-1793d1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/ultralightwebcursor-git)
