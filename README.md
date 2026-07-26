@@ -47,6 +47,8 @@ The project is split into three independent pieces so each part stays simple and
 
 **Arch Linux (recommended):**
 
+Please note that this plugin currently only supports KDE.
+
 ```bash
 yay -S ultralightwebcursor-git
 ```
@@ -114,6 +116,8 @@ These are planned, not yet built — contributions welcome:
 ###  安裝
 
 **Arch Linux（推薦）：**
+
+注意該插件目前僅支援kde
 
 ```bash
 yay -S ultralightwebcursor-git
