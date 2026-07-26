@@ -1,5 +1,5 @@
 <div align="center">
-<img src="asstes/114514.jpg" width="200" height="200">
+<img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/GUI/assets/sakichansakichansakichansakichansakichansakichansakichansakichan.svg" width="200" height="200">
 
 # Animated_UltralightWeb_Cursor
 
@@ -11,7 +11,7 @@
 
 **English** | [繁體中文](#繁體中文)
 
-  <img src="asstes/ciallo.gif" width="500">
+  <img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/asstes/4lgsd-jb9v1.gif" width="500">
   
 
 
@@ -70,7 +70,7 @@ This builds and installs all three components: the KWin plugin, the settings app
 /.config/ultralightwebcursor/config.ini
 ```
 
-   (also searchable from KRunner / the app launcher as **"UltralightWebCursor-GUi"**)
+   (also searchable from KRunner / the app launcher as **"UltralightWeb Cursor"**)
 
 3. Changes apply live via **Apply** — no logout required.
 
@@ -141,7 +141,7 @@ cd UltralightWeb-Cursor
 /.config/ultralightwebcursor/config.ini
 ```
 
-   （也可以直接在 KRunner / 應用程式選單搜尋 **「UltralightWebCursor-GUi」**）
+   （也可以直接在 KRunner / 應用程式選單搜尋 **「UltralightWeb Cursor」**）
 
 3. 按下 **套用** 即時生效，不需要登出。
 
