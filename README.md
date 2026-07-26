@@ -148,7 +148,6 @@ cd UltralightWeb-Cursor
 - **游標編輯器** — 圖形化製作游標動畫的編輯器
 - **GPU渲染兼容** — 優化效能
 
-<sub>純ai readme文本:) ,但我其實還沒發布在AUR上,要用可以用.sh載還有求大佬PR更好看的HTML檔本人網站小白😭</sub>
 
 ### 作者
 
