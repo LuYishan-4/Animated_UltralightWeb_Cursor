@@ -7,7 +7,7 @@
 #include <QDBusConnection>
 #include <QImage>
 #include <iostream>
-
+#include <stdexcept>
 
 
 namespace KWin{
@@ -59,9 +59,9 @@ QDBusConnection::sessionBus().registerObject(
         QDBusConnection::ExportAllSlots
     );
     qDebug() << "[UltralightCursorEffect] cod";
-    }catch (const std::runtime_error& e) {
-           std::cerr << "error: " << e.what() << std::endl;
-    }
+    }catch (const char* msg) { 
+            std::cerr << "error: " << msg << "\n";
+    } 
 }
 
     UltralightCursorEffect::~UltralightCursorEffect(){
@@ -93,9 +93,9 @@ QDBusConnection::sessionBus().registerObject(
         if(!m_html)return;
         m_html->reload(UserConfigimp);
         effects->addRepaintFull();
-        }catch (const std::runtime_error& e) {
-           std::cerr << "error: " << e.what() << std::endl;
-        }
+        }catch (const char* msg) { 
+            std::cerr << "error: " << msg << "\n";
+        }    
     }
     bool UltralightCursorEffect::isBlacklisted() const {
          auto window = effects->activeWindow();

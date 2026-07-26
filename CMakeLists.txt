@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(cursor-ani LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
+add_compile_options(-fexceptions)
 set(KF6_MIN_VERSION "6.0.0")
 
 find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
@@ -230,7 +230,7 @@ install(
 
 
 install(DIRECTORY WebCursor/
-        DESTINATION  "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor/resources/"
+        DESTINATION  "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor/resources"
 )
 
 

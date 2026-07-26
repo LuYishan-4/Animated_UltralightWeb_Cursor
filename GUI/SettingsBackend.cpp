@@ -19,15 +19,6 @@ SettingsBackend::SettingsBackend(QObject* parent)
     reload();
 }
 
-QString SettingsBackend::htmlPath() const
-{
-    return htmlPath_;
-}
-
-QString SettingsBackend::sdkPath() const
-{
-    return sdkPath_;
-}
 
 bool SettingsBackend::enabled() const
 {
@@ -64,35 +55,10 @@ int SettingsBackend::cursorHeight() const
     return cursorHeight_;
 }
  
-bool SettingsBackend::autoHide() const
-{
-    return autoHide_;
-}
 
-void SettingsBackend::setHtmlPath(const QString& path)
-{
-    if(htmlPath_ == path)return;
-    htmlPath_ = path;
-    QFileInfo info(path);
-    QString themeFolder = info.absolutePath();
-    QString themeName = QFileInfo(themeFolder).fileName();
-    if(!themeFolder.isEmpty() && !themeName.isEmpty()){
-        UltralightWebCursorM::UserConfig::instance()->uploadTheme(
-            themeFolder.toStdString(),
-            themeName.toStdString()
-        );
-    }
-    Q_EMIT htmlPathChanged();
-}
 
-void SettingsBackend::setSdkPath(const QString& path)
-{
-    if(sdkPath_ == path)
-        return;
 
-    sdkPath_ = path;
-    Q_EMIT sdkPathChanged();
-}
+
 
 void SettingsBackend::setEnabled(bool value)
 {
@@ -130,11 +96,7 @@ void SettingsBackend::setStatusMessage(const QString& msg)
 void SettingsBackend::reload()
 {
     UltralightWebCursorM::UserConfig::instance()->load();
-
-    htmlPath_     = QString::fromStdString(UserConfigimp.html);
-    sdkPath_      = QString::fromStdString(UserConfigimp.sdk);
     enabled_      = UserConfigimp.enabled;
-    autoHide_     = UserConfigimp.isautohide; 
     cursorWidth_  = UserConfigimp.width; 
     cursorHeight_ = UserConfigimp.height;   
     currentTheme_ = QString::fromStdString(UserConfig::instance()->currentTheme());
@@ -147,14 +109,12 @@ void SettingsBackend::reload()
 
     loadThemes();
 
-    Q_EMIT htmlPathChanged();
-    Q_EMIT sdkPathChanged();
     Q_EMIT enabledChanged();
     Q_EMIT blacklistChanged();
     Q_EMIT currentThemeChanged();
     Q_EMIT cursorWidthChanged();
     Q_EMIT cursorHeightChanged();
-    Q_EMIT autoHideChanged();
+
 
     setStatusMessage(
         QStringLiteral("Loaded")
@@ -165,15 +125,6 @@ void SettingsBackend::save()
 {
     auto* userConfig = UltralightWebCursorM::UserConfig::instance();
 
-    userConfig->setKeyValue(
-        "html",
-        htmlPath_.toStdString()
-    );
-
-    userConfig->setKeyValue(
-        "sdk",
-        sdkPath_.toStdString()
-    );
 
     userConfig->setKeyValue(
         "enabled",
@@ -188,12 +139,6 @@ void SettingsBackend::save()
     userConfig->setKeyValue(
         "height",
         std::to_string(cursorHeight_)
-    );
-
-
-    userConfig->setKeyValue(
-        "isautohide",
-        autoHide_ ? "true" : "false"
     );
 
 
@@ -240,8 +185,7 @@ void SettingsBackend::loadThemes()
     }
     for(auto& item : std::filesystem::directory_iterator(path))
     {
-        if(item.is_directory())
-        {
+        if(item.is_directory()){
             themeList_ << QString::fromStdString(
                 item.path().filename().string()
             );
@@ -250,17 +194,6 @@ void SettingsBackend::loadThemes()
 
     Q_EMIT themeListChanged();
 }
-
-void SettingsBackend::setAutoHide(bool value)
-{
-    if(autoHide_ == value)
-        return;
- 
-    autoHide_ = value;
-    Q_EMIT autoHideChanged();
-}
-
-
 bool SettingsBackend::uploadTheme(const QString& path)
 {
     qDebug() << "uploadTheme path =" << path;

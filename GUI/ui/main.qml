@@ -281,30 +281,6 @@ SimpleKCM {
                 Kirigami.FormLayout {
                     Layout.fillWidth: true
 
-                    TextField {
-                        Kirigami.FormData.label:
-                            qsTr("HTML Path")
-
-                        text:
-                              kcm.backend.htmlPath
-
-                        onEditingFinished:
-                              kcm.backend.htmlPath =
-                                text
-                    }
-
-                    TextField {
-                        Kirigami.FormData.label:
-                            qsTr("SDK Path")
-
-                        text:
-                              kcm.backend.sdkPath
-
-                        onEditingFinished:
-                              kcm.backend.sdkPath =
-                                text
-                    }
-
                     SpinBox {
                         Kirigami.FormData.label:
                             qsTr("Cursor Width")
@@ -333,17 +309,6 @@ SimpleKCM {
                         onValueModified:
                               kcm.backend.cursorHeight =
                                 value
-                    }
-                    CheckBox {
-                        Kirigami.FormData.label:
-                            qsTr("Auto Hide")
-
-                        checked:
-                              kcm.backend.autoHide
-
-                        onToggled:
-                              kcm.backend.autoHide =
-                                checked
                     }
                 }
 

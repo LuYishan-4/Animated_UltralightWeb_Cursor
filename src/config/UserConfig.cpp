@@ -227,6 +227,7 @@ bool UserConfig::uploadTheme(const std::string& path, const std::string& themeNa
 }
 
 void UserConfig::setTheme(const std::string& themeName){
+    qDebug() << "uploadTheme ii"<< themeName;
     std::string htmlPath = (g_htmlInitialPath / themeName / "index.html").string();
     setKeyValue("html", htmlPath);
     save();
