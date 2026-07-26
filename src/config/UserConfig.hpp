@@ -21,7 +21,6 @@ struct ConfigValues {
     int width;
     int height;
     bool enabled;
-    bool isautohide;
 };
 
 class UserConfig

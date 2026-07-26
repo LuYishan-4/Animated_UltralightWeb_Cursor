@@ -230,7 +230,7 @@ install(
 
 
 install(DIRECTORY WebCursor/
-        DESTINATION  "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor/resources/default"
+        DESTINATION  "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor/resources/"
 )
 
 

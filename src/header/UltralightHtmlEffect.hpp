@@ -31,7 +31,7 @@ public:
     );
 
 
-    void update(bool ishide);
+    void update();
 
 
     void move(
@@ -68,7 +68,6 @@ bool resize(const int&  width,const int&  height);
 
 
 
-    // 開關效果
     void setEnabled(bool enabled);
 
 
@@ -104,11 +103,6 @@ private:
 
 
     bool new_frame_ = false;
-
-    bool is_auto_hide = true;
-
-
-
 
     // cursor size
     int width_ = 128;

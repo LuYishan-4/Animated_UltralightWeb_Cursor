@@ -28,8 +28,8 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
-    is_auto_hide =  uconfig.isautohide;
-    qDebug() << "[UltralightCursorEffect] dddddddddddddddeccccccc" << html_path_.c_str();
+
+
     if (!platform_initialized_){
     ultralight::Config config;
     config.resource_path_prefix =
@@ -78,28 +78,10 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
 bool UltralightHtmlEffect::load(const std::string& path){
     std::ifstream file(path);
     if(!file)return false;
-
-    std::string html(
-        (std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>()
-    );
-
-
-
-    std::filesystem::path p(path);
-
-    std::string base ="file://" +p.parent_path().string()+"/";
-
+    std::string base ="file://" +path;
     is_loaded_ = false;
-    qDebug() << "[UltralightCursorEffect] "<<html;
-    view_->LoadHTML(
-        ultralight::String(
-            html.c_str()
-        ),
-        ultralight::String(
-            base.c_str()
-        )
-    );
+    qDebug() << "[UltralightCursorEffect] "<<base;
+    view_->LoadURL(base.c_str());
     view_->set_needs_paint(true);
     return true;
 }
@@ -115,7 +97,6 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig){
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
-    is_auto_hide =  uconfig.isautohide;
     UltralightHtmlEffect::load(html_path_ );
     UltralightHtmlEffect::resize(width_,height_);
 }
@@ -145,13 +126,9 @@ void UltralightHtmlEffect::move( int x, int y,bool pressed){
     view_->set_needs_paint(true);
 }
 
-void UltralightHtmlEffect::update(bool ishide){
+void UltralightHtmlEffect::update(){
     if(!enabled_)return;
     if(!renderer_ || !view_)return;
-    if (is_auto_hide && ishide){
-    qDebug() << "[UltralightCursorEffect] hide";
-        return;
-    }
     renderer_->Update();
     view_->set_needs_paint(true);
     renderer_->Render();
