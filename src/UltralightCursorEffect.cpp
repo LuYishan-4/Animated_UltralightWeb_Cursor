@@ -8,7 +8,7 @@
 #include <QImage>
 #include <iostream>
 #include <stdexcept>
-
+#include <QTimer>
 
 namespace KWin{
 
@@ -33,6 +33,17 @@ UltralightCursorEffect::UltralightCursorEffect(){
     }
     qDebug() << "[UltralightCursorEffect] init";
     m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
+
+    m_idleTimer = new QTimer(this);
+    m_idleTimer->setSingleShot(true);
+    m_idleTimer->setInterval(2500); 
+    connect(m_idleTimer, &QTimer::timeout, this, [this]() {
+        if (checkFullScreen()) {
+            m_isIdleHidden = true;
+            effects->addRepaintFull();
+        }
+    });
+    connect(effects, &EffectsHandler::windowActivated, this, &UltralightCursorEffect::slotWindowStateChanged);
     m_mouseProvider =std::make_unique<KwinMouseProvider>();
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
         if(!m_html)return;
@@ -52,6 +63,7 @@ UltralightCursorEffect::UltralightCursorEffect(){
 );
 
 m_mouseProvider->initialize();
+m_idleTimer->start();
 
 QDBusConnection::sessionBus().registerObject(
     QStringLiteral("/UltralightCursor"),
@@ -104,6 +116,8 @@ QDBusConnection::sessionBus().registerObject(
         
         if(!m_html)return nullptr;
         if(!m_html->isEnabled())return nullptr;
+        if (m_isIdleHidden)return nullptr;
+            
 
 
 
@@ -145,6 +159,8 @@ QDBusConnection::sessionBus().registerObject(
             region,
             screen
         );
+      
+
 
         GLTexture* texture =ensureCursorTexture();
         if(!texture){
@@ -200,6 +216,24 @@ QDBusConnection::sessionBus().registerObject(
 
     bool UltralightCursorEffect::isActive() const{
         return m_html != nullptr;
+    }
+       bool UltralightCursorEffect::checkFullScreen() const {
+        if (EffectWindow *activeWin = effects->activeWindow()) {
+            return activeWin->isFullScreen();
+        }
+        return false;
+    }
+
+   void UltralightCursorEffect::slotWindowStateChanged(EffectWindow *w) {
+        Q_UNUSED(w);
+        if (!checkFullScreen()) {
+            if (m_isIdleHidden) {
+                m_isIdleHidden = false;
+                effects->addRepaintFull();
+            }
+            m_idleTimer->stop();
+        } else {
+            m_idleTimer->start();
     }
 
 

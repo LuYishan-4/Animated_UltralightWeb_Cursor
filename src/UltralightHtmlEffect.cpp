@@ -8,7 +8,6 @@
 #include <cstring>
 #include <QDBusConnection>
 #include <QProcess>
-#include "config/WebType.hpp"
 namespace UltralightWebCursorM{
 UltralightHtmlEffect::UltralightHtmlEffect(){}
 
@@ -23,16 +22,13 @@ UltralightHtmlEffect::~UltralightHtmlEffect(){
 
 //initialize
 bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf& data){
-    width_ = uconfig.width;
-    height_ = uconfig.height;
+    width_ = data.minWidth;
+    height_ = data.minHeight;
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
-    web_type_enum_ = stringToWebType(data.WebType);
     minheight = data.minHeight;
     minwidth = data.minWidth;
-    localserver = data.localServer;
-    mainboot = data.main;
     if (!platform_initialized_){
     ultralight::Config config;
     config.resource_path_prefix =
@@ -69,17 +65,6 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
    webcall = std::make_shared<WebCall>();
     webcall->view_ = view_; 
     if(std::filesystem::exists(html_path_ )) html_time_ =std::filesystem::last_write_time(html_path_ );
-    switch (web_type_enum_) {
-    case WebType::TypeScript:
-        compileTypeScript(html_path_.parent_path().string());
-        break;
-    case WebType::Html:
-        mainboot = "html";
-    default:
-        break;
-    }
-
-    compileTypeScript(html_path_.parent_path().string());
     return load(html_path_);
 }
 
@@ -99,7 +84,7 @@ bool UltralightHtmlEffect::load(const std::string& path) {
     return true;
 }
 bool UltralightHtmlEffect::resize(const int&  width,const int&  height){
-    if (width>1920 || height > 1080)return false;
+    if (width>minwidth || height > minheight)return false;
     view_->Resize(width,height);
     return true;
 }
@@ -116,26 +101,7 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig,const JSONConf& da
 
 void UltralightHtmlEffect::move( int x, int y,bool pressed){
     if(!view_)return;
-    
-    std::string js ="if(window.moveCursor)"
-        "{window.moveCursor("
-        +
-        std::to_string(x)
-        +
-        ","
-        +
-        std::to_string(y)
-        +
-        ","
-        +
-        (pressed ? "true":"false")
-        +
-        ");}";
-    view_->EvaluateScript(
-        ultralight::String(
-            js.c_str()
-        )
-    );
+   if (webcall)webcall->move(x, y, pressed);
     view_->set_needs_paint(true);
 }
 
@@ -205,50 +171,4 @@ const uint8_t* UltralightHtmlEffect::pixels() const
         return nullptr;
     return pixel_buffer_.data();
 }
-
-bool UltralightHtmlEffect::compileTypeScript(const std::string& projectDir) {
-    QDir dir(QString::fromStdString(projectDir));
-    if (!dir.exists()) {
-        qWarning() << "[UltralightCursorEffect] TS project dir not found:"
-                    << QString::fromStdString(projectDir);
-        return false;
-    }
-
-    if (!dir.exists(QStringLiteral("node_modules"))) {
-        QProcess installProcess;
-        installProcess.setWorkingDirectory(dir.absolutePath());
-        installProcess.setProgram(QStringLiteral("npm"));
-        installProcess.setArguments({QStringLiteral("install")});
-        installProcess.start();
-        if (!installProcess.waitForFinished(120000)) { 
-            qWarning() << "[UltralightCursorEffect] npm install timed out";
-            return false;
-        }
-        if (installProcess.exitCode() != 0) {
-            qWarning() << "[UltralightCursorEffect] npm install failed:\n"
-                        << installProcess.readAllStandardError();
-            return false;
-        }
-    }
-
-    QProcess buildProcess;
-    buildProcess.setWorkingDirectory(dir.absolutePath());
-    buildProcess.setProgram(QStringLiteral("npm"));
-    buildProcess.setArguments({QStringLiteral("run"), QStringLiteral("build")});
-    buildProcess.start();
-    if (!buildProcess.waitForFinished(60000)) { 
-        qWarning() << "[UltralightCursorEffect] npm run build timed out";
-        return false;
-    }
-    if (buildProcess.exitCode() != 0) {
-        qWarning() << "[UltralightCursorEffect] TypeScript compile failed:\n"
-                    << buildProcess.readAllStandardError();
-        return false;
-    }
-
-    std::cout << "[Ultralight] TypeScript compiled successfully in "
-              << projectDir << "\n";
-    return true;
-}
-
 }

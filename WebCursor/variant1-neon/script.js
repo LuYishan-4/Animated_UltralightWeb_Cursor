@@ -26,8 +26,7 @@ function resetIdleTimer() {
     idleTimer = setTimeout(hideCursor, IDLE_TIMEOUT_MS);
 }
 
-// call this from outside when a game screen / fullscreen content starts or ends
-// e.g. window.setGameMode(true) to hide, window.setGameMode(false) to allow showing again
+
 window.setGameMode = function (isGame) {
     gameMode = !!isGame;
     if (gameMode) {

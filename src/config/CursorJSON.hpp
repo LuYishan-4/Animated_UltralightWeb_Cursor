@@ -9,13 +9,10 @@ namespace UltralightWebCursorM{
 
 struct JSONConf{
     std::string IconPath;
-    std::string WebType;
     std::string Author;
     int minHeight;
     int minWidth;
     std::string describe;
-    bool localServer;
-    std::string main;
 };
 
 class CursorJSON{

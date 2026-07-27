@@ -34,7 +34,7 @@ bool initialize(const ConfigValues& uconfig,const JSONConf& data);
 
 
     void update();
-     bool compileTypeScript(const std::string& projectDir);
+
 
 
     void move(
@@ -109,11 +109,8 @@ private:
     int height_ = 128;
     int stride_ = 0;
     bool platform_initialized_=false;
-    WebType web_type_enum_ = WebType::Unknown; 
-    std::string mainboot = "index.html";
     int minwidth = 128;
     int minheight = 128;
-    bool localserver = false;
     std::string m_permanentSdkPath; 
 
 

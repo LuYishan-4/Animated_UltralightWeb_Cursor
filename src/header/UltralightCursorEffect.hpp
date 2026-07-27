@@ -91,6 +91,12 @@ private:
 
 private:
 
+bool checkFullScreen() const;
+QTimer *m_idleTimer = nullptr;
+bool m_isIdleHidden = false;
+void slotWindowStateChanged(EffectWindow *w);
+
+
 
     std::unique_ptr<UltralightWebCursorM::UltralightHtmlEffect> m_html;
 

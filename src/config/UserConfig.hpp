@@ -21,7 +21,6 @@ struct ConfigValues {
     int width;
     int height;
     bool enabled;
-    int TCP_PORT;
 };
 
 class UserConfig

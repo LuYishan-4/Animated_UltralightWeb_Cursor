@@ -13,13 +13,10 @@ CursorJSON* CursorJSON::instance() {
 CursorJSON::CursorJSON() {
     schema_ = {
         {"IconPath",  "",       [this](const std::string& v) { values.IconPath = v; }},
-        {"WebType",   "html",   [this](const std::string& v) { values.WebType = v; }},
         {"Author",    "Unknown",[this](const std::string& v) { values.Author = v; }},
         {"minHeight", "128",    [this](const std::string& v) { values.minHeight = std::stoi(v); }},
         {"minWidth",  "128",    [this](const std::string& v) { values.minWidth = std::stoi(v); }},
         {"describe",  "",       [this](const std::string& v) { values.describe = v; }},
-        {"localServer",  "false",  [this](const std::string& v){ values.localServer = (v == "false"); }},
-        {"main",  "",       [this](const std::string& v) { values.main = v; }},
     };
     for (const auto& item : schema_) {
         item.updater(item.defaultValue);
