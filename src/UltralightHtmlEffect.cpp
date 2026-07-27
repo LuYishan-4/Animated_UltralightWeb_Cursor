@@ -26,8 +26,11 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
-
-
+    WebType = data.WebType;
+    minheight = data.minHeight;
+    minwidth = data.minWidth;
+    localserver = data.localServer;
+    mainboot = data.main;
     if (!platform_initialized_){
     ultralight::Config config;
     config.resource_path_prefix =
@@ -51,7 +54,6 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
     ultralight::ViewConfig vc;
     vc.is_accelerated = false;
     vc.is_transparent = true;
-
     view_ =
         renderer_->CreateView(
             width_,

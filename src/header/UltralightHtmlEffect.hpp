@@ -105,16 +105,15 @@ private:
 
 
     bool new_frame_ = false;
-
-    // cursor size
     int width_ = 128;
-
     int height_ = 128;
-
     int stride_ = 0;
-
     bool platform_initialized_=false;
-
+    std::string WebType = "html";
+    std::string mainboot = "index.html";
+    int minwidth = 128;
+    int minheight = 128;
+    bool localserver = false;
     std::string m_permanentSdkPath; 
 
 

@@ -25,6 +25,7 @@ UltralightCursorEffect::UltralightCursorEffect(){
 
     try{
     UltralightWebCursorM::UserConfig::instance()->load();
+    UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
     m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect >();
     if(!m_html->initialize(UserConfigimp,CursorJSONImp)){
         m_html.reset();
@@ -87,6 +88,7 @@ QDBusConnection::sessionBus().registerObject(
     }
     void UltralightCursorEffect::reloadHtml(){
         UltralightWebCursorM::UserConfig::instance()->load();
+        UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
         if(!m_html)return;
         m_html->reload(UserConfigimp,CursorJSONImp);
         effects->addRepaintFull();
