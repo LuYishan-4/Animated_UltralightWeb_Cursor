@@ -1,5 +1,5 @@
 #include "header/UltralightHtmlEffect.hpp"
-
+#include <QDir>
 #include <Ultralight/Ultralight.h>
 #include <AppCore/Platform.h>
 #include "lib/UltralightPl/WebListener.hpp"
@@ -16,6 +16,7 @@ UltralightHtmlEffect::~UltralightHtmlEffect(){
     listener_.reset();
     view_ = nullptr;
     renderer_ = nullptr;
+    webcall = nullptr;
 }
 
 
@@ -64,7 +65,10 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
     if(!view_)return false;
     listener_ =std::make_unique<LocalLoadListener>(&is_loaded_);
     view_->set_load_listener(listener_.get());
+   webcall = std::make_shared<WebCall>();
+    webcall->view_ = view_; 
     if(std::filesystem::exists(html_path_ )) html_time_ =std::filesystem::last_write_time(html_path_ );
+      compileTypeScript(html_path_.parent_path().string());
     return load(html_path_);
 }
 
@@ -189,6 +193,51 @@ const uint8_t* UltralightHtmlEffect::pixels() const
     if(pixel_buffer_.empty())
         return nullptr;
     return pixel_buffer_.data();
+}
+
+bool UltralightHtmlEffect::compileTypeScript(const std::string& projectDir) {
+    QDir dir(QString::fromStdString(projectDir));
+    if (!dir.exists()) {
+        qWarning() << "[UltralightCursorEffect] TS project dir not found:"
+                    << QString::fromStdString(projectDir);
+        return false;
+    }
+
+    if (!dir.exists(QStringLiteral("node_modules"))) {
+        QProcess installProcess;
+        installProcess.setWorkingDirectory(dir.absolutePath());
+        installProcess.setProgram(QStringLiteral("npm"));
+        installProcess.setArguments({QStringLiteral("install")});
+        installProcess.start();
+        if (!installProcess.waitForFinished(120000)) { 
+            qWarning() << "[UltralightCursorEffect] npm install timed out";
+            return false;
+        }
+        if (installProcess.exitCode() != 0) {
+            qWarning() << "[UltralightCursorEffect] npm install failed:\n"
+                        << installProcess.readAllStandardError();
+            return false;
+        }
+    }
+
+    QProcess buildProcess;
+    buildProcess.setWorkingDirectory(dir.absolutePath());
+    buildProcess.setProgram(QStringLiteral("npm"));
+    buildProcess.setArguments({QStringLiteral("run"), QStringLiteral("build")});
+    buildProcess.start();
+    if (!buildProcess.waitForFinished(60000)) { 
+        qWarning() << "[UltralightCursorEffect] npm run build timed out";
+        return false;
+    }
+    if (buildProcess.exitCode() != 0) {
+        qWarning() << "[UltralightCursorEffect] TypeScript compile failed:\n"
+                    << buildProcess.readAllStandardError();
+        return false;
+    }
+
+    std::cout << "[Ultralight] TypeScript compiled successfully in "
+              << projectDir << "\n";
+    return true;
 }
 
 }

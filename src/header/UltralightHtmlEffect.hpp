@@ -4,6 +4,7 @@
 #include <AppCore/AppCore.h>
 #include "../config/UserConfig.hpp"
 #include "../config/CursorJSON.hpp"
+#include "../lib/WebCall/WebCall.hpp"
 #include <filesystem>
 #include <memory>
 #include <vector>
@@ -33,7 +34,7 @@ bool initialize(const ConfigValues& uconfig,const JSONConf& data);
 
 
     void update();
-    bool serverboot(const int& port, const std::string& path);
+     bool compileTypeScript(const std::string& projectDir);
 
 
     void move(
@@ -89,6 +90,7 @@ private:
 
 
     ultralight::RefPtr<ultralight::Renderer> renderer_;
+    std::shared_ptr<WebCall> webcall; 
 
 
     ultralight::RefPtr<ultralight::View> view_;
