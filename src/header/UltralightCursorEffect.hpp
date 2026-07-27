@@ -2,14 +2,9 @@
 
 
 #include <memory>
-
 #include <QPointF>
-
-
 #include <core/output.h>
 #include <kwin/effect/effect.h>
-
-
 #include "UltralightHtmlEffect.hpp"
 #include "MouseProvider.hpp"
 #include "../config/UserConfig.hpp"

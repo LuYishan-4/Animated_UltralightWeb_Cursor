@@ -90,8 +90,8 @@ bool UltralightHtmlEffect::resize(const int&  width,const int&  height){
 }
 
 void UltralightHtmlEffect::reload(const ConfigValues& uconfig,const JSONConf& data){
-    width_ = uconfig.width;
-    height_ = uconfig.height;
+    width_ = data.minWidth;
+    height_ = data.minHeight;
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;

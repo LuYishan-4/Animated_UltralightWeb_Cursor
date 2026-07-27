@@ -3,6 +3,14 @@
 #include <fstream>
 #include <sstream>
 #include <QDebug>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QIODevice>
+#include <QString>
+#include <QDebug>
+
 namespace UltralightWebCursorM {
 
 CursorJSON* CursorJSON::instance() {
@@ -31,35 +39,44 @@ void CursorJSON::ensureInitialized(const std::string& projectPath) {
         initialized = true;
     }
 }
+
 bool CursorJSON::load(const std::string& projectPath) {
-    std::filesystem::path configPath = "CursorData.json";
-            qDebug() << "[UltralightCursorEffect] hlsdd";
+    qDebug() << "[UltralightCursorEffect] Loading cursor config...";
+    QString configPath = QStringLiteral("CursorData.json");
     if (!projectPath.empty()) {
-        configPath = std::filesystem::path(projectPath) / "CursorData.json";
+        configPath = QString::fromStdString(projectPath) + "/CursorData.json";
     }
 
-    if (!std::filesystem::exists(configPath)) {
+    QFile file(configPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
     }
 
-    std::ifstream file(configPath);
-    if (!file.is_open()) return false;
-    std::string line;
-    while (std::getline(file, line)) {
-        size_t colonPos = line.find(':');
-        if (colonPos == std::string::npos) continue;
-        std::string key = line.substr(0, colonPos);
-        std::string val = line.substr(colonPos + 1);
-        auto cleanStr = [](std::string& s) {
-            s.erase(0, s.find_first_not_of(" \t\r\n\""));
-            size_t end = s.find_last_not_of(" \t\r\n\",");
-            if (end != std::string::npos) s.erase(end + 1);
-        };
-        cleanStr(key);
-        cleanStr(val);
-        if (!key.empty()) data_[key] = val;
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+        qDebug() << "[UltralightCursorEffect] JSON Parse Error:" << error.errorString();
+        return false;
     }
 
+    QJsonObject obj = doc.object();
+    
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        std::string key = it.key().toStdString();
+        std::string val;
+        
+        if (it.value().isString()) {
+            val = it.value().toString().toStdString();
+        } else if (it.value().isDouble()) {
+            val = std::to_string(static_cast<int>(it.value().toDouble()));
+        } else if (it.value().isBool()) {
+            val = it.value().toBool() ? "true" : "false";
+        }
+        
+        if (!key.empty()) {
+            data_[key] = val;
+        }
+    }
     for (const auto& item : schema_) {
         auto it = data_.find(item.key);
         if (it != data_.end()) {

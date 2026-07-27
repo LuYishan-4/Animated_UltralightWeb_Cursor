@@ -3,7 +3,9 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-
+#include <QVariant>
+#include <QMap>
+#include <QVariantMap> 
 #include "../src/config/UserConfig.hpp"
 #include "../src/config/CursorJSON.hpp"
 

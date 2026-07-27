@@ -237,7 +237,7 @@ QDBusConnection::sessionBus().registerObject(
             m_idleTimer->start();
     }
 
-
+   }
 
 }
 

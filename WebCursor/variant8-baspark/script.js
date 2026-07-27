@@ -16,24 +16,13 @@ if (!canvas || !ctx) {
     console.error("[baspark] #fx canvas not found -- check that index.html matches this script.js");
 }
 
-const COLOR = { r: 170, g: 90, b: 255 }; // purple, matches the "拔刀" theme
+const COLOR = { r: 170, g: 90, b: 255 }; 
 const SCALE = 1;
 const MAX_TRAIL = 40;
 
 // ---- click sound (lazy + fully isolated, see previous notes: never
 // construct Audio at top-level script scope -- some WebKit builds throw) ----
-const CLICK_SOUND_SRC = "assets/click.mp3";
-let clickAudioSupported = true;
-function playClickSound() {
-    if (!clickAudioSupported) return;
-    try {
-        const s = new Audio(CLICK_SOUND_SRC);
-        const p = s.play();
-        if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch (e) {
-        clickAudioSupported = false;
-    }
-}
+
 
 // ---- auto-hide / game-mode (see earlier variants for rationale) ----
 const IDLE_TIMEOUT_MS = 10000;
@@ -306,7 +295,6 @@ function handleMove(rawX, rawY) {
 }
 
 function handlePressStart() {
-    playClickSound();
     lastMoveVX = vx;
     lastMoveVY = vy;
     createBoom(vx, vy);
