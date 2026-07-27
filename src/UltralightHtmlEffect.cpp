@@ -7,10 +7,8 @@
 #include <fstream>
 #include <cstring>
 #include <QDBusConnection>
-
-namespace UltralightWebCursorM
-{
-
+#include <QProcess>
+namespace UltralightWebCursorM{
 UltralightHtmlEffect::UltralightHtmlEffect(){}
 
 UltralightHtmlEffect::~UltralightHtmlEffect(){
@@ -22,7 +20,7 @@ UltralightHtmlEffect::~UltralightHtmlEffect(){
 
 
 //initialize
-bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
+bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf& data){
     width_ = uconfig.width;
     height_ = uconfig.height;
     html_path_ = uconfig.html;
@@ -89,7 +87,7 @@ bool UltralightHtmlEffect::resize(const int&  width,const int&  height){
     return true;
 }
 
-void UltralightHtmlEffect::reload(const ConfigValues& uconfig){
+void UltralightHtmlEffect::reload(const ConfigValues& uconfig,const JSONConf& data){
     width_ = uconfig.width;
     height_ = uconfig.height;
     html_path_ = uconfig.html;

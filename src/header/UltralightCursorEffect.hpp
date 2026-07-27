@@ -13,6 +13,7 @@
 #include "UltralightHtmlEffect.hpp"
 #include "MouseProvider.hpp"
 #include "../config/UserConfig.hpp"
+#include "../config/CursorJSON.hpp"
 #include "../lib/BlackList/BlacklistManager.hpp"
 
 

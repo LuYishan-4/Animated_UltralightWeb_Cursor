@@ -3,6 +3,7 @@
 #include <Ultralight/Ultralight.h>
 #include <AppCore/AppCore.h>
 #include "../config/UserConfig.hpp"
+#include "../config/CursorJSON.hpp"
 #include <filesystem>
 #include <memory>
 #include <vector>
@@ -23,7 +24,7 @@ public:
     ~UltralightHtmlEffect();
 
 
-    bool initialize(const ConfigValues& uconfig );
+bool initialize(const ConfigValues& uconfig,const JSONConf& data);
 
 
     bool load(
@@ -32,6 +33,7 @@ public:
 
 
     void update();
+    bool serverboot(const int& port, const std::string& path);
 
 
     void move(
@@ -41,7 +43,7 @@ public:
     );
 
 
-    void reload(const ConfigValues& uconfig);
+void reload(const ConfigValues& uconfig,const JSONConf& data);
 
 bool resize(const int&  width,const int&  height);
 

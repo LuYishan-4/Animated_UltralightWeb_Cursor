@@ -1,48 +1,47 @@
+import { state, cursorEl } from "./state.js";
 // ---- auto-hide logic ----
 // 1) hides after 10s with no movement
 // 2) hides when "game screen" mode is signalled (see setGameMode below)
-
 const IDLE_TIMEOUT_MS = 10000;
-
-function hideCursor(): void {
+export function hideCursor() {
     cursorEl.classList.add("hidden");
 }
-
-function showCursor(): void {
-    if (!gameMode) {
+export function showCursor() {
+    if (!state.gameMode) {
         cursorEl.classList.remove("hidden");
     }
 }
-
-function resetIdleTimer(): void {
-    if (idleTimer) clearTimeout(idleTimer);
+export function resetIdleTimer() {
+    if (state.idleTimer)
+        clearTimeout(state.idleTimer);
     showCursor();
-    idleTimer = setTimeout(hideCursor, IDLE_TIMEOUT_MS);
+    state.idleTimer = setTimeout(hideCursor, IDLE_TIMEOUT_MS);
 }
-
 // call from outside when a game screen / fullscreen content starts or ends
-window.setGameMode = function (isGame: boolean): void {
-    gameMode = !!isGame;
-    if (gameMode) {
+window.setGameMode = function (isGame) {
+    state.gameMode = !!isGame;
+    if (state.gameMode) {
         hideCursor();
-        if (idleTimer) clearTimeout(idleTimer);
-    } else {
+        if (state.idleTimer)
+            clearTimeout(state.idleTimer);
+    }
+    else {
         resetIdleTimer();
     }
 };
-
 document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
         hideCursor();
-    } else if (!gameMode) {
+    }
+    else if (!state.gameMode) {
         resetIdleTimer();
     }
 });
-
 document.addEventListener("fullscreenchange", () => {
     if (document.fullscreenElement) {
         window.setGameMode(true);
-    } else {
+    }
+    else {
         window.setGameMode(false);
     }
 });
