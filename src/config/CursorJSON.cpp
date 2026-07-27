@@ -44,7 +44,7 @@ bool CursorJSON::load(const std::string& projectPath) {
     qDebug() << "[UltralightCursorEffect] Loading cursor config...";
     QString configPath = QStringLiteral("CursorData.json");
     if (!projectPath.empty()) {
-        configPath = QString::fromStdString(projectPath) + "/CursorData.json";
+       configPath = QString::fromStdString(projectPath) + QStringLiteral("/CursorData.json");
     }
 
     QFile file(configPath);

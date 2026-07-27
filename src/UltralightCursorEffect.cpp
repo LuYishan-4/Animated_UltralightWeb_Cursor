@@ -113,14 +113,9 @@ QDBusConnection::sessionBus().registerObject(
      }
 
     GLTexture* UltralightCursorEffect::ensureCursorTexture(){
-        
         if(!m_html)return nullptr;
         if(!m_html->isEnabled())return nullptr;
         if (m_isIdleHidden)return nullptr;
-            
-
-
-
         m_html->update();
         if(m_cursorTexture &&!m_html->hasNewFrame())return m_cursorTexture.get();
 
@@ -225,7 +220,6 @@ QDBusConnection::sessionBus().registerObject(
     }
 
    void UltralightCursorEffect::slotWindowStateChanged(EffectWindow *w) {
-        qDebug() << "[UltralightCursorEffect] hidden";
         Q_UNUSED(w);
         if (!checkFullScreen()) {
             if (m_isIdleHidden) {
