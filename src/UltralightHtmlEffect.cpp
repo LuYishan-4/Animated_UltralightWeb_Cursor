@@ -8,6 +8,7 @@
 #include <cstring>
 #include <QDBusConnection>
 #include <QProcess>
+#include "config/WebType.hpp"
 namespace UltralightWebCursorM{
 UltralightHtmlEffect::UltralightHtmlEffect(){}
 
@@ -27,7 +28,7 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
-    WebType = data.WebType;
+    web_type_enum_ = stringToWebType(data.WebType);
     minheight = data.minHeight;
     minwidth = data.minWidth;
     localserver = data.localServer;
@@ -68,7 +69,17 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
    webcall = std::make_shared<WebCall>();
     webcall->view_ = view_; 
     if(std::filesystem::exists(html_path_ )) html_time_ =std::filesystem::last_write_time(html_path_ );
-      compileTypeScript(html_path_.parent_path().string());
+    switch (web_type_enum_) {
+    case WebType::TypeScript:
+        compileTypeScript(html_path_.parent_path().string());
+        break;
+    case WebType::Html:
+        mainboot = "html";
+    default:
+        break;
+    }
+
+    compileTypeScript(html_path_.parent_path().string());
     return load(html_path_);
 }
 

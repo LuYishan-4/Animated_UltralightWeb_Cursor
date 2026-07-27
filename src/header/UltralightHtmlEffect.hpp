@@ -77,8 +77,6 @@ bool resize(const int&  width,const int&  height);
     bool isEnabled() const;
 
 
-
-    // 避免每 frame upload
     bool hasNewFrame() const;
 
 
@@ -111,7 +109,7 @@ private:
     int height_ = 128;
     int stride_ = 0;
     bool platform_initialized_=false;
-    std::string WebType = "html";
+    WebType web_type_enum_ = WebType::Unknown; 
     std::string mainboot = "index.html";
     int minwidth = 128;
     int minheight = 128;
