@@ -225,6 +225,7 @@ QDBusConnection::sessionBus().registerObject(
     }
 
    void UltralightCursorEffect::slotWindowStateChanged(EffectWindow *w) {
+        qDebug() << "[UltralightCursorEffect] hidden";
         Q_UNUSED(w);
         if (!checkFullScreen()) {
             if (m_isIdleHidden) {

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
+#include <QDebug>
 namespace UltralightWebCursorM {
 
 CursorJSON* CursorJSON::instance() {
@@ -33,7 +33,7 @@ void CursorJSON::ensureInitialized(const std::string& projectPath) {
 }
 bool CursorJSON::load(const std::string& projectPath) {
     std::filesystem::path configPath = "CursorData.json";
-    
+            qDebug() << "[UltralightCursorEffect] hlsdd";
     if (!projectPath.empty()) {
         configPath = std::filesystem::path(projectPath) / "CursorData.json";
     }

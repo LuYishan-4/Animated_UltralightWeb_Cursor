@@ -16,6 +16,7 @@ target_sources(ultralightwebcursor PRIVATE
     header/UltralightHtmlEffect.hpp
     lib/BlackList/BlacklistManager.hpp
     lib/UltralightPl/WebListener.hpp
+    lib/WebCall/WebCall.hpp
      $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 target_include_directories(ultralightwebcursor

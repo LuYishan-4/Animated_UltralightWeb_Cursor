@@ -5,14 +5,14 @@
 #include <QStringList>
 
 #include "../src/config/UserConfig.hpp"
-
+#include "../src/config/CursorJSON.hpp"
 
 
 class SettingsBackend : public QObject
 {
     Q_OBJECT
 
-
+    Q_INVOKABLE QVariantMap getThemeDetails(const QString& name);
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(QStringList blacklist READ blacklist NOTIFY blacklistChanged)

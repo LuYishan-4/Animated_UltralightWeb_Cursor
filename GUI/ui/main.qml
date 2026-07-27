@@ -77,14 +77,10 @@ SimpleKCM {
             }
         }
 
-        StackLayout {
+           StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: tabBar.currentIndex
-
-            // =====================================================
-            // Theme
-            // =====================================================
 
             ColumnLayout {
                 spacing: Kirigami.Units.largeSpacing
@@ -118,50 +114,102 @@ SimpleKCM {
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    Layout.minimumHeight: 200
+                    Layout.minimumHeight: 250
                     clip: true
-                    spacing: Kirigami.Units.smallSpacing
+                    spacing: Kirigami.Units.mediumSpacing
                     model: kcm.backend.themeList
 
                     delegate: Kirigami.Card {
                         width: ListView.view.width
+                        property string themeIcon: ""
+                        property string themeAuthor: "Unknown"
+                        property string themeDesc: ""
 
-                        header: Kirigami.Heading {
-                            text: modelData
-                            level: 4
+                        Component.onCompleted: {
+                            var details = kcm.backend.getThemeDetails(modelData);
+                            if (details) {
+                                themeIcon = details.iconPath || "";
+                                themeAuthor = details.author || "Unknown";
+                                themeDesc = details.describe || "";
+                            }
                         }
 
-                        contentItem: RowLayout {
-                            Button {
-                                text: qsTr("Apply")
-                                icon.name: "dialog-ok"
-
-                                onClicked: {
-                                    kcm.backend.useTheme(
-                                        modelData
-                                    )
+                        header: RowLayout {
+                            spacing: Kirigami.Units.largeSpacing
+                            
+                            Image {
+                                id: iconPreview
+                                source: parent.parent.themeIcon ? parent.parent.themeIcon : "image://theme/cursor"
+                                sourceSize.width: 48
+                                sourceSize.height: 48
+                                fillMode: Image.PreserveAspectFit
+                                Layout.alignment: Qt.AlignVCenter
+                                onStatusChanged: {
+                                    if (status === Image.Error) {
+                                        source = "image://theme/cursor"
+                                    }
                                 }
                             }
 
-                            Button {
-                                text: qsTr("Open")
-                                icon.name: "document-open-folder"
+                            ColumnLayout {
+                                spacing: Kirigami.Units.smallSpacing
+                                Layout.fillWidth: true
 
-                                onClicked: {
-                                    kcm.backend.openThemeFolder(
-                                        modelData
-                                    )
+                                Kirigami.Heading {
+                                    text: modelData
+                                    level: 4
+                                    Layout.fillWidth: true
+                                }
+
+                                Label {
+                                    text: qsTr("Author: %1").arg(parent.parent.parent.themeAuthor)
+                                    font.italic: true
+                                    opacity: 0.6
+                                    font.pointSize: Kirigami.Theme.smallFont.pointSize
+                                    Layout.fillWidth: true
                                 }
                             }
+                        }
+                        contentItem: ColumnLayout {
+                            spacing: Kirigami.Units.largeSpacing
 
-                            Button {
-                                text: qsTr("Delete")
-                                icon.name: "edit-delete"
+                            Label {
+                                text: parent.parent.themeDesc ? parent.parent.themeDesc : qsTr("No description provided.")
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                                opacity: 0.85
+                            }
 
-                                onClicked: {
-                                    kcm.backend.removeTheme(
-                                        modelData
-                                    )
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: Kirigami.Units.smallSpacing
+
+                                Button {
+                                    text: qsTr("Apply")
+                                    icon.name: "dialog-ok"
+                                    onClicked: {
+                                        kcm.backend.useTheme(modelData)
+                                    }
+                                }
+
+                                Button {
+                                    text: qsTr("Open")
+                                    icon.name: "document-open-folder"
+                                    onClicked: {
+                                        kcm.backend.openThemeFolder(modelData)
+                                    }
+                                }
+
+                                Item {
+                                    Layout.fillWidth: true 
+                                }
+
+                                Button {
+                                    text: qsTr("Delete")
+                                    icon.name: "edit-delete"
+                                    onClicked: {
+                                        kcm.backend.removeTheme(modelData)
+                                    }
                                 }
                             }
                         }

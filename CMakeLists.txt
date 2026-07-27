@@ -185,6 +185,8 @@ set(
      "/usr/lib/ultralightwebcursor"
 )
 add_library(ultralightwebcursor_core OBJECT 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.cpp"

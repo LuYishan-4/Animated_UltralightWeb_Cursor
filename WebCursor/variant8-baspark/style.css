@@ -1,0 +1,22 @@
+html, body {
+    margin: 0;
+    width: 128px;
+    height: 128px;
+    overflow: hidden;
+    background: transparent;
+}
+
+#fx {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 128px;
+    height: 128px;
+
+    transition: opacity 0.5s ease;
+    opacity: 1;
+}
+
+#fx.hidden {
+    opacity: 0;
+}

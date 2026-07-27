@@ -23,7 +23,6 @@ public:
           .append(",")
           .append(pressed_str)
           .append(");}");
-        
         view_->EvaluateScript(ultralight::String(js.c_str()));
         view_->set_needs_paint(true);
     }

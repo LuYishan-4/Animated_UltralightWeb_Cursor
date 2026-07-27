@@ -384,6 +384,43 @@ bool SettingsBackend::removeTheme(const QString& name)
     setStatusMessage(QStringLiteral("Remove failed"));
     return false;
 }
+QVariantMap SettingsBackend::getThemeDetails(const QString& name)
+{
+    QVariantMap details;
+    details[QStringLiteral("iconPath")] = QString();
+    details[QStringLiteral("author")] = QStringLiteral("Unknown");
+    details[QStringLiteral("describe")] = QString();
+    details[QStringLiteral("minWidth")] = 128;
+    details[QStringLiteral("minHeight")] = 128;
+
+    if (name.isEmpty()) {
+        return details;
+    }
+    std::filesystem::path themePath = g_sdkInitialPath / name.toStdString();
+    bool loadSuccess = UltralightWebCursorM::CursorJSON::instance()->load(themePath.string());
+    
+    if (loadSuccess) {
+        auto values = UltralightWebCursorM::CursorJSON::instance()->values; 
+        QString rawIconPath = QString::fromStdString(values.IconPath);
+        QString fullIconUrl;
+
+        if (!rawIconPath.isEmpty()) {
+            if (rawIconPath.startsWith(QLatin1String("/")) || rawIconPath.startsWith(QLatin1String("file://"))) {
+                fullIconUrl = rawIconPath.startsWith(QLatin1String("/")) ? QStringLiteral("file://") + rawIconPath : rawIconPath;
+            } else {
+                QString absoluteThemeDir = QString::fromStdString(themePath.string());
+                fullIconUrl = QStringLiteral("file://") + absoluteThemeDir + QStringLiteral("/") + rawIconPath;
+            }
+        }
+        details[QStringLiteral("iconPath")] = fullIconUrl;
+        details[QStringLiteral("author")] = QString::fromStdString(values.Author);
+        details[QStringLiteral("describe")] = QString::fromStdString(values.describe);
+        details[QStringLiteral("minWidth")] = values.minWidth;
+        details[QStringLiteral("minHeight")] = values.minHeight;
+    }
+
+    return details;
+}
 
 
 void SettingsBackend::openThemeFolder(const QString& name)
