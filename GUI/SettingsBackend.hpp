@@ -14,7 +14,7 @@ class SettingsBackend : public QObject
 {
     Q_OBJECT
 
-    Q_INVOKABLE QVariantMap getThemeDetails(const QString& name);
+
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
     Q_PROPERTY(QStringList blacklist READ blacklist NOTIFY blacklistChanged)
@@ -59,6 +59,8 @@ public:
     Q_INVOKABLE bool removeTheme(const QString& name);
 
     Q_INVOKABLE void openThemeFolder(const QString& name);
+    Q_INVOKABLE QVariantMap getThemeDetails(const QString& name);
+
 
 
 

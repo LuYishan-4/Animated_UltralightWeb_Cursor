@@ -37,6 +37,7 @@ QStringList SettingsBackend::blacklist() const
 
 QStringList SettingsBackend::themeList() const
 {
+    const_cast<SettingsBackend*>(this)->loadThemes(); 
     return themeList_;
 }
 
@@ -175,25 +176,22 @@ void SettingsBackend::removeBlacklist(const QString& app){
 void SettingsBackend::loadThemes()
 {
     themeList_.clear();
-
+    QStringList newThemes;
     std::filesystem::path path = g_sdkInitialPath;
 
-    if(!std::filesystem::exists(path))
-    {
-        Q_EMIT themeListChanged();
-        return;
-    }
-    for(auto& item : std::filesystem::directory_iterator(path))
-    {
-        if(item.is_directory()){
-            themeList_ << QString::fromStdString(
-                item.path().filename().string()
-            );
+    if (std::filesystem::exists(path)) {
+        for (auto& item : std::filesystem::directory_iterator(path)) {
+            if (item.is_directory()) {
+                newThemes << QString::fromStdString(item.path().filename().string());
+            }
         }
     }
-
-    Q_EMIT themeListChanged();
+    if (themeList_ != newThemes) {
+        themeList_ = newThemes;
+        Q_EMIT themeListChanged();
+    }
 }
+
 bool SettingsBackend::uploadTheme(const QString& path)
 {
     qDebug() << "uploadTheme path =" << path;
@@ -387,6 +385,8 @@ bool SettingsBackend::removeTheme(const QString& name)
 QVariantMap SettingsBackend::getThemeDetails(const QString& name)
 {
     QVariantMap details;
+    
+    qDebug() << "[UltralightCursorEffect] Loading cursor config.1111111111111111111111..";
     details[QStringLiteral("iconPath")] = QString();
     details[QStringLiteral("author")] = QStringLiteral("Unknown");
     details[QStringLiteral("describe")] = QString();
@@ -412,6 +412,7 @@ QVariantMap SettingsBackend::getThemeDetails(const QString& name)
                 fullIconUrl = QStringLiteral("file://") + absoluteThemeDir + QStringLiteral("/") + rawIconPath;
             }
         }
+        qDebug() << "[UltralightCursorEffect] sssssssssor config...";
         details[QStringLiteral("iconPath")] = fullIconUrl;
         details[QStringLiteral("author")] = QString::fromStdString(values.Author);
         details[QStringLiteral("describe")] = QString::fromStdString(values.describe);
