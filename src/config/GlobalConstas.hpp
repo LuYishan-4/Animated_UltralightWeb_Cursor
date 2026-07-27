@@ -7,5 +7,5 @@ class GloablContast{
     private:
         GloablContast()=default;
     public:
-          inline static const std::string  Version = "1.0.1";
+          inline static const std::string  Version = "1.0.2";
 };
