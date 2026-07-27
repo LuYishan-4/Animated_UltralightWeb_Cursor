@@ -54,6 +54,7 @@ void UserConfig::ensureInitialized() {
         {"width",      "128",   [this](const std::string& v){ values.width = v.empty() ? 128 : std::stoi(v); }},
         {"height",     "128",   [this](const std::string& v){ values.height = v.empty() ? 128 : std::stoi(v); }},
         {"enabled",    "true",  [this](const std::string& v){ values.enabled = (v == "true"); }},
+        {"TCP_PORT",     "5800",   [this](const std::string& v){ values.TCP_PORT= v.empty() ? 5800 : std::stoi(v); }},
     };
 }
 bool UserConfig::load(){

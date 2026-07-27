@@ -19,9 +19,9 @@ struct JSONConf{
 class CursorJSON{
 public:
     static CursorJSON* instance();
-    void ensureInitialized();
     JSONConf values;
-    bool load();
+   void ensureInitialized(const std::string& projectPath = "");
+    bool load(const std::string& projectPath = "");
 private:
     CursorJSON();
     CursorJSON(const CursorJSON&) = delete;

@@ -13,7 +13,7 @@ CursorJSON* CursorJSON::instance() {
 CursorJSON::CursorJSON() {
     schema_ = {
         {"IconPath",  "",       [this](const std::string& v) { values.IconPath = v; }},
-        {"WebType",   "html",  [this](const std::string& v) { values.WebType = v; }},
+        {"WebType",   "html",   [this](const std::string& v) { values.WebType = v; }},
         {"Author",    "Unknown",[this](const std::string& v) { values.Author = v; }},
         {"minHeight", "128",    [this](const std::string& v) { values.minHeight = std::stoi(v); }},
         {"minWidth",  "128",    [this](const std::string& v) { values.minWidth = std::stoi(v); }},
@@ -24,24 +24,27 @@ CursorJSON::CursorJSON() {
     }
 }
 
-void CursorJSON::ensureInitialized() {
+
+void CursorJSON::ensureInitialized(const std::string& projectPath) {
     static bool initialized = false;
     if (!initialized) {
-        load();
+        load(projectPath);
         initialized = true;
     }
 }
+bool CursorJSON::load(const std::string& projectPath) {
+    std::filesystem::path configPath = "CursorData.json";
+    
+    if (!projectPath.empty()) {
+        configPath = std::filesystem::path(projectPath) / "CursorData.json";
+    }
 
-bool CursorJSON::load() {
-    std::string configPath = "CursorData.json";
     if (!std::filesystem::exists(configPath)) {
         return false;
     }
 
     std::ifstream file(configPath);
-    if (!file.is_open())return false;
-    
-
+    if (!file.is_open()) return false;
     std::string line;
     while (std::getline(file, line)) {
         size_t colonPos = line.find(':');
@@ -55,9 +58,8 @@ bool CursorJSON::load() {
         };
         cleanStr(key);
         cleanStr(val);
-        if (!key.empty())data_[key] = val;
+        if (!key.empty()) data_[key] = val;
     }
-
 
     for (const auto& item : schema_) {
         auto it = data_.find(item.key);
@@ -72,4 +74,5 @@ bool CursorJSON::load() {
 
     return true;
 }
-}
+
+} 
