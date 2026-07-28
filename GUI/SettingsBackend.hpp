@@ -3,9 +3,11 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-
+#include <QVariant>
+#include <QMap>
+#include <QVariantMap> 
 #include "../src/config/UserConfig.hpp"
-
+#include "../src/config/CursorJSON.hpp"
 
 
 class SettingsBackend : public QObject
@@ -57,6 +59,8 @@ public:
     Q_INVOKABLE bool removeTheme(const QString& name);
 
     Q_INVOKABLE void openThemeFolder(const QString& name);
+    Q_INVOKABLE QVariantMap getThemeDetails(const QString& name);
+
 
 
 

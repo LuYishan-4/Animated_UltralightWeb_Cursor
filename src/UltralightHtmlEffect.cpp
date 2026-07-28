@@ -1,5 +1,5 @@
 #include "header/UltralightHtmlEffect.hpp"
-
+#include <QDir>
 #include <Ultralight/Ultralight.h>
 #include <AppCore/Platform.h>
 #include "lib/UltralightPl/WebListener.hpp"
@@ -7,10 +7,8 @@
 #include <fstream>
 #include <cstring>
 #include <QDBusConnection>
-
-namespace UltralightWebCursorM
-{
-
+#include <QProcess>
+namespace UltralightWebCursorM{
 UltralightHtmlEffect::UltralightHtmlEffect(){}
 
 UltralightHtmlEffect::~UltralightHtmlEffect(){
@@ -18,18 +16,19 @@ UltralightHtmlEffect::~UltralightHtmlEffect(){
     listener_.reset();
     view_ = nullptr;
     renderer_ = nullptr;
+    webcall = nullptr;
 }
 
 
 //initialize
-bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
-    width_ = uconfig.width;
-    height_ = uconfig.height;
+bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf& data){
+    width_ = data.minWidth;
+    height_ = data.minHeight;
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
-
-
+    minheight = data.minHeight;
+    minwidth = data.minWidth;
     if (!platform_initialized_){
     ultralight::Config config;
     config.resource_path_prefix =
@@ -53,7 +52,6 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
     ultralight::ViewConfig vc;
     vc.is_accelerated = false;
     vc.is_transparent = true;
-
     view_ =
         renderer_->CreateView(
             width_,
@@ -64,6 +62,8 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig){
     if(!view_)return false;
     listener_ =std::make_unique<LocalLoadListener>(&is_loaded_);
     view_->set_load_listener(listener_.get());
+   webcall = std::make_shared<WebCall>();
+    webcall->view_ = view_; 
     if(std::filesystem::exists(html_path_ )) html_time_ =std::filesystem::last_write_time(html_path_ );
     return load(html_path_);
 }
@@ -84,14 +84,14 @@ bool UltralightHtmlEffect::load(const std::string& path) {
     return true;
 }
 bool UltralightHtmlEffect::resize(const int&  width,const int&  height){
-    if (width>1920 || height > 1080)return false;
+    if (width>minwidth || height > minheight)return false;
     view_->Resize(width,height);
     return true;
 }
 
-void UltralightHtmlEffect::reload(const ConfigValues& uconfig){
-    width_ = uconfig.width;
-    height_ = uconfig.height;
+void UltralightHtmlEffect::reload(const ConfigValues& uconfig,const JSONConf& data){
+    width_ = data.minWidth;
+    height_ = data.minHeight;
     html_path_ = uconfig.html;
     m_permanentSdkPath =  uconfig.sdk;
     enabled_ = uconfig.enabled;
@@ -101,26 +101,7 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig){
 
 void UltralightHtmlEffect::move( int x, int y,bool pressed){
     if(!view_)return;
-    
-    std::string js ="if(window.moveCursor)"
-        "{window.moveCursor("
-        +
-        std::to_string(x)
-        +
-        ","
-        +
-        std::to_string(y)
-        +
-        ","
-        +
-        (pressed ? "true":"false")
-        +
-        ");}";
-    view_->EvaluateScript(
-        ultralight::String(
-            js.c_str()
-        )
-    );
+   if (webcall)webcall->move(x, y, pressed);
     view_->set_needs_paint(true);
 }
 
@@ -190,5 +171,4 @@ const uint8_t* UltralightHtmlEffect::pixels() const
         return nullptr;
     return pixel_buffer_.data();
 }
-
 }

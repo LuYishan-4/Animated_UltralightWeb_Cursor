@@ -3,6 +3,8 @@
 #include <Ultralight/Ultralight.h>
 #include <AppCore/AppCore.h>
 #include "../config/UserConfig.hpp"
+#include "../config/CursorJSON.hpp"
+#include "../lib/WebCall/WebCall.hpp"
 #include <filesystem>
 #include <memory>
 #include <vector>
@@ -23,7 +25,7 @@ public:
     ~UltralightHtmlEffect();
 
 
-    bool initialize(const ConfigValues& uconfig );
+bool initialize(const ConfigValues& uconfig,const JSONConf& data);
 
 
     bool load(
@@ -34,6 +36,7 @@ public:
     void update();
 
 
+
     void move(
         int x,
         int y,
@@ -41,7 +44,7 @@ public:
     );
 
 
-    void reload(const ConfigValues& uconfig);
+void reload(const ConfigValues& uconfig,const JSONConf& data);
 
 bool resize(const int&  width,const int&  height);
 
@@ -74,8 +77,6 @@ bool resize(const int&  width,const int&  height);
     bool isEnabled() const;
 
 
-
-    // 避免每 frame upload
     bool hasNewFrame() const;
 
 
@@ -87,6 +88,7 @@ private:
 
 
     ultralight::RefPtr<ultralight::Renderer> renderer_;
+    std::shared_ptr<WebCall> webcall; 
 
 
     ultralight::RefPtr<ultralight::View> view_;
@@ -103,16 +105,12 @@ private:
 
 
     bool new_frame_ = false;
-
-    // cursor size
     int width_ = 128;
-
     int height_ = 128;
-
     int stride_ = 0;
-
     bool platform_initialized_=false;
-
+    int minwidth = 128;
+    int minheight = 128;
     std::string m_permanentSdkPath; 
 
 

@@ -2,17 +2,13 @@
 
 
 #include <memory>
-
 #include <QPointF>
-
-
 #include <core/output.h>
 #include <kwin/effect/effect.h>
-
-
 #include "UltralightHtmlEffect.hpp"
 #include "MouseProvider.hpp"
 #include "../config/UserConfig.hpp"
+#include "../config/CursorJSON.hpp"
 #include "../lib/BlackList/BlacklistManager.hpp"
 
 
@@ -89,6 +85,12 @@ private:
     GLTexture* ensureCursorTexture();
 
 private:
+
+bool checkFullScreen() const;
+QTimer *m_idleTimer = nullptr;
+bool m_isIdleHidden = false;
+void slotWindowStateChanged(EffectWindow *w);
+
 
 
     std::unique_ptr<UltralightWebCursorM::UltralightHtmlEffect> m_html;

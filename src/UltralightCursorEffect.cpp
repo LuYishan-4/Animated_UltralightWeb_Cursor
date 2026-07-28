@@ -8,7 +8,7 @@
 #include <QImage>
 #include <iostream>
 #include <stdexcept>
-
+#include <QTimer>
 
 namespace KWin{
 
@@ -25,13 +25,25 @@ UltralightCursorEffect::UltralightCursorEffect(){
 
     try{
     UltralightWebCursorM::UserConfig::instance()->load();
+    UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
     m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect >();
-    if(!m_html->initialize(UserConfigimp)){
+    if(!m_html->initialize(UserConfigimp,CursorJSONImp)){
         m_html.reset();
         return;
     }
     qDebug() << "[UltralightCursorEffect] init";
     m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
+
+    m_idleTimer = new QTimer(this);
+    m_idleTimer->setSingleShot(true);
+    m_idleTimer->setInterval(2500); 
+    connect(m_idleTimer, &QTimer::timeout, this, [this]() {
+        if (checkFullScreen()) {
+            m_isIdleHidden = true;
+            effects->addRepaintFull();
+        }
+    });
+    connect(effects, &EffectsHandler::windowActivated, this, &UltralightCursorEffect::slotWindowStateChanged);
     m_mouseProvider =std::make_unique<KwinMouseProvider>();
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
         if(!m_html)return;
@@ -51,6 +63,7 @@ UltralightCursorEffect::UltralightCursorEffect(){
 );
 
 m_mouseProvider->initialize();
+m_idleTimer->start();
 
 QDBusConnection::sessionBus().registerObject(
     QStringLiteral("/UltralightCursor"),
@@ -87,8 +100,9 @@ QDBusConnection::sessionBus().registerObject(
     }
     void UltralightCursorEffect::reloadHtml(){
         UltralightWebCursorM::UserConfig::instance()->load();
+        UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
         if(!m_html)return;
-        m_html->reload(UserConfigimp);
+        m_html->reload(UserConfigimp,CursorJSONImp);
         effects->addRepaintFull();
     }
     bool UltralightCursorEffect::isBlacklisted() const {
@@ -99,12 +113,9 @@ QDBusConnection::sessionBus().registerObject(
      }
 
     GLTexture* UltralightCursorEffect::ensureCursorTexture(){
-        
         if(!m_html)return nullptr;
         if(!m_html->isEnabled())return nullptr;
-
-
-
+        if (m_isIdleHidden)return nullptr;
         m_html->update();
         if(m_cursorTexture &&!m_html->hasNewFrame())return m_cursorTexture.get();
 
@@ -143,6 +154,8 @@ QDBusConnection::sessionBus().registerObject(
             region,
             screen
         );
+      
+
 
         GLTexture* texture =ensureCursorTexture();
         if(!texture){
@@ -199,8 +212,26 @@ QDBusConnection::sessionBus().registerObject(
     bool UltralightCursorEffect::isActive() const{
         return m_html != nullptr;
     }
+       bool UltralightCursorEffect::checkFullScreen() const {
+        if (EffectWindow *activeWin = effects->activeWindow()) {
+            return activeWin->isFullScreen();
+        }
+        return false;
+    }
 
+   void UltralightCursorEffect::slotWindowStateChanged(EffectWindow *w) {
+        Q_UNUSED(w);
+        if (!checkFullScreen()) {
+            if (m_isIdleHidden) {
+                m_isIdleHidden = false;
+                effects->addRepaintFull();
+            }
+            m_idleTimer->stop();
+        } else {
+            m_idleTimer->start();
+    }
 
+   }
 
 }
 
