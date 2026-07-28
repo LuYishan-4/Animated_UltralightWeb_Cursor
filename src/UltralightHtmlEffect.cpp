@@ -29,6 +29,25 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
     enabled_ = uconfig.enabled;
     minheight = data.minHeight;
     minwidth = data.minWidth;
+
+    std::filesystem::path sdk_dir(m_permanentSdkPath);
+    std::filesystem::path resources_dir = sdk_dir / "resources";
+
+    if (!std::filesystem::exists(resources_dir)) {
+        return false;
+    }
+
+    std::vector<std::string> required_files = {
+        "cacert.pem",
+        "icudt67l.dat"
+    };
+
+
+    for (const auto& file_name : required_files)if (!std::filesystem::exists(resources_dir / file_name)){
+                    qDebug() << "[UltralightCursorEffect] illlllllllll";
+                    return false;
+    }
+    
     if (!platform_initialized_){
     ultralight::Config config;
     config.resource_path_prefix =
