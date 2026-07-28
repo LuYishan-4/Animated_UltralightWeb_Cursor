@@ -175,14 +175,22 @@ void SettingsBackend::removeBlacklist(const QString& app){
 
 void SettingsBackend::loadThemes()
 {
-    themeList_.clear();
     QStringList newThemes;
     std::filesystem::path path = g_sdkInitialPath;
 
     if (std::filesystem::exists(path)) {
-        for (auto& item : std::filesystem::directory_iterator(path)) {
+        for (const auto& item : std::filesystem::directory_iterator(path)) {
             if (item.is_directory()) {
-                newThemes << QString::fromStdString(item.path().filename().string());
+                bool hasJson = false;
+                for (const auto& subItem : std::filesystem::directory_iterator(item.path())) {
+                if (subItem.is_regular_file() && subItem.path().filename() == "CursorData.json") {
+                            hasJson = true;
+                            break;
+                    }
+                }
+                if (hasJson) {
+                    newThemes << QString::fromStdString(item.path().filename().string());
+                }
             }
         }
     }
