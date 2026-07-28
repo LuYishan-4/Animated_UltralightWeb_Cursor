@@ -29,6 +29,10 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig,const JSONConf
     enabled_ = uconfig.enabled;
     minheight = data.minHeight;
     minwidth = data.minWidth;
+         qDebug() << "[UltralightCursorEffect] illlllllllll"<<width_;
+        qDebug() << "[UltralightCursorEffect] illlllllllll"<<data.minWidth;
+
+    
 
     std::filesystem::path sdk_dir(m_permanentSdkPath);
     std::filesystem::path resources_dir = sdk_dir / "resources";
