@@ -76,6 +76,7 @@ void SettingsBackend::setCursorWidth(int value)
         return;
 
     cursorWidth_ = value;
+    save();
     Q_EMIT cursorWidthChanged();
 }
 
@@ -85,6 +86,7 @@ void SettingsBackend::setCursorHeight(int value)
         return;
 
     cursorHeight_ = value;
+    save();
     Q_EMIT cursorHeightChanged();
 }
 
