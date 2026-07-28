@@ -24,13 +24,13 @@ KWIN_EFFECT_FACTORY_SUPPORTED(
 UltralightCursorEffect::UltralightCursorEffect(){
 
     try{
-    UltralightWebCursorM::UserConfig::instance()->load();
-    UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
-    m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect >();
-    if(!m_html->initialize(UserConfigimp,CursorJSONImp)){
-        m_html.reset();
-        return;
-    }
+            UltralightWebCursorM::UserConfig::instance()->load();
+            UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
+            m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect >();
+             if(!m_html->initialize(UserConfigimp,CursorJSONImp)){
+                    m_html.reset();
+                    return;
+            }
     qDebug() << "[UltralightCursorEffect] init";
     m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
 
