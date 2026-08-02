@@ -3,6 +3,11 @@
         {
             "name": "Linux",
             "includePath": [
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/src/config",
+                "${workspaceFolder}/src/header",
+                "${workspaceFolder}/src/lib",
+                "${workspaceFolder}/src/hyprland",
                 "${workspaceFolder}/**"
             ],
             "defines": [],
@@ -10,7 +15,7 @@
             "cStandard": "c17",
             "cppStandard": "gnu++20",
             "intelliSenseMode": "linux-gcc-x64",
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+            "compileCommands": "${workspaceFolder}/build-hyprland/compile_commands.json"
         }
     ],
     "version": 4

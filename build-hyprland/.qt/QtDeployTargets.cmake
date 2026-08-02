@@ -1,4 +1,0 @@
-set(__QT_DEPLOY_TARGET_ultralightwebcursor_hyprland_FILE /home/luyishan4/Documents/kde-cursor-ani/build-hyprland/src/hyprland/ultralightwebcursor_hyprland)
-set(__QT_DEPLOY_TARGET_ultralightwebcursor_hyprland_TYPE EXECUTABLE)
-set(__QT_DEPLOY_TARGET_ultralightwebcursor_niri_FILE /home/luyishan4/Documents/kde-cursor-ani/build-hyprland/src/niri/ultralightwebcursor_niri)
-set(__QT_DEPLOY_TARGET_ultralightwebcursor_niri_TYPE EXECUTABLE)
