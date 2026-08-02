@@ -8,10 +8,10 @@ find_package(X11 REQUIRED)
 
 add_executable(ultralightwebcursor_x11
     main.cpp
-    StandaloneCursorEffect.cpp
-    StandaloneCursorEffect.hpp
-    PlatformMouseProvider.cpp
-    PlatformMouseProvider.hpp
+    QtCursorEffect.cpp
+    ../header/QtCursorEffect.hpp
+    QtMouseProvider.cpp
+    ../header/QtMouseProvider.hpp
     ../lib/UltralightHtmlEffect.cpp
     ../lib/X11MouseProvider.cpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>

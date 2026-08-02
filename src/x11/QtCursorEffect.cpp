@@ -1,19 +1,19 @@
-#include "StandaloneCursorEffect.hpp"
+#include "../header/QtCursorEffect.hpp"
 #include <QCoreApplication>
 #include <QDebug>
 #include "../lib/SharedCursorRender.hpp"
 
-StandaloneCursorEffect::StandaloneCursorEffect(QObject* parent)
+QtCursorEffect::QtCursorEffect(QObject* parent)
     : QObject(parent)
 {
-    connect(&timer_, &QTimer::timeout, this, &StandaloneCursorEffect::onTick);
+    connect(&timer_, &QTimer::timeout, this, &QtCursorEffect::onTick);
 }
 
-StandaloneCursorEffect::~StandaloneCursorEffect(){ }
+QtCursorEffect::~QtCursorEffect(){ }
 
-bool StandaloneCursorEffect::initialize(){
+bool QtCursorEffect::initialize(){
     html_ = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
-    mouseProvider_ = std::make_unique<PlatformMouseProvider>();
+    mouseProvider_ = std::make_unique<QtMouseProvider>();
     if(!html_) return false;
     if(!mouseProvider_) return false;
     UltralightWebCursorM::UserConfig::instance()->load();
@@ -32,10 +32,10 @@ bool StandaloneCursorEffect::initialize(){
     return true;
 }
 
-void StandaloneCursorEffect::start(){
+void QtCursorEffect::start(){
     timer_.start(16);
 }
 
-void StandaloneCursorEffect::onTick(){
+void QtCursorEffect::onTick(){
     if(html_) html_->update();
 }

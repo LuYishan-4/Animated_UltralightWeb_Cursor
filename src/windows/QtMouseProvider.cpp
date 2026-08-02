@@ -1,4 +1,4 @@
-#include "PlatformMouseProvider.hpp"
+#include "../header/QtMouseProvider.hpp"
 
 #if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
@@ -7,22 +7,22 @@
 #include <QCursor>
 #endif
 
-PlatformMouseProvider::PlatformMouseProvider(QObject* parent) : QObject(parent) {}
+QtMouseProvider::QtMouseProvider(QObject* parent) : QObject(parent) {}
 
-bool PlatformMouseProvider::initialize()
+bool QtMouseProvider::initialize()
 {
     timer_.setInterval(16);
-    connect(&timer_, &QTimer::timeout, this, &PlatformMouseProvider::onTimer);
+    connect(&timer_, &QTimer::timeout, this, &QtMouseProvider::onTimer);
     timer_.start();
     return true;
 }
 
-void PlatformMouseProvider::setCallback(Callback callback)
+void QtMouseProvider::setCallback(Callback callback)
 {
     callback_ = std::move(callback);
 }
 
-void PlatformMouseProvider::onTimer()
+void QtMouseProvider::onTimer()
 {
     if(!callback_)
         return;

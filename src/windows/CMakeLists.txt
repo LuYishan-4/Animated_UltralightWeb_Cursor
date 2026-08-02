@@ -7,12 +7,11 @@ find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets)
 
 add_executable(ultralightwebcursor_windows
     WindowsApp.cpp
-    StandaloneCursorEffect.cpp
-    StandaloneCursorEffect.hpp
-    PlatformMouseProvider.cpp
-    PlatformMouseProvider.hpp
+    QtCursorEffect.cpp
+    ../header/QtCursorEffect.hpp
+    QtMouseProvider.cpp
+    ../header/QtMouseProvider.hpp
     ../lib/UltralightHtmlEffect.cpp
-    ../lib/X11MouseProvider.cpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 

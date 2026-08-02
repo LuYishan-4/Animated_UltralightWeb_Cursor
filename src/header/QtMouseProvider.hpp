@@ -1,14 +1,14 @@
 #pragma once
 
-#include "../header/MouseProvider.hpp"
+#include "MouseProvider.hpp"
 #include <QObject>
 #include <QTimer>
 
-class PlatformMouseProvider : public QObject, public UltralightWebCursorM::IMouseProvider
+class QtMouseProvider : public QObject, public UltralightWebCursorM::IMouseProvider
 {
     Q_OBJECT
 public:
-    explicit PlatformMouseProvider(QObject* parent = nullptr);
+    explicit QtMouseProvider(QObject* parent = nullptr);
     bool initialize() override;
     void setCallback(Callback callback) override;
 
