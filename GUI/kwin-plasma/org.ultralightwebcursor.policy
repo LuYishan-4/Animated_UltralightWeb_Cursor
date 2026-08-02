@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE policyconfig>
+
+<policyconfig>
+
+<action id="org.ultralightwebcursor.install">
+
+    <description>
+        Install Ultralight Web Cursor Theme
+    </description>
+
+    <message>
+        Authentication required to install cursor theme
+    </message>
+
+    <defaults>
+        <allow_active>auth_admin</allow_active>
+        <allow_inactive>auth_admin</allow_inactive>
+    </defaults>
+
+</action>
+
+</policyconfig>

@@ -1,4 +1,0 @@
-[D-BUS Service]
-Name=org.ultralightwebcursor
-Exec=/usr/libexec/ultralightwebcursor_helper
-User=root

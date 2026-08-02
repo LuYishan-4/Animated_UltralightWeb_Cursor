@@ -1,5 +1,4 @@
 #include "PluginPath.hpp"
-
 #include <QStandardPaths>
 
 namespace KWin

@@ -1,0 +1,11 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/luyishan4/Documents/kde-cursor-ani/build-hyprland/cmake_install.cmake",
+		"/home/luyishan4/Documents/kde-cursor-ani/build-hyprland/GUI/hyprland/cmake_install.cmake",
+		"/home/luyishan4/Documents/kde-cursor-ani/build-hyprland/GUI/niri/cmake_install.cmake",
+		"/home/luyishan4/Documents/kde-cursor-ani/build-hyprland/src/hyprland/cmake_install.cmake",
+		"/home/luyishan4/Documents/kde-cursor-ani/build-hyprland/src/niri/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,19 @@
+{
+    "KPlugin": {
+        "Name": "UltralightWeb Cursor",
+        "Name[zh_TW]": "UltralightWeb Cursor 游標設定",
+
+        "Description": "Configure the UltralightWeb Cursor effect",
+        "Description[zh_TW]": "設定 UltralightWeb Cursor 特效",
+
+        "Icon": "preferences-desktop-cursor"
+    },
+
+    "X-KDE-ServiceTypes": [
+        "KCModule"
+    ],
+
+    "X-KDE-System-Settings-Parent-Category": "workspace-appearance",
+
+    "X-KDE-Weight": 100
+}
