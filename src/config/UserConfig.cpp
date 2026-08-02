@@ -32,9 +32,14 @@ UserConfig* UserConfig::instance() {
     return &inst;
 }
 
-UserConfig::UserConfig(){
-    const char* home = std::getenv("HOME");
-    if(home) configPath_ = std::string(home) + "/.config/ultralightwebcursor/config.ini";
+UserConfig::UserConfig() {
+    if (GloablContast::buildType == BuildType::Windows) {
+        const char* appdata = std::getenv("APPDATA");
+        if (appdata)configPath_ = std::string(appdata) + "/UltralightWebCursor/config.ini";
+    } else {
+        const char* home = std::getenv("HOME");
+        if (home)configPath_ = std::string(home) + "/.config/ultralightwebcursor/config.ini";
+    }
 }
 
 void UserConfig::ensureInitialized() {
@@ -42,7 +47,7 @@ void UserConfig::ensureInitialized() {
     if (!schema_.empty()) {
         return;
     }
-    auto base = KWin::PluginPath::dataDir();
+    auto base = UltralightWebCursorM::PluginPath::dataDir();
     g_sdkInitialPath = base;
     g_htmlInitialPath = g_sdkInitialPath;
     qDebug() << "[UltralightCursorEffect] "<<base.string();

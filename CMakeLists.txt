@@ -123,6 +123,7 @@ else()
 endif()
 
 if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
+    target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_WINDOWS)
     add_subdirectory(GUI/windows)
     add_subdirectory(src/windows)
 else()
@@ -149,9 +150,10 @@ else()
         )
 
         find_package(KWin REQUIRED)
-
+        target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_KWIN)
         add_subdirectory(src/kwin-plasma)
         add_subdirectory(GUI/kwin-plasma)
+
 
         install(
             DIRECTORY "${ULTRALIGHT_BIN}/"
@@ -177,9 +179,11 @@ else()
      #   add_subdirectory(GUI/hyprland)
     #    add_subdirectory(src/hyprland) not now :D
     elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "X11")
+      target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
         add_subdirectory(GUI/x11)
         add_subdirectory(src/x11)
     else()
+        target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
         add_subdirectory(GUI/x11)
         add_subdirectory(src/x11)
     endif()
