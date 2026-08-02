@@ -4,6 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(X11 REQUIRED)
 
 add_executable(ultralightwebcursor_gnome
     GnomeApp.cpp
@@ -11,6 +12,7 @@ add_executable(ultralightwebcursor_gnome
     StandaloneCursorEffect.hpp
     PlatformMouseProvider.cpp
     PlatformMouseProvider.hpp
+    ../kwin-plasma/UltralightHtmlEffect.cpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 
@@ -27,7 +29,9 @@ target_link_libraries(ultralightwebcursor_gnome PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    Qt6::DBus
     Ultralight::SDK
+    X11::X11
 )
 
 install(TARGETS ultralightwebcursor_gnome RUNTIME DESTINATION bin)

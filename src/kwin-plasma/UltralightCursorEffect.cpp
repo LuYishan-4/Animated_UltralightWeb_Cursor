@@ -1,5 +1,5 @@
-#include "header/UltralightCursorEffect.hpp"
-#include "header/KwinMouseProvider.hpp"
+#include "../header/UltralightCursorEffect.hpp"
+#include "../header/KwinMouseProvider.hpp"
 #include "core/rendertarget.h"
 #include "core/renderviewport.h"
 #include "effect/effecthandler.h"

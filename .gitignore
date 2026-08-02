@@ -4,6 +4,9 @@ ultralight-free-sdk-1.4.0-win-x64/
 pkg/
 
 build-hyprland/
+build-gnome/
+build-windows/
+build-niri/
 # Prerequisites
 *.d
 

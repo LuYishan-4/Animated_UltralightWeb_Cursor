@@ -22,11 +22,11 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::filesystem::path htmlPath(UltralightWebCursorM::UserConfigimp.html);
+    std::filesystem::path htmlPath(UltralightWebCursorM::UserConfigimp().html);
     UltralightWebCursorM::CursorJSON::instance()->load(htmlPath.parent_path().string());
 
     auto effect = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
-    if (!effect->initialize(UltralightWebCursorM::UserConfigimp, UltralightWebCursorM::CursorJSONImp)) {
+    if (!effect->initialize(UltralightWebCursorM::UserConfigimp(), UltralightWebCursorM::CursorJSONImp())) {
         qCritical() << "Failed to initialize Ultralight HTML effect for GNOME version.";
         return 1;
     }

@@ -107,7 +107,38 @@ set_target_properties(ultralightwebcursor_core PROPERTIES
 #  平台 / 桌面环境 分支
 # ============================================================
 #
+set(FORCE_DESKTOP_ENVIRONMENT "" CACHE STRING
+    "强制指定目标桌面环境 (KDE/GNOME/HYPRLAND/NIRI/SWAY/WINDOWS)，留空则自动检测当前 session"
+)
+
 if(WIN32)
+    set(DETECTED_DESKTOP_ENVIRONMENT "WINDOWS")
+elseif(FORCE_DESKTOP_ENVIRONMENT)
+    string(TOUPPER "${FORCE_DESKTOP_ENVIRONMENT}" DETECTED_DESKTOP_ENVIRONMENT)
+    message(STATUS "Desktop environment forced to: ${DETECTED_DESKTOP_ENVIRONMENT}")
+else()
+    # 依次尝试几个环境变量，取第一个非空的
+    set(_de_raw "$ENV{XDG_CURRENT_DESKTOP}")
+    if(NOT _de_raw)
+        set(_de_raw "$ENV{XDG_SESSION_DESKTOP}")
+    endif()
+    if(NOT _de_raw)
+        set(_de_raw "$ENV{DESKTOP_SESSION}")
+    endif()
+
+    string(TOUPPER "${_de_raw}" DETECTED_DESKTOP_ENVIRONMENT)
+
+    if(NOT DETECTED_DESKTOP_ENVIRONMENT)
+        message(WARNING
+            "无法从环境变量检测桌面环境（XDG_CURRENT_DESKTOP 等均为空）。\n"
+            "如果这是打包/CI 环境，请显式指定：-DFORCE_DESKTOP_ENVIRONMENT=KDE"
+        )
+    else()
+        message(STATUS "Detected desktop environment: ${DETECTED_DESKTOP_ENVIRONMENT}")
+    endif()
+endif()
+
+if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
 
     # ===== Windows 独立版：不依赖 KWin/KAuth =====
     add_subdirectory(GUI/windows)
@@ -122,35 +153,6 @@ else()
     # 所以提供强制指定选项，例如：
     #   cmake -B build -DFORCE_DESKTOP_ENVIRONMENT=KDE
     #
-    set(FORCE_DESKTOP_ENVIRONMENT "" CACHE STRING
-        "强制指定目标桌面环境 (KDE/GNOME/HYPRLAND/NIRI/SWAY)，留空则自动检测当前 session"
-    )
-
-    if(FORCE_DESKTOP_ENVIRONMENT)
-        string(TOUPPER "${FORCE_DESKTOP_ENVIRONMENT}" DETECTED_DESKTOP_ENVIRONMENT)
-        message(STATUS "Desktop environment forced to: ${DETECTED_DESKTOP_ENVIRONMENT}")
-    else()
-        # 依次尝试几个环境变量，取第一个非空的
-        set(_de_raw "$ENV{XDG_CURRENT_DESKTOP}")
-        if(NOT _de_raw)
-            set(_de_raw "$ENV{XDG_SESSION_DESKTOP}")
-        endif()
-        if(NOT _de_raw)
-            set(_de_raw "$ENV{DESKTOP_SESSION}")
-        endif()
-
-        string(TOUPPER "${_de_raw}" DETECTED_DESKTOP_ENVIRONMENT)
-
-        if(NOT DETECTED_DESKTOP_ENVIRONMENT)
-            message(WARNING
-                "无法从环境变量检测桌面环境（XDG_CURRENT_DESKTOP 等均为空）。\n"
-                "如果这是打包/CI 环境，请显式指定：-DFORCE_DESKTOP_ENVIRONMENT=KDE"
-            )
-        else()
-            message(STATUS "Detected desktop environment: ${DETECTED_DESKTOP_ENVIRONMENT}")
-        endif()
-    endif()
-
     # XDG_CURRENT_DESKTOP 可能是冒号分隔的多值，例如 "KDE" / "ubuntu:GNOME" / "Hyprland"
     # 用 MATCHES 做子串匹配即可覆盖这些情况
 

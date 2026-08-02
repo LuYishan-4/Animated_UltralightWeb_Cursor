@@ -1,4 +1,4 @@
-#include "header/MouseUpload.hpp"
+#include "../header/MouseUpload.hpp"
 
 #include <X11/Xlib.h>
 

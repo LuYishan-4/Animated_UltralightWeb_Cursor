@@ -1,4 +1,4 @@
-#include "header/KwinMouseProvider.hpp"
+#include "../header/KwinMouseProvider.hpp"
 
 #include "effect/effecthandler.h"
 #include <QDBusConnection>

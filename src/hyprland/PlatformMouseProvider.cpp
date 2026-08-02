@@ -1,13 +1,101 @@
 #include "PlatformMouseProvider.hpp"
-#include <QDebug>
 
-PlatformMouseProvider::PlatformMouseProvider(QObject* parent) : QObject(parent) {}
+#include <hyprutils/os/Process.hpp>
 
-bool PlatformMouseProvider::initialize(){
-    // For wlroots-based compositors integration is platform specific; placeholder
+#include <X11/Xlib.h>
+
+#include <cstdlib>
+#include <sstream>
+
+namespace {
+
+bool readHyprlandCursorPosition(UltralightWebCursorM::MousePoint& out)
+{
+    const char* signature = std::getenv("HYPRLAND_INSTANCE_SIGNATURE");
+    if(!signature || !*signature)
+        return false;
+
+    try {
+        Hyprutils::OS::CProcess process("hyprctl", {"cursorpos"});
+        if(!process.runSync())
+            return false;
+
+        std::istringstream stream(process.stdOut());
+        std::string token;
+        if(!std::getline(stream, token, ','))
+            return false;
+        out.x = std::atoi(token.c_str());
+        if(!std::getline(stream, token))
+            return false;
+        out.y = std::atoi(token.c_str());
+        out.pressed = false;
+        return true;
+    } catch(...) {
+        return false;
+    }
+}
+
+bool readX11CursorPosition(UltralightWebCursorM::MousePoint& out)
+{
+    Display* display = XOpenDisplay(nullptr);
+    if(!display)
+        return false;
+
+    Window root = DefaultRootWindow(display);
+    Window root_return = 0;
+    Window child_return = 0;
+    int root_x = 0;
+    int root_y = 0;
+    int win_x = 0;
+    int win_y = 0;
+    unsigned int mask_return = 0;
+
+    const Bool ok = XQueryPointer(
+        display,
+        root,
+        &root_return,
+        &child_return,
+        &root_x,
+        &root_y,
+        &win_x,
+        &win_y,
+        &mask_return
+    );
+
+    XCloseDisplay(display);
+
+    if(!ok)
+        return false;
+
+    out.x = root_x;
+    out.y = root_y;
+    out.pressed = (mask_return & Button1Mask) != 0;
     return true;
 }
 
-void PlatformMouseProvider::setCallback(Callback callback){
+}
+
+PlatformMouseProvider::PlatformMouseProvider(QObject* parent) : QObject(parent) {}
+
+bool PlatformMouseProvider::initialize()
+{
+    timer_.setInterval(16);
+    connect(&timer_, &QTimer::timeout, this, &PlatformMouseProvider::onTimer);
+    timer_.start();
+    return true;
+}
+
+void PlatformMouseProvider::setCallback(Callback callback)
+{
     callback_ = std::move(callback);
+}
+
+void PlatformMouseProvider::onTimer()
+{
+    if(!callback_)
+        return;
+
+    UltralightWebCursorM::MousePoint point;
+    if(readHyprlandCursorPosition(point) || readX11CursorPosition(point))
+        callback_(point);
 }

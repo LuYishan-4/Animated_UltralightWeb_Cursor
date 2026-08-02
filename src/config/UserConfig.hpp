@@ -57,5 +57,8 @@ private:
     std::string configPath_; 
     std::unordered_map<std::string, std::string> data_;
 };
-#define UserConfigimp (::UltralightWebCursorM::UserConfig::instance()->values)
+inline ConfigValues& UserConfigimp()
+{
+    return UltralightWebCursorM::UserConfig::instance()->values;
+}
 } 

@@ -11,6 +11,7 @@ add_executable(ultralightwebcursor_windows
     StandaloneCursorEffect.hpp
     PlatformMouseProvider.cpp
     PlatformMouseProvider.hpp
+    ../kwin-plasma/UltralightHtmlEffect.cpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 
@@ -27,7 +28,13 @@ target_link_libraries(ultralightwebcursor_windows PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
+    Qt6::DBus
     Ultralight::SDK
 )
+
+if(WIN32)
+    target_compile_definitions(ultralightwebcursor_windows PRIVATE WIN32_LEAN_AND_MEAN)
+    target_link_libraries(ultralightwebcursor_windows PRIVATE user32)
+endif()
 
 install(TARGETS ultralightwebcursor_windows RUNTIME DESTINATION bin)

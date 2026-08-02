@@ -33,5 +33,8 @@ private:
     std::vector<BindItem> schema_;
     std::unordered_map<std::string, std::string> data_;
 };
-#define CursorJSONImp (::UltralightWebCursorM::CursorJSON::instance()->values)
+inline JSONConf& CursorJSONImp()
+{
+    return UltralightWebCursorM::CursorJSON::instance()->values;
+}
 } 

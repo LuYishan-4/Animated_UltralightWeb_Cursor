@@ -1,8 +1,8 @@
-#include "header/UltralightHtmlEffect.hpp"
+#include "../header/UltralightHtmlEffect.hpp"
 #include <QDir>
 #include <Ultralight/Ultralight.h>
 #include <AppCore/Platform.h>
-#include "lib/UltralightPl/WebListener.hpp"
+#include "../lib/UltralightPl/WebListener.hpp"
 #include <iostream>
 #include <fstream>
 #include <cstring>
