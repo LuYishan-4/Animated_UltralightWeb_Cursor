@@ -19,12 +19,10 @@ bool QtCursorEffect::initialize(){
     UltralightWebCursorM::UserConfig::instance()->load();
     std::filesystem::path htmlPath(UserConfigimp.html);
     UltralightWebCursorM::CursorJSON::instance()->load(htmlPath.parent_path().string());
-
     if(!html_->initialize(UserConfigimp,CursorJSONImp)){
         qCritical() << "UltralightHtmlEffect initialize failed";
         return false;
     }
-
     mouseProvider_->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
         html_->move(pt.x, pt.y, pt.pressed);
     });

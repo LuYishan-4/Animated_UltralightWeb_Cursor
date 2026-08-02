@@ -1,16 +1,14 @@
 #pragma once
 
-#include <memory>
-#include <QTimer>
-#include "UltralightHtmlEffect.hpp"
-#include "QtMouseProvider.hpp"
+#include "MainCursorStaff.hpp" 
 
-class QtCursorEffect : public QObject
+namespace UltralightWebCursorM{
+class QtCursorEffect : public MainCursorStaff
 {
     Q_OBJECT
 public:
     QtCursorEffect(QObject* parent = nullptr);
-    ~QtCursorEffect();
+    ~QtCursorEffect() override;
 
     bool initialize();
     void start();
@@ -19,7 +17,6 @@ private slots:
     void onTick();
 
 private:
-    std::unique_ptr<UltralightWebCursorM::UltralightHtmlEffect> html_;
-    std::unique_ptr<QtMouseProvider> mouseProvider_;
     QTimer timer_;
 };
+}

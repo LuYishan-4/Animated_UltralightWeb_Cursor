@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets)
 
 add_executable(ultralightwebcursor_windows
-    WindowsApp.cpp
+    main.cpp
     QtCursorEffect.cpp
     ../header/QtCursorEffect.hpp
     QtMouseProvider.cpp
@@ -36,5 +36,4 @@ if(WIN32)
     target_compile_definitions(ultralightwebcursor_windows PRIVATE WIN32_LEAN_AND_MEAN)
     target_link_libraries(ultralightwebcursor_windows PRIVATE user32)
 endif()
-
 install(TARGETS ultralightwebcursor_windows RUNTIME DESTINATION bin)

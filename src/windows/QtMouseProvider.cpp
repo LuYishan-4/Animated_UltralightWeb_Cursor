@@ -9,8 +9,7 @@
 
 QtMouseProvider::QtMouseProvider(QObject* parent) : QObject(parent) {}
 
-bool QtMouseProvider::initialize()
-{
+bool QtMouseProvider::initialize(){
     timer_.setInterval(16);
     connect(&timer_, &QTimer::timeout, this, &QtMouseProvider::onTimer);
     timer_.start();
