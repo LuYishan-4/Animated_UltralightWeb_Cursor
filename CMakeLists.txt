@@ -101,14 +101,8 @@ set_target_properties(ultralightwebcursor_core PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
-
-#
-# ============================================================
-#  平台 / 桌面环境 分支
-# ============================================================
-#
 set(FORCE_DESKTOP_ENVIRONMENT "" CACHE STRING
-    "强制指定目标桌面环境 (KDE/GNOME/HYPRLAND/NIRI/SWAY/WINDOWS)，留空则自动检测当前 session"
+    " (KDE/GNOME/HYPRLAND/NIRI/SWAY/WINDOWS):"
 )
 
 if(WIN32)
@@ -117,7 +111,6 @@ elseif(FORCE_DESKTOP_ENVIRONMENT)
     string(TOUPPER "${FORCE_DESKTOP_ENVIRONMENT}" DETECTED_DESKTOP_ENVIRONMENT)
     message(STATUS "Desktop environment forced to: ${DETECTED_DESKTOP_ENVIRONMENT}")
 else()
-    # 依次尝试几个环境变量，取第一个非空的
     set(_de_raw "$ENV{XDG_CURRENT_DESKTOP}")
     if(NOT _de_raw)
         set(_de_raw "$ENV{XDG_SESSION_DESKTOP}")
@@ -127,23 +120,11 @@ else()
     endif()
 
     string(TOUPPER "${_de_raw}" DETECTED_DESKTOP_ENVIRONMENT)
-
-    if(NOT DETECTED_DESKTOP_ENVIRONMENT)
-        message(WARNING
-            "无法从环境变量检测桌面环境（XDG_CURRENT_DESKTOP 等均为空）。\n"
-            "如果这是打包/CI 环境，请显式指定：-DFORCE_DESKTOP_ENVIRONMENT=KDE"
-        )
-    else()
-        message(STATUS "Detected desktop environment: ${DETECTED_DESKTOP_ENVIRONMENT}")
-    endif()
 endif()
 
 if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
-
-    # ===== Windows 独立版：不依赖 KWin/KAuth =====
     add_subdirectory(GUI/windows)
     add_subdirectory(src/windows)
-
 else()
 
 
@@ -192,9 +173,12 @@ else()
             FATAL_ON_MISSING_REQUIRED_PACKAGES
         )
 
-    elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND")
-        add_subdirectory(GUI/hyprland)
-        add_subdirectory(src/hyprland)
+    #elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND")
+     #   add_subdirectory(GUI/hyprland)
+    #    add_subdirectory(src/hyprland) not now :D
+    elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "X11")
+        add_subdirectory(GUI/x11)
+        add_subdirectory(src/x11)
     else()
         add_subdirectory(GUI/x11)
         add_subdirectory(src/x11)

@@ -1,4 +1,4 @@
-project(ultralightwebcursor-niri)
+project(ultralightwebcursor-x11)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -6,8 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets)
 find_package(X11 REQUIRED)
 
-add_executable(ultralightwebcursor_niri
-    NiriApp.cpp
+add_executable(ultralightwebcursor_x11
+    main.cpp
     StandaloneCursorEffect.cpp
     StandaloneCursorEffect.hpp
     PlatformMouseProvider.cpp
@@ -17,7 +17,7 @@ add_executable(ultralightwebcursor_niri
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 
-target_include_directories(ultralightwebcursor_niri PRIVATE
+target_include_directories(ultralightwebcursor_x11 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/..
     ${CMAKE_SOURCE_DIR}/src
@@ -26,7 +26,7 @@ target_include_directories(ultralightwebcursor_niri PRIVATE
     ${CMAKE_SOURCE_DIR}/src/lib
 )
 
-target_link_libraries(ultralightwebcursor_niri PRIVATE
+target_link_libraries(ultralightwebcursor_x11 PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
@@ -35,4 +35,4 @@ target_link_libraries(ultralightwebcursor_niri PRIVATE
     X11::X11
 )
 
-install(TARGETS ultralightwebcursor_niri RUNTIME DESTINATION bin)
+install(TARGETS ultralightwebcursor_x11 RUNTIME DESTINATION bin)

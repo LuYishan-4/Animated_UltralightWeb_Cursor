@@ -1,6 +1,7 @@
 build/
 ultralight-free-sdk-1.4.0-linux-x64/
 ultralight-free-sdk-1.4.0-win-x64/
+
 pkg/
 
 build-hyprland/
@@ -9,6 +10,7 @@ build-windows/
 build-niri/
 build-kde/
 build-sway/
+build-x11/
 # Prerequisites
 *.d
 
