@@ -10,7 +10,7 @@
 #include "../config/CursorJSON.hpp"
 #include "../lib/BlackList/BlacklistManager.hpp"
 
-namespace UltralightWebCursorM{
+namespace UltralightWebCursorM {
 
 class GLTexture;
 class EffectWindow; 
@@ -20,23 +20,21 @@ class MainCursorStaff : public QObject
     Q_OBJECT
 
 public:
-    MainCursorStaff(QObject *parent = nullptr);
-    virtual ~MainCursorStaff();
-
-    bool isBlacklisted() const;
+    MainCursorStaff(QObject *parent = nullptr) : QObject(parent) {}
+    virtual ~MainCursorStaff() {}
+    virtual bool isBlacklisted() const { return false; }
 
 public Q_SLOTS:
-    void enable();
-    void disable();
-    void reloadHtml();
+    virtual void enable() = 0;
+    virtual void disable() = 0;
+    virtual void reloadHtml() = 0;
 
 protected:
-    void hideCursor();
-    void showCursor();
-    GLTexture* ensureCursorTexture();
-    bool checkFullScreen() const;
-    void slotWindowStateChanged(EffectWindow *w);
-
+    virtual void hideCursor() {}
+    virtual void showCursor() {}
+    virtual GLTexture* ensureCursorTexture();
+    virtual bool checkFullScreen() const { return false; }
+    virtual void slotWindowStateChanged(EffectWindow *w) {}
     QTimer *m_idleTimer = nullptr;
     bool m_isIdleHidden = false;
     std::unique_ptr<UltralightWebCursorM::UltralightHtmlEffect> m_html;
@@ -47,4 +45,4 @@ protected:
     QPointF m_cursorPoint;
 };
 
-} // namespace KWin
+} // namespace UltralightWebCursorM

@@ -17,6 +17,7 @@ target_sources(ultralightwebcursor PRIVATE
     ../lib/BlackList/BlacklistManager.hpp
     ../lib/UltralightPl/WebListener.hpp
     ../lib/WebCall/WebCall.hpp
+    ../header/MainCursorStaff.hpp
      $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 target_include_directories(ultralightwebcursor

@@ -6,7 +6,7 @@
 int main(int argc, char** argv){
     QGuiApplication app(argc, argv);
 
-   QtCursorEffect effect;
+   UltralightWebCursorM::QtCursorEffect effect;
     if(!effect.initialize()){
         qCritical() << "Failed to initialize Windows standalone effect";
         return 1;

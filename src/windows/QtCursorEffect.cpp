@@ -2,31 +2,34 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include "../lib/SharedCursorRender.hpp"
-
+#include "../header/QtMouseProvider.hpp"
+namespace UltralightWebCursorM{
 QtCursorEffect::QtCursorEffect(QObject* parent)
-    : QObject(parent)
+    : MainCursorStaff(parent)
 {
     connect(&timer_, &QTimer::timeout, this, &QtCursorEffect::onTick);
 }
 
-QtCursorEffect::~QtCursorEffect(){ }
+QtCursorEffect::~QtCursorEffect() 
+{ 
+}
 
 bool QtCursorEffect::initialize(){
-    html_ = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
-    mouseProvider_ = std::make_unique<QtMouseProvider>();
-    if(!html_) return false;
-    if(!mouseProvider_) return false;
+    m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
+    m_mouseProvider = std::make_unique<QtMouseProvider>();
+    if(!m_html) return false;
+    if(!m_mouseProvider) return false;
     UltralightWebCursorM::UserConfig::instance()->load();
     std::filesystem::path htmlPath(UserConfigimp.html);
     UltralightWebCursorM::CursorJSON::instance()->load(htmlPath.parent_path().string());
-    if(!html_->initialize(UserConfigimp,CursorJSONImp)){
+    if(!m_html->initialize(UserConfigimp,CursorJSONImp)){
         qCritical() << "UltralightHtmlEffect initialize failed";
         return false;
     }
-    mouseProvider_->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
-        html_->move(pt.x, pt.y, pt.pressed);
+    m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
+        m_html->move(pt.x, pt.y, pt.pressed);
     });
-    mouseProvider_->initialize();
+    m_mouseProvider->initialize();
     return true;
 }
 
@@ -35,5 +38,6 @@ void QtCursorEffect::start(){
 }
 
 void QtCursorEffect::onTick(){
-    if(html_) html_->update();
+    if(m_html) m_html->update();
+}
 }

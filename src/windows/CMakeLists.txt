@@ -11,7 +11,11 @@ add_executable(ultralightwebcursor_windows
     ../header/QtCursorEffect.hpp
     QtMouseProvider.cpp
     ../header/QtMouseProvider.hpp
+    ../header/MainCursorStaff.hpp
     ../lib/UltralightHtmlEffect.cpp
+    ../lib/UltralightPl/WebListener.hpp
+    ../lib/BlackList/BlacklistManager.cpp
+    ../lib/WebCall/WebCall.hpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 

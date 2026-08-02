@@ -2,7 +2,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include "../lib/SharedCursorRender.hpp"
-
+namespace UltralightWebCursorM{
 QtCursorEffect::QtCursorEffect(QObject* parent)
     : QObject(parent)
 {
@@ -38,4 +38,5 @@ void QtCursorEffect::start(){
 
 void QtCursorEffect::onTick(){
     if(html_) html_->update();
+}
 }
