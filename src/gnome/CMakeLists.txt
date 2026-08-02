@@ -12,7 +12,8 @@ add_executable(ultralightwebcursor_gnome
     StandaloneCursorEffect.hpp
     PlatformMouseProvider.cpp
     PlatformMouseProvider.hpp
-    ../kwin-plasma/UltralightHtmlEffect.cpp
+    ../lib/UltralightHtmlEffect.cpp
+    ../lib/X11MouseProvider.cpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 

@@ -1,6 +1,7 @@
 #include "StandaloneCursorEffect.hpp"
 #include <QCoreApplication>
 #include <QDebug>
+#include "../lib/SharedCursorRender.hpp"
 
 StandaloneCursorEffect::StandaloneCursorEffect(QObject* parent)
     : QObject(parent)

@@ -7,7 +7,7 @@ kcoreaddons_add_plugin(
 
 target_sources(ultralightwebcursor PRIVATE
     UltralightCursorEffect.cpp
-    UltralightHtmlEffect.cpp
+    ../lib/UltralightHtmlEffect.cpp
     KwinMouseProvider.cpp
     MouseUpload.cpp
     ../lib/BlackList/BlacklistManager.cpp

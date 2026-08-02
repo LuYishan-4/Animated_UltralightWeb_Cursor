@@ -1,18 +1,66 @@
 #include "PlatformMouseProvider.hpp"
 
+#include "../lib/X11MouseProvider.hpp"
+
 #include <hyprutils/os/Process.hpp>
 
-#include <X11/Xlib.h>
-
+#include <algorithm>
+#include <cctype>
+#include <cerrno>
 #include <cstdlib>
 #include <sstream>
+#include <string>
 
 namespace {
+
+std::string trim(std::string value)
+{
+    const auto isSpace = [](unsigned char ch) {
+        return std::isspace(ch) != 0;
+    };
+
+    value.erase(value.begin(), std::find_if(value.begin(), value.end(), [&](unsigned char ch) {
+        return !isSpace(ch);
+    }));
+    value.erase(std::find_if(value.rbegin(), value.rend(), [&](unsigned char ch) {
+        return !isSpace(ch);
+    }).base(), value.end());
+    return value;
+}
+
+bool parseCursorPoint(const std::string& input, UltralightWebCursorM::MousePoint& out)
+{
+    const auto comma = input.find(',');
+    if(comma == std::string::npos)
+        return false;
+
+    const std::string xText = trim(input.substr(0, comma));
+    const std::string yText = trim(input.substr(comma + 1));
+    if(xText.empty() || yText.empty())
+        return false;
+
+    char* end = nullptr;
+    errno = 0;
+    const long x = std::strtol(xText.c_str(), &end, 10);
+    if(errno != 0 || end == xText.c_str() || *end != '\0')
+        return false;
+
+    errno = 0;
+    const long y = std::strtol(yText.c_str(), &end, 10);
+    if(errno != 0 || end == yText.c_str() || *end != '\0')
+        return false;
+
+    out.x = static_cast<int>(x);
+    out.y = static_cast<int>(y);
+    out.pressed = false;
+    return true;
+}
 
 bool readHyprlandCursorPosition(UltralightWebCursorM::MousePoint& out)
 {
     const char* signature = std::getenv("HYPRLAND_INSTANCE_SIGNATURE");
-    if(!signature || !*signature)
+    const char* display = std::getenv("WAYLAND_DISPLAY");
+    if((!signature || !*signature) && (!display || !*display))
         return false;
 
     try {
@@ -20,57 +68,14 @@ bool readHyprlandCursorPosition(UltralightWebCursorM::MousePoint& out)
         if(!process.runSync())
             return false;
 
-        std::istringstream stream(process.stdOut());
-        std::string token;
-        if(!std::getline(stream, token, ','))
+        const std::string output = trim(process.stdOut());
+        if(output.empty())
             return false;
-        out.x = std::atoi(token.c_str());
-        if(!std::getline(stream, token))
-            return false;
-        out.y = std::atoi(token.c_str());
-        out.pressed = false;
-        return true;
+
+        return parseCursorPoint(output, out);
     } catch(...) {
         return false;
     }
-}
-
-bool readX11CursorPosition(UltralightWebCursorM::MousePoint& out)
-{
-    Display* display = XOpenDisplay(nullptr);
-    if(!display)
-        return false;
-
-    Window root = DefaultRootWindow(display);
-    Window root_return = 0;
-    Window child_return = 0;
-    int root_x = 0;
-    int root_y = 0;
-    int win_x = 0;
-    int win_y = 0;
-    unsigned int mask_return = 0;
-
-    const Bool ok = XQueryPointer(
-        display,
-        root,
-        &root_return,
-        &child_return,
-        &root_x,
-        &root_y,
-        &win_x,
-        &win_y,
-        &mask_return
-    );
-
-    XCloseDisplay(display);
-
-    if(!ok)
-        return false;
-
-    out.x = root_x;
-    out.y = root_y;
-    out.pressed = (mask_return & Button1Mask) != 0;
-    return true;
 }
 
 }
@@ -96,6 +101,11 @@ void PlatformMouseProvider::onTimer()
         return;
 
     UltralightWebCursorM::MousePoint point;
-    if(readHyprlandCursorPosition(point) || readX11CursorPosition(point))
+    if(readHyprlandCursorPosition(point)) {
+        callback_(point);
+        return;
+    }
+
+    if(UltralightWebCursorM::readX11CursorPosition(point))
         callback_(point);
 }
