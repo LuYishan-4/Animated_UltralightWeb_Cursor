@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets)
 
 add_executable(ultralightwebcursor_hyprland
-    HyprlandCursorEffect.cpp
+    HyprlandApp.cpp
+    StandaloneCursorEffect.cpp
+    StandaloneCursorEffect.hpp
+    PlatformMouseProvider.cpp
+    PlatformMouseProvider.hpp
     $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 

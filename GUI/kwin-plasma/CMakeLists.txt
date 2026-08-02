@@ -96,12 +96,9 @@ kauth_install_helper_files(
     org.ultralightwebcursor 
     root
 )
-install(
-    FILES
-        org.ultralightwebcursor.policy
-    DESTINATION
-        ${CMAKE_CURRENT_BINARY_DIR}
-)
+## Ensure the polkit policy file is available in the build tree for helper installation
+configure_file(org.ultralightwebcursor.policy
+    ${CMAKE_CURRENT_BINARY_DIR}/org.ultralightwebcursor.policy COPYONLY)
 kauth_install_actions(
     org.ultralightwebcursor 
     org.ultralightwebcursor.actions

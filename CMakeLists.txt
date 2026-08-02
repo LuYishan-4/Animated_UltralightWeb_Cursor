@@ -96,6 +96,11 @@ target_link_libraries(ultralightwebcursor_core
     Qt6::DBus
 )
 
+# Ensure objects compiled into shared modules are position-independent
+set_target_properties(ultralightwebcursor_core PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+)
+
 
 #
 # ============================================================

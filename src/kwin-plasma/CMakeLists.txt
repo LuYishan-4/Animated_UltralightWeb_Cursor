@@ -10,7 +10,7 @@ target_sources(ultralightwebcursor PRIVATE
     UltralightHtmlEffect.cpp
     KwinMouseProvider.cpp
     MouseUpload.cpp
-    lib/BlackList/BlacklistManager.cpp
+    ../lib/BlackList/BlacklistManager.cpp
     ../header/UltralightCursorEffect.hpp
     ../header/KwinMouseProvider.hpp
     ../header/UltralightHtmlEffect.hpp
@@ -22,9 +22,10 @@ target_sources(ultralightwebcursor PRIVATE
 target_include_directories(ultralightwebcursor
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/config
-    ${CMAKE_CURRENT_SOURCE_DIR}/header
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/src/config
+    ${CMAKE_SOURCE_DIR}/src/header
+    ${CMAKE_SOURCE_DIR}/src/lib
     /usr/include/kwin
     /usr/include/kwin/core
 )
