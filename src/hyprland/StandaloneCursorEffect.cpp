@@ -17,10 +17,10 @@ bool StandaloneCursorEffect::initialize(){
     if(!html_) return false;
     if(!mouseProvider_) return false;
     UltralightWebCursorM::UserConfig::instance()->load();
-    std::filesystem::path htmlPath(UltralightWebCursorM::UserConfigimp().html);
+    std::filesystem::path htmlPath(UserConfigimp.html);
     UltralightWebCursorM::CursorJSON::instance()->load(htmlPath.parent_path().string());
 
-    if(!html_->initialize(UltralightWebCursorM::UserConfigimp(), UltralightWebCursorM::CursorJSONImp())){
+    if(!html_->initialize(UserConfigimp, CursorJSONImp)){
         qCritical() << "UltralightHtmlEffect initialize failed";
         return false;
     }

@@ -146,20 +146,8 @@ if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
 
 else()
 
-    #
-    # ---- Linux 桌面环境检测 ----
-    #
-    # 打包/CI 环境通常没有登录 session，XDG_CURRENT_DESKTOP 会是空的，
-    # 所以提供强制指定选项，例如：
-    #   cmake -B build -DFORCE_DESKTOP_ENVIRONMENT=KDE
-    #
-    # XDG_CURRENT_DESKTOP 可能是冒号分隔的多值，例如 "KDE" / "ubuntu:GNOME" / "Hyprland"
-    # 用 MATCHES 做子串匹配即可覆盖这些情况
 
     if(DETECTED_DESKTOP_ENVIRONMENT MATCHES "KDE")
-
-        # ===== KDE / KWin：现有实现 =====
-
         set(KF6_MIN_VERSION "6.0.0")
 
         find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
@@ -204,39 +192,12 @@ else()
             FATAL_ON_MISSING_REQUIRED_PACKAGES
         )
 
-    elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND" OR
-           DETECTED_DESKTOP_ENVIRONMENT MATCHES "NIRI" OR
-           DETECTED_DESKTOP_ENVIRONMENT MATCHES "SWAY")
-
-
-        message(WARNING
-            "${DETECTED_DESKTOP_ENVIRONMENT} 尚未实现（wlroots-based compositor，"
-            "需要走 wlr-layer-shell overlay 方案，而非 KWin Effect）。"
-        )
+    elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND")
         add_subdirectory(GUI/hyprland)
-        add_subdirectory(GUI/niri)
         add_subdirectory(src/hyprland)
-        add_subdirectory(src/niri)
-
-    elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "GNOME")
-
-        # ===== GNOME / Mutter =====
-        # Mutter 没有等价的原生 C++ effect 插件接口，通常要写 GNOME Shell Extension (JS)，
-        # 架构和 KWin/wlroots 都不一样，先占位
-        message(WARNING
-            "GNOME 尚未实现（需要 GNOME Shell Extension，架构与 KWin 完全不同）。"
-        )
-        add_subdirectory(GUI/gnome)
-        add_subdirectory(src/gnome)
-  
     else()
-
-        message(WARNING
-            "未识别或不支持的桌面环境: '${DETECTED_DESKTOP_ENVIRONMENT}'\n"
-            "当前仅实现了 KDE(KWin) 分支。\n"
-            "可用 -DFORCE_DESKTOP_ENVIRONMENT=KDE 强制指定，或提交 PR 支持你的 DE。"
-        )
-
+        add_subdirectory(GUI/x11)
+        add_subdirectory(src/x11)
     endif()
 
 endif()

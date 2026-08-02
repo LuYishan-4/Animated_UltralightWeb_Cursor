@@ -7,6 +7,8 @@ build-hyprland/
 build-gnome/
 build-windows/
 build-niri/
+build-kde/
+build-sway/
 # Prerequisites
 *.d
 
