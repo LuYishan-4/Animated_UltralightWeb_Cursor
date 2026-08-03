@@ -31,7 +31,6 @@ void QtMouseProvider::updateMouseState() {
     qreal rawX = point.x;
     qreal rawY = point.y;
 
-
     if (QScreen *screen = QGuiApplication::primaryScreen()) {
         qreal devicePixelRatio = screen->devicePixelRatio();
         if (devicePixelRatio > 0.0) {
@@ -42,16 +41,19 @@ void QtMouseProvider::updateMouseState() {
 
     mousePoint.x = rawX;
     mousePoint.y = rawY;
+    // 跨應用程式全域監聽滑鼠左鍵是否按下
     mousePoint.pressed = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 #else
-
     const QPoint globalPos = QCursor::pos();
     mousePoint.x = globalPos.x();
     mousePoint.y = globalPos.y();
     mousePoint.pressed = false;
 #endif
 
+
     callback_(mousePoint);
+} 
+
 
 void QtMouseProvider::onTimer() {
     updateMouseState();

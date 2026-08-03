@@ -117,8 +117,7 @@ bool UltralightHtmlEffect::resize(const int& width, const int& height)
     return true;
 }
 
-void UltralightHtmlEffect::reload(const ConfigValues& uconfig, const JSONConf& data)
-{
+void UltralightHtmlEffect::reload(const ConfigValues& uconfig, const JSONConf& data){
     width_ = data.minWidth;
     height_ = data.minHeight;
     html_path_ = uconfig.html;
@@ -126,17 +125,13 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig, const JSONConf& d
     enabled_ = uconfig.enabled;
     hotspot_x_ = data.hotspotX;
     hotspot_y_ = data.hotspotY;
-
     UltralightHtmlEffect::load(html_path_);
     UltralightHtmlEffect::resize(width_, height_);
 }
-
 void UltralightHtmlEffect::move(int x, int y, bool pressed)
 {
-    if(!view_)
-        return;
-    if(webcall)
-        webcall->move(x, y, pressed);
+    if(!view_)return;
+    if(webcall)webcall->move(x, y, pressed);
     view_->set_needs_paint(true);
 }
 

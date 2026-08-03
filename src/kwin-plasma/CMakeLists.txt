@@ -9,7 +9,6 @@ target_sources(ultralightwebcursor PRIVATE
     UltralightCursorEffect.cpp
     ../lib/UltralightHtmlEffect.cpp
     KwinMouseProvider.cpp
-    MouseUpload.cpp
     ../lib/BlackList/BlacklistManager.cpp
     ../header/UltralightCursorEffect.hpp
     ../header/KwinMouseProvider.hpp
