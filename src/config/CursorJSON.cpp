@@ -24,6 +24,8 @@ CursorJSON::CursorJSON() {
         {"Author",    "Unknown",[this](const std::string& v) { values.Author = v; }},
         {"minHeight", "128",    [this](const std::string& v) { values.minHeight = std::stoi(v); }},
         {"minWidth",  "128",    [this](const std::string& v) { values.minWidth = std::stoi(v); }},
+        {"hotspotX", "64",    [this](const std::string& v) { values.hotspotX = std::stoi(v); }},
+        {"hotspotY", "64",    [this](const std::string& v) { values.hotspotY = std::stoi(v); }},
         {"describe",  "",       [this](const std::string& v) { values.describe = v; }},
     };
     for (const auto& item : schema_) {

@@ -26,8 +26,7 @@ UltralightHtmlEffect::~UltralightHtmlEffect()
 }
 
 // initialize
-bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONConf& data)
-{
+bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONConf& data){
     width_ = data.minWidth;
     height_ = data.minHeight;
     html_path_ = uconfig.html;
@@ -35,6 +34,8 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     enabled_ = uconfig.enabled;
     minheight = data.minHeight;
     minwidth = data.minWidth;
+    hotspot_x_ = data.hotspotX;
+    hotspot_y_ = data.hotspotY;
 
     qDebug() << "[UltralightCursorEffect] init" << width_ << data.minWidth;
 
@@ -123,6 +124,9 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig, const JSONConf& d
     html_path_ = uconfig.html;
     m_permanentSdkPath = uconfig.sdk;
     enabled_ = uconfig.enabled;
+    hotspot_x_ = data.hotspotX;
+    hotspot_y_ = data.hotspotY;
+
     UltralightHtmlEffect::load(html_path_);
     UltralightHtmlEffect::resize(width_, height_);
 }

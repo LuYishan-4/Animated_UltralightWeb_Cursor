@@ -52,8 +52,9 @@ UltralightCursorEffect::UltralightCursorEffect() {
     );
 }
 
-UltralightCursorEffect::~UltralightCursorEffect()m_cursorTexture.reset();
-
+UltralightCursorEffect::~UltralightCursorEffect() {
+    m_cursorTexture.reset();
+}
 
 bool UltralightCursorEffect::supported() {
     return effects->isOpenGLCompositing();
@@ -78,11 +79,10 @@ void UltralightCursorEffect::reloadHtml() {
 bool UltralightCursorEffect::isBlacklisted() const {
     auto window = effects->activeWindow();
     if (!window) return false;
-    // 呼叫基底類別通用的黑名單篩選工具
     return isWindowBlacklisted(window->windowClass().toStdString());
 }
+
 GLTexture* UltralightCursorEffect::ensureCursorTexture() {
-    // 註：m_isIdleHidden 變數已由繼承 MainCursorStaff 獲得
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
     
     m_html->update();
@@ -128,7 +128,8 @@ void UltralightCursorEffect::paintScreen(
 
     const int w = m_html->width();
     const int h = m_html->height();
-    QPointF hotspot(w / 2.0, h / 2.0);
+    QPointF hotspot(m_html->hotspotX(), m_html->hotspotY());
+    
     QPointF pos = effects->cursorPos() - screen->geometry().topLeft() - hotspot;
     auto scale = viewport.scale();
 

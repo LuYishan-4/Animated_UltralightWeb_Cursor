@@ -12,6 +12,8 @@ struct JSONConf{
     std::string Author;
     int minHeight;
     int minWidth;
+    int hotspotX;
+    int hotspotY;
     std::string describe;
 };
 
