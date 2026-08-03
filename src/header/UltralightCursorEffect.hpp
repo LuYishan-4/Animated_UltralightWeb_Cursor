@@ -4,14 +4,15 @@
 #include <kwin/effect/effect.h>
 #include "MainCursorStaff.hpp"
 
-namespace KWin::UltralightWebCursorM{
+namespace KWin {
 
 class LogicalOutput;
 class GLTexture;
 class EffectWindow; 
+
 class UltralightCursorEffect : 
     public Effect, 
-    public MainCursorStaff
+    public UltralightWebCursorM::MainCursorStaff
 {
     Q_OBJECT
     Q_DISABLE_COPY(UltralightCursorEffect)
@@ -30,17 +31,21 @@ public:
 
     bool isActive() const override;
 
-    int requestedEffectChainPosition() const override
-    {
-        return 99;
-    }
+    int requestedEffectChainPosition() const override { return 99; }
 
     static bool supported();
-    private:
-        GLTexture* ensureCursorTexture();
-        void slotWindowStateChanged(EffectWindow *w);
-        std::unique_ptr<GLTexture> m_cursorTexture;
+
+    void enable() override;
+    void disable() override;
+    void reloadHtml() override;
+
+private:
+    bool checkFullScreen() const override;
+    bool isBlacklisted() const;
+    GLTexture* ensureCursorTexture();
+    void slotWindowStateChanged(EffectWindow *w);
+
+    std::unique_ptr<GLTexture> m_cursorTexture;
 };
 
-
-} // namespace KWin
+}

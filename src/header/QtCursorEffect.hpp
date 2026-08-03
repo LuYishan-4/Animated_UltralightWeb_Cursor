@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MainCursorStaff.hpp" 
-
+#include <QTimer>
 namespace UltralightWebCursorM{
 class QtCursorEffect : public MainCursorStaff
 {
