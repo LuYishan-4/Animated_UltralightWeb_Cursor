@@ -1,21 +1,37 @@
-#include "../header/QtCursorEffect.hpp"
 #include <QCoreApplication>
-#include <QDebug>
-#include <QPainter>
-#include <QScreen>
 #include <QGuiApplication>
+#include <QScreen>
+#include <QPainter>
+#include <QDebug>
+#include <QEvent>
+#include <QVariant>
+#include <QList>
+#include <QPointF>
+#include <QRectF>
+#include "../header/QtCursorEffect.hpp"
 #include "SharedCursorRender.hpp"
 #include "../header/QtMouseProvider.hpp"
+#if defined(_WIN32) || defined(_WIN64)
+#  include <windows.h>
+#elif defined(__linux__) || defined(Q_OS_LINUX)
+#  include <X11/Xlib.h>
+#  include <X11/Xutil.h>
+#  include <X11/extensions/shape.h> 
+#  include <X11/extensions/Xfixes.h>
+#  undef Status
+#  undef Bool
+#  undef None
+#  undef KeyPress
+#  undef KeyRelease
+#  undef FocusIn
+#  undef FocusOut
+#  undef FontChange
+#  undef Cursor
+#  undef Screen
+#  undef Window
+#  undef Event
+#endif 
 
-#if defined(Q_OS_WIN)
-#include <windows.h>
-#elif defined(Q_OS_LINUX)
-#include <QHasWindowSystemInterface>
-
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/Xfixes.h>
-#endif
 
 namespace UltralightWebCursorM {
 
@@ -35,19 +51,19 @@ QtCursorEffect::QtCursorEffect(QObject* parent)
     }
     
     m_viewWindow->show();
-
-#if defined(Q_OS_WIN)
+#if defined(_WIN32) || defined(_WIN64)
     HWND hwnd = (HWND)m_viewWindow->winId();
     LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
     SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
     SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
-
-#elif defined(Q_OS_LINUX)
+#elif defined(__linux__) || defined(Q_OS_LINUX)
     Display* dpy = XOpenDisplay(nullptr);
     if (dpy) {
         Window winId = (Window)m_viewWindow->winId();
         XserverRegion region = XFixesCreateRegion(dpy, nullptr, 0);
+        
         XFixesSetWindowShapeRegion(dpy, winId, ShapeInput, 0, 0, region);
+        
         XFixesDestroyRegion(dpy, region);
         
         XFlush(dpy);
@@ -106,7 +122,7 @@ void QtCursorEffect::renderWindow() {
 
     state.hotspot = QPointF(m_html->hotspotX(), m_html->hotspotY()); 
     
-    state.visible = !m_isIdleHidden && !isBlacklisted();
+    state.visible = !m_isIdleHidden; 
 
     if (!shouldRenderCursor(state)) {
         m_backingStore->beginPaint(QRect(QPoint(0, 0), m_viewWindow->size()));
@@ -144,4 +160,4 @@ void QtCursorEffect::renderWindow() {
     m_html->clearNewFrame();
 }
 
-}
+} // namespace UltralightWebCursorM

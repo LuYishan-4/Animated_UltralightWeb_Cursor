@@ -36,7 +36,8 @@ target_link_libraries(ultralightwebcursor_x11 PRIVATE
     Qt6::Widgets
     Qt6::DBus
     Ultralight::SDK
-    X11::X11
+     X11::X11 
+    X11::Xfixes 
 )
 
 install(TARGETS ultralightwebcursor_x11 RUNTIME DESTINATION bin)

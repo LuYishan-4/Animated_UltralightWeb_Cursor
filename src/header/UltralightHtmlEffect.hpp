@@ -124,8 +124,8 @@ private:
     int minwidth = 128;
     int minheight = 128;
     std::string m_permanentSdkPath; 
-     int hotspot_x_ = 0;
-    int hotspot_y_ = 0;
+     int hotspot_x_ = 64;
+    int hotspot_y_ = 64;
 
 
     std::vector<uint8_t> pixel_buffer_;
