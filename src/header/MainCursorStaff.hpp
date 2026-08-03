@@ -59,9 +59,7 @@ protected:
     bool initializeCore() {
         try {
             UltralightWebCursorM::UserConfig::instance()->load();
-            std::filesystem::path p(UserConfigimp.html);
-            std::string path = p.parent_path().string();
-            UltralightWebCursorM::CursorJSON::instance()->load(path);
+            UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
             
             m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
             m_mouseProvider = std::make_unique<MouseProviderType>();
