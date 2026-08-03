@@ -37,9 +37,6 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     hotspot_x_ = data.hotspotX;
     hotspot_y_ = data.hotspotY;
 
-    qDebug() << "[UltralightCursorEffect] init" << width_ << data.minWidth;
-    qDebug() << "[UltralightCursorEffect] init2" <<html_path_.c_str() << m_permanentSdkPath.c_str();
-
     std::filesystem::path sdk_dir(m_permanentSdkPath);
     std::filesystem::path resources_dir = sdk_dir / "resources";
     if(!std::filesystem::exists(resources_dir)) {
@@ -103,7 +100,9 @@ bool UltralightHtmlEffect::load(const std::string& path)
     std::string folderName = p.parent_path().filename().string();
     std::string fileUrl = "file:///" + folderName + "/index.html";
     is_loaded_ = false;
+    qDebug() << "[UltralightCursorEffect] 6";
     view_->LoadURL(fileUrl.c_str());
+    qDebug() << "[UltralightCursorEffect] 7";
     view_->set_needs_paint(true);
     return true;
 }

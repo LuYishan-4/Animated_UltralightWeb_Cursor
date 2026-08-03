@@ -32,16 +32,18 @@ UltralightCursorEffect::UltralightCursorEffect() {
 
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
-        m_cursorPoint =QPointF(pt.x,pt.y);
+        m_cursorPoint = QPointF(pt.x, pt.y);
         QRect oldRect = getCursorRect(m_cursorPoint).toRect();
         m_cursorPoint = QPointF(pt.x, pt.y);
+        
         m_html->move(pt.x, pt.y, pt.pressed);
+        
+        m_html->update(); 
+        
         QRect newRect = getCursorRect(m_cursorPoint).toRect();
         effects->addRepaint(KWin::Rect(oldRect));
         effects->addRepaint(KWin::Rect(newRect));
     });
-
-    m_mouseProvider->initialize();
 
     QDBusConnection::sessionBus().registerObject(
         QStringLiteral("/UltralightCursor"),
@@ -86,16 +88,15 @@ bool UltralightCursorEffect::isBlacklisted() const {
 
 GLTexture* UltralightCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
-    
-    m_html->update();
-    
-    if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
-
-    const uint8_t* pixels = m_html->pixels();
-    if (!pixels) return nullptr;
 
     int w = m_html->width();
     int h = m_html->height();
+    if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return nullptr;
+
+    const uint8_t* pixels = m_html->pixels();
+    if (!pixels) return nullptr; 
+    
+    if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 
     if (!m_cursorTexture) {
         QImage emptyImage(w, h, QImage::Format_ARGB32_Premultiplied);
@@ -108,11 +109,13 @@ GLTexture* UltralightCursorEffect::ensureCursorTexture() {
     if (m_html->hasNewFrame()) {
         m_cursorTexture->bind();
         QOpenGLFunctions *funcs = QOpenGLContext::currentContext()->functions();
-        funcs->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+        if (funcs) {
+            funcs->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+        }
         m_cursorTexture->unbind();
+        m_html->clearNewFrame(); 
     }
 
-    m_html->clearNewFrame();
     return m_cursorTexture.get();
 }
 
@@ -126,7 +129,9 @@ void UltralightCursorEffect::paintScreen(
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
 
     GLTexture* texture = ensureCursorTexture();
-    if (!texture) return;
+    if (!texture || !m_html) {
+        return;
+    }
 
     const int w = m_html->width();
     const int h = m_html->height();
@@ -137,6 +142,7 @@ void UltralightCursorEffect::paintScreen(
 
     ShaderBinder binder(ShaderTrait::MapTexture | ShaderTrait::TransformColorspace);
     GLShader* shader = binder.shader();
+    if (!shader) return;
 
     shader->setColorspaceUniforms(
         ColorDescription::sRGB,
@@ -148,15 +154,15 @@ void UltralightCursorEffect::paintScreen(
     mvp.translate(pos.x() * scale, pos.y() * scale);
     shader->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
 
-    glEnablei(GL_BLEND,0);
-    glBlendFunci(0,GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glEnablei(GL_BLEND, 0);
+    glBlendFunci(0, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     
     texture->render(QSizeF(w, h) * scale);
     
-    glDisablei(GL_BLEND,0);
+    glDisablei(GL_BLEND, 0);
 
     if (m_html->hasNewFrame()) {
-          effects->addRepaint(KWin::Rect(getCursorRect(effects->cursorPos()).toRect()));
+        effects->addRepaint(KWin::Rect(getCursorRect(effects->cursorPos()).toRect()));
     }
 }
 

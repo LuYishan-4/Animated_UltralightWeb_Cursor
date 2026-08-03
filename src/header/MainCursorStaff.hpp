@@ -67,6 +67,7 @@ protected:
            
 
             if (!m_html->initialize(UserConfigimp, CursorJSONImp)) {
+                 qDebug() << "[UltralightCursorEffect] dccce";
                 m_html.reset();
                 m_mouseProvider.reset();
                 return false;

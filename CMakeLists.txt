@@ -19,15 +19,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 
-if(WIN32)
-    set(ULTRALIGHT_ROOT
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-win-x64"
-    )
-else()
-    set(ULTRALIGHT_ROOT
-        "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64"
-    )
-endif()
+
+set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64")
+
 
 set(ULTRALIGHT_BIN "${ULTRALIGHT_ROOT}/bin")
 

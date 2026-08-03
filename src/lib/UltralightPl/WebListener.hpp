@@ -4,6 +4,7 @@
 #include <Ultralight/Ultralight.h>
 #include <AppCore/AppCore.h>
 #include <QDBusConnection>
+#include <QDebug>
 class LocalLoadListener : public ultralight::LoadListener 
 {
 public:
