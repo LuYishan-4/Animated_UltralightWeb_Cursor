@@ -7,7 +7,8 @@
 namespace KWin::UltralightWebCursorM{
 
 class LogicalOutput;
-
+class GLTexture;
+class EffectWindow; 
 class UltralightCursorEffect : 
     public Effect, 
     public MainCursorStaff
@@ -35,6 +36,11 @@ public:
     }
 
     static bool supported();
+    private:
+        GLTexture* ensureCursorTexture();
+        void slotWindowStateChanged(EffectWindow *w);
+        std::unique_ptr<GLTexture> m_cursorTexture;
 };
+
 
 } // namespace KWin

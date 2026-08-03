@@ -16,6 +16,7 @@ public:
 private slots:
     void onTick();
 
+
 private:
     QTimer timer_;
 };
