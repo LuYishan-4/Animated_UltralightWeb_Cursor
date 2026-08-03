@@ -3,8 +3,47 @@
 #include <QUrl>
 #include <QDir>
 #include <QDebug>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QCoreApplication>
 using namespace UltralightWebCursorM;
-SettingsBackend::SettingsBackend(QObject* parent) : QObject(parent) { reload(); }
+SettingsBackend::SettingsBackend(QObject* parent) : QObject(parent) {
+    firstRun_ = QCoreApplication::arguments().contains(QStringLiteral("--first-run"));
+
+    connect(&ipcSocket_, &QLocalSocket::connected, this, [this]{
+        Q_EMIT mainProcessConnectedChanged();
+    });
+    connect(&ipcSocket_, &QLocalSocket::disconnected, this, [this]{
+        Q_EMIT mainProcessConnectedChanged();
+    });
+    ensureConnected();
+
+    reload();
+}
+
+bool SettingsBackend::firstRun() const { return firstRun_; }
+
+bool SettingsBackend::mainProcessConnected() const {
+    return ipcSocket_.state() == QLocalSocket::ConnectedState;
+}
+
+void SettingsBackend::ensureConnected() {
+    if (ipcSocket_.state() == QLocalSocket::UnconnectedState) {
+        ipcSocket_.connectToServer(QStringLiteral("ultralightwebcursor_ipc"));
+        ipcSocket_.waitForConnected(500); // 主程式若還沒開，這裡會逾時失敗，不影響 GUI 獨立運作
+    }
+}
+
+void SettingsBackend::notifyMainProcess(const QString& command, const QVariantMap& payload) {
+    ensureConnected();
+    if (ipcSocket_.state() != QLocalSocket::ConnectedState) {
+        qWarning() << "無法連線到主程式，本次通知已略過：" << command;
+        return;
+    }
+    QJsonObject obj{{"command", command}, {"payload", QJsonObject::fromVariantMap(payload)}};
+    ipcSocket_.write(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+    ipcSocket_.flush();
+}
 bool SettingsBackend::enabled() const { return enabled_; }
 QString SettingsBackend::statusMessage() const { return statusMessage_; }
 QStringList SettingsBackend::blacklist() const { return blacklist_; }

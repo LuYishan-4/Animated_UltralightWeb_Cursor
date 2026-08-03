@@ -34,7 +34,7 @@ public:
     int requestedEffectChainPosition() const override { return 99; }
 
     static bool supported();
-
+public Q_SLOTS:
     void enable() override;
     void disable() override;
     void reloadHtml() override;

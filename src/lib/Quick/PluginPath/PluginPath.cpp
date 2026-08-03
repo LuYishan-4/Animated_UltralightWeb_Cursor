@@ -12,7 +12,7 @@ std::filesystem::path PluginPath::dataDir() {
         case BuildType::Windows: {
             path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
             if (path.isEmpty()) {
-                path = QCoreApplication::applicationDirPath() + "/data";
+                path = QCoreApplication::applicationDirPath() +   QStringLiteral("/data");
             }
             break;
         }
@@ -33,7 +33,7 @@ std::filesystem::path PluginPath::dataDir() {
             );
             if (path.isEmpty()) {
                 path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) 
-                       + "/ultralightwebcursor";
+                       +   QStringLiteral("/ultralightwebcursor");
             }
             break;
         }

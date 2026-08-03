@@ -2,8 +2,12 @@
 
 #include <memory>
 #include <filesystem>
-#include <QObject>
+#include <string>
 #include <QPointF>
+#include <QRectF>       
+#include <QObject>   
+#include <memory>
+#include <filesystem>
 #include "UltralightHtmlEffect.hpp"
 #include "MouseProvider.hpp"
 #include "../config/UserConfig.hpp"
@@ -12,12 +16,11 @@
 
 namespace UltralightWebCursorM {
 
-class MainCursorStaff : public QObject
-{
-    Q_OBJECT
+class MainCursorStaff{
+
 
 public:
-    MainCursorStaff(QObject *parent = nullptr) : QObject(parent) {}
+    MainCursorStaff() = default; 
     virtual ~MainCursorStaff() {
         m_mouseProvider.reset();
         m_html.reset();
@@ -34,7 +37,7 @@ public:
         return QRectF(basePos.x() - w / 2.0, basePos.y() - h / 2.0, w, h);
     }
 
-public Q_SLOTS:
+public:
     virtual void enable() {
         if (m_html) m_html->setEnabled(true);
     }

@@ -8,8 +8,9 @@
 #include <QImage>
 #include <iostream>
 #include <stdexcept>
-
-#include <QOpenGLFunctions>
+#include <QOpenGLContext> 
+#include <QOpenGLFunctions> 
+#include <GL/gl.h>
 
 namespace KWin {
 
@@ -28,19 +29,15 @@ UltralightCursorEffect::UltralightCursorEffect() {
     }
     qDebug() << "[UltralightCursorEffect] init";
     connect(effects, &EffectsHandler::windowActivated, this, &UltralightCursorEffect::slotWindowStateChanged);
-    connect(effects, &EffectsHandler::windowGeometryShapeChanged, this, [this](EffectWindow *w) {
-        if (w == effects->activeWindow()) {
-            slotWindowStateChanged(w);
-        }
-    });
+
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
         QRect oldRect = getCursorRect(m_cursorPoint).toRect();
         m_cursorPoint = QPointF(pt.x, pt.y);
         m_html->move(pt.x, pt.y, pt.pressed);
         QRect newRect = getCursorRect(m_cursorPoint).toRect();
-        effects->addRepaint(oldRect);
-        effects->addRepaint(newRect);
+        effects->addRepaint(KWin::Rect(oldRect));
+        effects->addRepaint(KWin::Rect(newRect));
     });
 
     m_mouseProvider->initialize();
@@ -146,15 +143,15 @@ void UltralightCursorEffect::paintScreen(
     mvp.translate(pos.x() * scale, pos.y() * scale);
     shader->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    glEnablei(GL_BLEND,0);
+    glBlendFunci(0,GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     
     texture->render(QSizeF(w, h) * scale);
     
-    glDisable(GL_BLEND);
+    glDisablei(GL_BLEND,0);
 
     if (m_html->hasNewFrame()) {
-        effects->addRepaint(getCursorRect(effects->cursorPos()).toRect());
+          effects->addRepaint(KWin::Rect(getCursorRect(effects->cursorPos()).toRect()));
     }
 }
 

@@ -32,7 +32,6 @@ target_link_libraries(ultralightwebcursor_windows PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
-    Qt6::DBus
     Ultralight::SDK
 )
 

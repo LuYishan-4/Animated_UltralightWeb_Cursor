@@ -45,13 +45,8 @@ rm -rf build
 mkdir -p build
 
 configure_variant "build" ""
-configure_variant "build-kde" "KDE"
-configure_variant "build-gnome" "GNOME"
-configure_variant "build-hyprland" "HYPRLAND"
-configure_variant "build-niri" "NIRI"
-configure_variant "build-sway" "SWAY"
 
 cmake --build build
 
 cd build
-
+sudo cmake --install .
