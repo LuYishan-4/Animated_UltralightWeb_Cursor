@@ -31,7 +31,7 @@ public:
         if (!m_html) return QRectF();
         qreal w = m_html->width();
         qreal h = m_html->height();
-        return QRectF(basePos.x() - w / 2.0, basePos.y() - h / 2.0, w, h);
+         return QRectF(basePos.x() - m_html->hotspotX(), basePos.y() - m_html->hotspotY(), w, h);
     }
 
 public:
@@ -58,8 +58,13 @@ protected:
             
             m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
             m_mouseProvider = std::make_unique<MouseProviderType>();
-            
-            if (!m_html || !m_mouseProvider) return false;
+            m_mouseProvider->initialize();
+
+            if (!m_html || !m_mouseProvider) {
+                 qDebug() << "[UltralightCursorEffect] deeeeeeeeee";
+                return false;
+            }
+           
 
             if (!m_html->initialize(UserConfigimp, CursorJSONImp)) {
                 m_html.reset();

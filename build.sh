@@ -41,12 +41,12 @@ configure_variant() {
     fi
 }
 
-rm -rf build
+sudo rm -rf build
 mkdir -p build
 
-configure_variant "build" ""
+configure_variant "build" "kde"
 
 cmake --build build
 
 cd build
-cmake --install .
+sudo cmake --install .

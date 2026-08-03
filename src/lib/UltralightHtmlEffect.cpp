@@ -38,10 +38,10 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     hotspot_y_ = data.hotspotY;
 
     qDebug() << "[UltralightCursorEffect] init" << width_ << data.minWidth;
+    qDebug() << "[UltralightCursorEffect] init2" <<html_path_.c_str() << m_permanentSdkPath.c_str();
 
     std::filesystem::path sdk_dir(m_permanentSdkPath);
     std::filesystem::path resources_dir = sdk_dir / "resources";
-
     if(!std::filesystem::exists(resources_dir)) {
         return false;
     }
@@ -57,7 +57,7 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
             return false;
         }
     }
-
+    qDebug() << "[UltralightCursorEffect] init3" <<html_path_.c_str() << m_permanentSdkPath.c_str();
     if(!platform_initialized_) {
         ultralight::Config config;
         config.resource_path_prefix = ultralight::String("resources/");
@@ -71,35 +71,34 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
         );
         platform_initialized_ = true;
     }
-
+    qDebug() << "[UltralightCursorEffect] init4" <<html_path_.c_str() << m_permanentSdkPath.c_str();
     renderer_ = ultralight::Renderer::Create();
-    if(!renderer_)
-        return false;
-
+    if(!renderer_)return false;
+    qDebug() << "[UltralightCursorEffect] 1";
     ultralight::ViewConfig vc;
     vc.is_accelerated = false;
     vc.is_transparent = true;
     view_ = renderer_->CreateView(width_, height_, vc, nullptr);
-    if(!view_)
-        return false;
-
+    if(!view_)return false;
+    qDebug() << "[UltralightCursorEffect] 2";
     listener_ = std::make_unique<LocalLoadListener>(&is_loaded_);
     view_->set_load_listener(listener_.get());
     webcall = std::make_shared<WebCall>();
     webcall->view_ = view_;
-    if(std::filesystem::exists(html_path_))
-        html_time_ = std::filesystem::last_write_time(html_path_);
+    qDebug() << "[UltralightCursorEffect] 3";
+    if(std::filesystem::exists(html_path_))html_time_ = std::filesystem::last_write_time(html_path_);
     return load(html_path_);
 }
 
 bool UltralightHtmlEffect::load(const std::string& path)
 {
+    qDebug() << "[UltralightCursorEffect] 4";
     std::ifstream file(path);
     if(!file) {
-        qWarning() << "[UltralightCursorEffect] Failed to open file:" << QString::fromStdString(path);
+        qDebug() << "[UltralightCursorEffect] Failed to open file:" << QString::fromStdString(path);
         return false;
     }
-
+    qDebug() << "[UltralightCursorEffect] 5";
     std::filesystem::path p(path);
     std::string folderName = p.parent_path().filename().string();
     std::string fileUrl = "file:///" + folderName + "/index.html";

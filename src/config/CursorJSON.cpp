@@ -47,10 +47,9 @@ bool CursorJSON::load(const std::string& projectPath) {
     QString configPath = QStringLiteral("CursorData.json");
     qDebug() << "[UltralightCursorEffect] "<<projectPath.c_str();
     if (!projectPath.empty()) {
-        qDebug() << "[UltralightCursorEffect] eeempty";
        configPath = QString::fromStdString(projectPath) + QStringLiteral("/CursorData.json");
     }
-
+    qDebug() << "[UltralightCursorEffect] "<<projectPath.c_str()<<2;
     QFile file(configPath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;

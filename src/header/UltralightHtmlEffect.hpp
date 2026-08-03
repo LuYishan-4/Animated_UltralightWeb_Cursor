@@ -9,7 +9,6 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include "../lib/SharedCursorRender.hpp"
 
 namespace UltralightWebCursorM
 {
@@ -71,17 +70,6 @@ bool resize(const int&  width,const int&  height);
 
     int hotspotX() const { return hotspot_x_; }
     int hotspotY() const { return hotspot_y_; }
-
-      CursorRenderState getRenderState(const QPointF& currentMousePos) const
-    {
-        CursorRenderState state;
-        state.pos = currentMousePos;
-        state.hotspot = QPointF(hotspot_x_, hotspot_y_);
-        state.visible = enabled_ && is_loaded_;
-        return state;
-    }
-
-
 
     void setEnabled(bool enabled);
 

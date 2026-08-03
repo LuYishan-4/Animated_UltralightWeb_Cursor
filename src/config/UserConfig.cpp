@@ -34,9 +34,11 @@ UserConfig* UserConfig::instance() {
 
 UserConfig::UserConfig() {
     if (GloablContast::buildType == BuildType::Windows) {
+            qDebug() << "[UltralightCursorEffect] wwdade";
         const char* appdata = std::getenv("APPDATA");
         if (appdata)configPath_ = std::string(appdata) + "/UltralightWebCursor/config.ini";
     } else {
+            qDebug() << "[UltralightCursorEffect] linuxe";
         const char* home = std::getenv("HOME");
         if (home)configPath_ = std::string(home) + "/.config/ultralightwebcursor/config.ini";
     }
@@ -66,6 +68,7 @@ bool UserConfig::load(){
       qDebug() << "[UltralightCursorEffect] loaddone";
     data_.clear();
     if(configPath_.empty()) return false;
+    qDebug() << "[UltralightCursorEffect] lmhe";
     std::ifstream file(configPath_);
     if(!file.is_open()) {
         for (const auto& item : schema_) {

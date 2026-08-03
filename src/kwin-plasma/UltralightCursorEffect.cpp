@@ -24,7 +24,7 @@ KWIN_EFFECT_FACTORY_SUPPORTED(
 
 UltralightCursorEffect::UltralightCursorEffect() {
     if (!initializeCore<KwinMouseProvider>()) {
-        qCritical() << "[UltralightCursorEffect] Core initialization failed!";
+        qDebug() << "[UltralightCursorEffect] Core initialization failed!";
         return;
     }
     qDebug() << "[UltralightCursorEffect] init";
@@ -32,6 +32,7 @@ UltralightCursorEffect::UltralightCursorEffect() {
 
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
+        m_cursorPoint =QPointF(pt.x,pt.y);
         QRect oldRect = getCursorRect(m_cursorPoint).toRect();
         m_cursorPoint = QPointF(pt.x, pt.y);
         m_html->move(pt.x, pt.y, pt.pressed);
