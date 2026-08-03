@@ -12,9 +12,9 @@ struct JSONConf{
     std::string Author;
     int minHeight;
     int minWidth;
+    std::string describe;
     int hotspotX;
     int hotspotY;
-    std::string describe;
 };
 
 class CursorJSON{

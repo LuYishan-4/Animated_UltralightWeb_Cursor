@@ -49,4 +49,4 @@ configure_variant "build" ""
 cmake --build build
 
 cd build
-sudo cmake --install .
+cmake --install .

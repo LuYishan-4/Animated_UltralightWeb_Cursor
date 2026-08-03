@@ -24,9 +24,9 @@ CursorJSON::CursorJSON() {
         {"Author",    "Unknown",[this](const std::string& v) { values.Author = v; }},
         {"minHeight", "128",    [this](const std::string& v) { values.minHeight = std::stoi(v); }},
         {"minWidth",  "128",    [this](const std::string& v) { values.minWidth = std::stoi(v); }},
+        {"describe",  "",       [this](const std::string& v) { values.describe = v; }},
         {"hotspotX", "64",    [this](const std::string& v) { values.hotspotX = std::stoi(v); }},
         {"hotspotY", "64",    [this](const std::string& v) { values.hotspotY = std::stoi(v); }},
-        {"describe",  "",       [this](const std::string& v) { values.describe = v; }},
     };
     for (const auto& item : schema_) {
         item.updater(item.defaultValue);
@@ -45,6 +45,7 @@ void CursorJSON::ensureInitialized(const std::string& projectPath) {
 bool CursorJSON::load(const std::string& projectPath) {
     qDebug() << "[UltralightCursorEffect] Loading cursor config...";
     QString configPath = QStringLiteral("CursorData.json");
+    qDebug() << "[UltralightCursorEffect] "<<projectPath.c_str();
     if (!projectPath.empty()) {
         qDebug() << "[UltralightCursorEffect] eeempty";
        configPath = QString::fromStdString(projectPath) + QStringLiteral("/CursorData.json");

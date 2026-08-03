@@ -50,6 +50,10 @@ UltralightCursorEffect::UltralightCursorEffect() {
 }
 
 UltralightCursorEffect::~UltralightCursorEffect() {
+    if (m_mouseProvider) {
+        m_mouseProvider->setCallback(nullptr);
+        m_mouseProvider.reset();
+    }
     m_cursorTexture.reset();
 }
 

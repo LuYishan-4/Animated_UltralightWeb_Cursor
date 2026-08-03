@@ -21,10 +21,7 @@ class MainCursorStaff{
 
 public:
     MainCursorStaff() = default; 
-    virtual ~MainCursorStaff() {
-        m_mouseProvider.reset();
-        m_html.reset();
-    }
+    virtual ~MainCursorStaff() = default;
 
     bool isWindowBlacklisted(const std::string& windowClass) const {
         return m_blacklist.contains(windowClass);
@@ -48,9 +45,7 @@ public:
 
     virtual void reloadHtml() {
         UltralightWebCursorM::UserConfig::instance()->load();
-        std::filesystem::path p(UserConfigimp.html);
-        std::string path = p.parent_path().string();
-        UltralightWebCursorM::CursorJSON::instance()->load(path);
+        UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
         if (m_html) m_html->reload(UserConfigimp, CursorJSONImp);
     }
 
