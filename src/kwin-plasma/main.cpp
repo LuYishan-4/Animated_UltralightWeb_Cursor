@@ -1,4 +1,4 @@
-#include "../header/UltralightCursorEffect.hpp"
+#include "../header/KwinCursorEffect.hpp"
 #include "../header/KwinMouseProvider.hpp"
 #include "core/rendertarget.h"
 #include "core/renderviewport.h"
@@ -17,19 +17,14 @@ namespace KWin {
 extern EffectsHandler *effects;
 
 KWIN_EFFECT_FACTORY_SUPPORTED(
-    KWin::UltralightCursorEffect,
+    KWin::KwinCursorEffect,
     "metadata.json",
-    return KWin::UltralightCursorEffect::supported();
+    return KWin::KwinCursorEffect::supported();
 )
 
-UltralightCursorEffect::UltralightCursorEffect() {
-    if (!initializeCore<KwinMouseProvider>()) {
-        qDebug() << "[UltralightCursorEffect] Core initialization failed!";
-        return;
-    }
-    qDebug() << "[UltralightCursorEffect] init";
-    connect(effects, &EffectsHandler::windowActivated, this, &UltralightCursorEffect::slotWindowStateChanged);
-
+KwinCursorEffect::KwinCursorEffect() {
+    if (!initializeCore<KwinMouseProvider>())return;
+    connect(effects, &EffectsHandler::windowActivated, this, &KwinCursorEffect::slotWindowStateChanged);
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
         m_cursorPoint = QPointF(pt.x, pt.y);
@@ -52,7 +47,7 @@ UltralightCursorEffect::UltralightCursorEffect() {
     );
 }
 
-UltralightCursorEffect::~UltralightCursorEffect() {
+KwinCursorEffect::~KwinCursorEffect() {
     if (m_mouseProvider) {
         m_mouseProvider->setCallback(nullptr);
         m_mouseProvider.reset();
@@ -60,32 +55,32 @@ UltralightCursorEffect::~UltralightCursorEffect() {
     m_cursorTexture.reset();
 }
 
-bool UltralightCursorEffect::supported() {
+bool KwinCursorEffect::supported() {
     return effects->isOpenGLCompositing();
 }
 
-void UltralightCursorEffect::enable() {
+void KwinCursorEffect::enable() {
     UltralightWebCursorM::MainCursorStaff::enable();
     effects->addRepaintFull();
 }
 
-void UltralightCursorEffect::disable() {
+void KwinCursorEffect::disable() {
     UltralightWebCursorM::MainCursorStaff::disable();
     m_cursorTexture.reset();
     effects->addRepaintFull();
 }
 
-void UltralightCursorEffect::reloadHtml() {
+void KwinCursorEffect::reloadHtml() {
     UltralightWebCursorM::MainCursorStaff::reloadHtml();
     effects->addRepaintFull();
 }
 
-bool UltralightCursorEffect::isBlacklisted() const {
+bool KwinCursorEffect::isBlacklisted() const {
     auto window = effects->activeWindow();
     if (!window) return false;
     return isWindowBlacklisted(window->windowClass().toStdString());
 }
-GLTexture* UltralightCursorEffect::ensureCursorTexture() {
+GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
     
     m_html->update();
@@ -135,7 +130,7 @@ GLTexture* UltralightCursorEffect::ensureCursorTexture() {
     return m_cursorTexture.get();
 }
 
-void UltralightCursorEffect::paintScreen( const RenderTarget& renderTarget,const RenderViewport& viewport, int mask, const Region& region,LogicalOutput* screen) {
+void KwinCursorEffect::paintScreen( const RenderTarget& renderTarget,const RenderViewport& viewport, int mask, const Region& region,LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
     GLTexture* texture = ensureCursorTexture();
     if (!texture || !m_html)return;
@@ -167,18 +162,18 @@ void UltralightCursorEffect::paintScreen( const RenderTarget& renderTarget,const
     }
 }
 
-bool UltralightCursorEffect::isActive() const {
+bool KwinCursorEffect::isActive() const {
     return m_html != nullptr;
 }
 
-bool UltralightCursorEffect::checkFullScreen() const {
+bool KwinCursorEffect::checkFullScreen() const {
     if (EffectWindow *activeWin = effects->activeWindow()) {
         return activeWin->isFullScreen();
     }
     return false;
 }
 
-void UltralightCursorEffect::slotWindowStateChanged(EffectWindow *w) {
+void KwinCursorEffect::slotWindowStateChanged(EffectWindow *w) {
     Q_UNUSED(w);
     if (!checkFullScreen()) {
         if (m_isIdleHidden) {
@@ -195,4 +190,4 @@ void UltralightCursorEffect::slotWindowStateChanged(EffectWindow *w) {
 
 } // namespace KWin
 
-#include "UltralightCursorEffect.moc"
+#include "main.moc"

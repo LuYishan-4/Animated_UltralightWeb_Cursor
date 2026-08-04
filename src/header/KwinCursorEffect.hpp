@@ -10,16 +10,16 @@ class LogicalOutput;
 class GLTexture;
 class EffectWindow; 
 
-class UltralightCursorEffect : 
+class KwinCursorEffect : 
     public Effect, 
     public UltralightWebCursorM::MainCursorStaff
 {
     Q_OBJECT
-    Q_DISABLE_COPY(UltralightCursorEffect)
+    Q_DISABLE_COPY(KwinCursorEffect)
 
 public:
-    UltralightCursorEffect();
-    ~UltralightCursorEffect() override;
+    KwinCursorEffect();
+    ~KwinCursorEffect() override;
 
     void paintScreen(
         const RenderTarget& renderTarget,

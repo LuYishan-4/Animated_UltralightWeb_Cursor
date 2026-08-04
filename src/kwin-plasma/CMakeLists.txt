@@ -3,15 +3,15 @@ kcoreaddons_add_plugin(
     INSTALL_NAMESPACE "kwin/effects/plugins"
 )
 
-file(GLOB GL_SOURCES "src/lib/gl/*.cpp" "src/lib/gl/*.h")
+file(GLOB_RECURSE GL_SOURCES "../lib/gl/*.cpp" "../lib/gl/*.h")
 
 
 target_sources(ultralightwebcursor PRIVATE
-    UltralightCursorEffect.cpp
+    main.cpp
     ../lib/UltralightHtmlEffect.cpp
     KwinMouseProvider.cpp
     ../lib/BlackList/BlacklistManager.cpp
-    ../header/UltralightCursorEffect.hpp
+    ../header/KwinCursorEffect.hpp
     ../header/KwinMouseProvider.hpp
     ../header/UltralightHtmlEffect.hpp
     ../lib/BlackList/BlacklistManager.hpp
@@ -38,8 +38,8 @@ target_link_libraries(ultralightwebcursor
     PRIVATE
     Qt6::Core
     Qt6::Gui
-     Qt6::Widgets
-       Qt6::DBus
+    Qt6::Widgets
+    Qt6::DBus
     KF6::CoreAddons
     KF6::ConfigCore
     KWin::kwin
