@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 #include <string>
-
+#include "../lib/gl/GPUContextGL.h" 
 namespace UltralightWebCursorM
 {
 
@@ -48,28 +48,29 @@ void reload(const ConfigValues& uconfig,const JSONConf& data);
 bool resize(const int&  width,const int&  height);
 
     const uint8_t* pixels() const;
+    unsigned int textureId() const;
 
 
 
     int width() const
     {
-        return width_;
+        return html_value_.width_;
     }
 
 
     int height() const
     {
-        return height_;
+        return html_value_.height_;
     }
 
 
     int stride() const
     {
-        return stride_;
+        return html_value_.stride_;
     }
 
-    int hotspotX() const { return hotspot_x_; }
-    int hotspotY() const { return hotspot_y_; }
+    int hotspotX() const { return html_value_.hotspot_x_; }
+    int hotspotY() const { return html_value_.hotspot_y_; }
 
     void setEnabled(bool enabled);
 
@@ -85,8 +86,25 @@ bool resize(const int&  width,const int&  height);
 
 
 private:
+    struct Html_Value{
+        int width_ = 128;
+        int height_ = 128;
+        int stride_ = 0;
+        int minwidth = 128;
+        int minheight = 128;
+        int hotspot_x_ = 64;
+        int hotspot_y_ = 64;
+        std::string m_permanentSdkPath; 
+        std::filesystem::path html_path_;
+        bool use_gpu_ = true;
+    };
+    Html_Value html_value_; 
+    
 
 
+
+
+    std::unique_ptr<ultralight::GPUContextGL> context_;
     ultralight::RefPtr<ultralight::Renderer> renderer_;
     std::shared_ptr<WebCall> webcall; 
 
@@ -105,22 +123,12 @@ private:
 
 
     bool new_frame_ = false;
-    int width_ = 128;
-    int height_ = 128;
-    int stride_ = 0;
+  
     bool platform_initialized_=false;
-    int minwidth = 128;
-    int minheight = 128;
-    std::string m_permanentSdkPath; 
-     int hotspot_x_ = 64;
-    int hotspot_y_ = 64;
-
 
     std::vector<uint8_t> pixel_buffer_;
 
 
-
-    std::filesystem::path html_path_;
 
 
     std::filesystem::file_time_type html_time_;

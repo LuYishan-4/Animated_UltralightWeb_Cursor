@@ -87,11 +87,23 @@ bool UltralightCursorEffect::isBlacklisted() const {
 }
 GLTexture* UltralightCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
+    
     m_html->update();
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
-    if (m_cursorTexture && m_cursorTexture->width() == w && m_cursorTexture->height() == h && !m_html->hasNewFrame())return m_cursorTexture.get();
+    unsigned int gpuTexId = m_html->textureId();
+    if (gpuTexId != 0) {
+        if (!m_cursorTexture || m_cursorTexture->width() != w || m_cursorTexture->height() != h) {
+            m_cursorTexture.reset();
+            m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
+            if (!m_cursorTexture) return nullptr;
+            m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
+        }
+        m_html->clearNewFrame();
+        return m_cursorTexture.get();
+    }
+    if (m_cursorTexture && m_cursorTexture->width() == w && m_cursorTexture->height() == h && !m_html->hasNewFrame()) return m_cursorTexture.get();
     const uint8_t* pixels = m_html->pixels();
     if (!pixels) return nullptr;
     if (m_cursorTexture && (m_cursorTexture->width() != w || m_cursorTexture->height() != h))m_cursorTexture.reset(); 
@@ -109,6 +121,7 @@ GLTexture* UltralightCursorEffect::ensureCursorTexture() {
         m_html->clearNewFrame();
         return m_cursorTexture.get();
     }
+
     if (m_html->hasNewFrame()) {
         m_cursorTexture->bind();
         QOpenGLFunctions *funcs = QOpenGLContext::currentContext()->functions();
@@ -121,7 +134,6 @@ GLTexture* UltralightCursorEffect::ensureCursorTexture() {
     }
     return m_cursorTexture.get();
 }
-
 
 void UltralightCursorEffect::paintScreen( const RenderTarget& renderTarget,const RenderViewport& viewport, int mask, const Region& region,LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);

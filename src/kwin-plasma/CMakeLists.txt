@@ -3,6 +3,7 @@ kcoreaddons_add_plugin(
     INSTALL_NAMESPACE "kwin/effects/plugins"
 )
 
+file(GLOB GL_SOURCES "src/lib/gl/*.cpp" "src/lib/gl/*.h")
 
 
 target_sources(ultralightwebcursor PRIVATE
@@ -14,6 +15,7 @@ target_sources(ultralightwebcursor PRIVATE
     ../header/KwinMouseProvider.hpp
     ../header/UltralightHtmlEffect.hpp
     ../lib/BlackList/BlacklistManager.hpp
+    ${GL_SOURCES}
     ../lib/UltralightPl/WebListener.hpp
     ../lib/WebCall/WebCall.hpp
     ../header/MainCursorStaff.hpp

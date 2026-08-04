@@ -61,6 +61,7 @@ void UserConfig::ensureInitialized() {
         {"width",      "128",   [this](const std::string& v){ values.width = v.empty() ? 128 : std::stoi(v); }},
         {"height",     "128",   [this](const std::string& v){ values.height = v.empty() ? 128 : std::stoi(v); }},
         {"enabled",    "true",  [this](const std::string& v){ values.enabled = (v == "true"); }},
+        {"EnableGPU",  "true",  [this](const std::string& v){ values.EnableGPU = (v == "true"); }},
     };
 }
 bool UserConfig::load(){
