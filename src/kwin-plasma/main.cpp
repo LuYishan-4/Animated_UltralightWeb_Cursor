@@ -27,9 +27,9 @@ KwinCursorEffect::KwinCursorEffect() {
     connect(effects, &EffectsHandler::windowActivated, this, &KwinCursorEffect::slotWindowStateChanged);
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
-        m_cursorPoint = QPointF(pt.x, pt.y);
-        QRect oldRect = getCursorRect(m_cursorPoint).toRect();
-        m_cursorPoint = QPointF(pt.x, pt.y);
+        QRect oldRect = getCursorRect(m_cursorPoint).toRect(); 
+        m_cursorPoint = QPointF(pt.x, pt.y); 
+        QRect newRect = getCursorRect(m_cursorPoint).toRect();
         
         m_html->move(pt.x, pt.y, pt.pressed);
         

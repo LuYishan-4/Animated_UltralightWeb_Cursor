@@ -1,4 +1,10 @@
 #pragma once
+
+
+
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif
 #include <Ultralight/platform/GPUDriver.h>
 #include <Ultralight/platform/Config.h>
 #include "GPUDriverImpl.h"

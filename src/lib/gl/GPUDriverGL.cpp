@@ -1,6 +1,11 @@
 #include "GPUDriverGL.h"
 #include "GPUContextGL.h"
 #include <Ultralight/platform/Platform.h>
+#if defined(_WIN32)
+  #include <glad/glad.h>
+#else
+  #include "opengl/glutils.h" 
+#endif
 #include <Ultralight/platform/FileSystem.h>
 #include <iostream>
 #include <fstream>
@@ -69,8 +74,12 @@ inline char const* glErrorString(GLenum const err) noexcept
   case GL_INVALID_ENUM: return "GL_INVALID_ENUM";
   case GL_INVALID_VALUE: return "GL_INVALID_VALUE";
   case GL_INVALID_OPERATION: return "GL_INVALID_OPERATION";
+#ifdef GL_STACK_OVERFLOW
   case GL_STACK_OVERFLOW: return "GL_STACK_OVERFLOW";
+#endif
+#ifdef GL_STACK_UNDERFLOW
   case GL_STACK_UNDERFLOW: return "GL_STACK_UNDERFLOW";
+#endif
   case GL_OUT_OF_MEMORY: return "GL_OUT_OF_MEMORY";
   // OpenGL 3.0+ Errors
   case GL_INVALID_FRAMEBUFFER_OPERATION: return "GL_INVALID_FRAMEBUFFER_OPERATION";

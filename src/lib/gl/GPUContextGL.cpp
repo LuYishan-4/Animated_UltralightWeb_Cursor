@@ -1,6 +1,11 @@
 #include "GPUContextGL.h"
 #include "GPUDriverGL.h"
-#include "glad/glad.h"
+#if defined(_WIN32)
+  #include <glad/glad.h>
+#else
+  #include "opengl/glutils.h"
+#endif
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -38,7 +43,10 @@ GPUContextGL::GPUContextGL(bool enable_vsync, bool enable_msaa) :
   }
 
   glfwMakeContextCurrent(window_);
-  gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+#if defined(_WIN32)
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))exit(EXIT_FAILURE);
+#else
+#endif
   glfwSwapInterval(enable_vsync ? 1 : 0);
 
   int samples = 4;
