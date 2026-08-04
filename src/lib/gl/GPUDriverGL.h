@@ -1,6 +1,12 @@
 #pragma once
 #include <Ultralight/platform/GPUDriver.h>
-#include "glad/glad.h"
+
+#if defined(_WIN32)
+  #include <glad/glad.h>
+#else
+  #include <epoxy/gl.h>
+#endif
+
 #include <GLFW/glfw3.h>
 #include "GPUContextGL.h"
 #include "GPUDriverImpl.h"

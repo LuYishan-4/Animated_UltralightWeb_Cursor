@@ -25,7 +25,7 @@
 #define SHADER_PATH "glsl/"
 
 #ifdef _DEBUG
-#if _WIN32
+#if defined(_WIN32)
 #define INFO(x) { std::cerr << "[INFO] " << __FUNCSIG__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; }
 #else
 #define INFO(x) { std::cerr << "[INFO] " << __PRETTY_FUNCTION__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; }
@@ -34,7 +34,7 @@
 #define INFO(x)
 #endif
 
-#if _WIN32
+#if defined(_WIN32)
 #include <Windows.h>
 #define FATAL(x) { std::stringstream str; \
   str << "[ERROR] " << __FUNCSIG__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; \

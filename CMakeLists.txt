@@ -18,7 +18,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(GLFW REQUIRED glfw3)
 
 set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64")
 
@@ -82,12 +83,14 @@ target_include_directories(ultralightwebcursor_core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/header
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath
+      ${GLFW_INCLUDE_DIRS}
 )
 
 target_link_libraries(ultralightwebcursor_core
     PUBLIC
     Qt6::Core
     Qt6::DBus
+    ${GLFW_LIBRARIES}
 )
 
 # Ensure objects compiled into shared modules are position-independent

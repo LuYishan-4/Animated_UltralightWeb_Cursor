@@ -44,6 +44,7 @@ target_link_libraries(ultralightwebcursor
     KF6::ConfigCore
     KWin::kwin
     Ultralight::SDK
+     ${GLFW_LIBRARIES}
 )
 
 

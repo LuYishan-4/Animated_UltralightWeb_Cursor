@@ -29,7 +29,7 @@ KwinCursorEffect::KwinCursorEffect() {
         if (!m_html) return;
         QRect oldRect = getCursorRect(m_cursorPoint).toRect(); 
         m_cursorPoint = QPointF(pt.x, pt.y); 
-        QRect newRect = getCursorRect(m_cursorPoint).toRect();
+
         
         m_html->move(pt.x, pt.y, pt.pressed);
         
