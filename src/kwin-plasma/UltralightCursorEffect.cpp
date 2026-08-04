@@ -85,61 +85,53 @@ bool UltralightCursorEffect::isBlacklisted() const {
     if (!window) return false;
     return isWindowBlacklisted(window->windowClass().toStdString());
 }
-
 GLTexture* UltralightCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
-
+    m_html->update();
     int w = m_html->width();
     int h = m_html->height();
-    if (w <= 0 || h <= 0 || w > 4096 || h > 4096) return nullptr;
-
+    if (w <= 0 || h <= 0) return nullptr;
+    if (m_cursorTexture && m_cursorTexture->width() == w && m_cursorTexture->height() == h && !m_html->hasNewFrame())return m_cursorTexture.get();
     const uint8_t* pixels = m_html->pixels();
-    if (!pixels) return nullptr; 
-    
-    if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
-
+    if (!pixels) return nullptr;
+    if (m_cursorTexture && (m_cursorTexture->width() != w || m_cursorTexture->height() != h))m_cursorTexture.reset(); 
     if (!m_cursorTexture) {
-        QImage emptyImage(w, h, QImage::Format_ARGB32_Premultiplied);
-        emptyImage.fill(Qt::transparent);
-        m_cursorTexture = GLTexture::upload(emptyImage);
+        QImage wrapperImage(
+            const_cast<uint8_t*>(pixels), 
+            w, 
+            h, 
+            m_html->stride(), 
+            QImage::Format_ARGB32_Premultiplied
+        );
+        m_cursorTexture = GLTexture::upload(wrapperImage);
         if (!m_cursorTexture) return nullptr;
         m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
+        m_html->clearNewFrame();
+        return m_cursorTexture.get();
     }
-
     if (m_html->hasNewFrame()) {
         m_cursorTexture->bind();
         QOpenGLFunctions *funcs = QOpenGLContext::currentContext()->functions();
         if (funcs) {
+            funcs->glPixelStorei(GL_UNPACK_ALIGNMENT, 4); 
             funcs->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
         }
         m_cursorTexture->unbind();
-        m_html->clearNewFrame(); 
+        m_html->clearNewFrame();
     }
-
     return m_cursorTexture.get();
 }
 
-void UltralightCursorEffect::paintScreen(
-    const RenderTarget& renderTarget,
-    const RenderViewport& viewport,
-    int mask,
-    const Region& region,
-    LogicalOutput* screen
-) {
+
+void UltralightCursorEffect::paintScreen( const RenderTarget& renderTarget,const RenderViewport& viewport, int mask, const Region& region,LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
-
     GLTexture* texture = ensureCursorTexture();
-    if (!texture || !m_html) {
-        return;
-    }
-
+    if (!texture || !m_html)return;
     const int w = m_html->width();
     const int h = m_html->height();
     QPointF hotspot(m_html->hotspotX(), m_html->hotspotY());
-    
     QPointF pos = effects->cursorPos() - screen->geometry().topLeft() - hotspot;
     auto scale = viewport.scale();
-
     ShaderBinder binder(ShaderTrait::MapTexture | ShaderTrait::TransformColorspace);
     GLShader* shader = binder.shader();
     if (!shader) return;
@@ -156,11 +148,8 @@ void UltralightCursorEffect::paintScreen(
 
     glEnablei(GL_BLEND, 0);
     glBlendFunci(0, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    
     texture->render(QSizeF(w, h) * scale);
-    
     glDisablei(GL_BLEND, 0);
-
     if (m_html->hasNewFrame()) {
         effects->addRepaint(KWin::Rect(getCursorRect(effects->cursorPos()).toRect()));
     }

@@ -71,13 +71,11 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     qDebug() << "[UltralightCursorEffect] init4" <<html_path_.c_str() << m_permanentSdkPath.c_str();
     renderer_ = ultralight::Renderer::Create();
     if(!renderer_)return false;
-    qDebug() << "[UltralightCursorEffect] 1";
     ultralight::ViewConfig vc;
     vc.is_accelerated = false;
     vc.is_transparent = true;
     view_ = renderer_->CreateView(width_, height_, vc, nullptr);
     if(!view_)return false;
-    qDebug() << "[UltralightCursorEffect] 2";
     listener_ = std::make_unique<LocalLoadListener>(&is_loaded_);
     view_->set_load_listener(listener_.get());
     webcall = std::make_shared<WebCall>();
@@ -135,11 +133,8 @@ void UltralightHtmlEffect::move(int x, int y, bool pressed)
 
 void UltralightHtmlEffect::update()
 {
-    if(!enabled_)
-        return;
-    if(!renderer_ || !view_)
-        return;
-
+    if(!enabled_)return;
+    if(!renderer_ || !view_)return;
     renderer_->Update();
     view_->set_needs_paint(true);
     renderer_->Render();
