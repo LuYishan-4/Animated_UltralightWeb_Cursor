@@ -73,4 +73,5 @@ void GPUContextGL::FlushPendingTextures() const {
     }
 }
 
+
 }  // namespace ultralight

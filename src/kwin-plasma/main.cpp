@@ -97,12 +97,18 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
         m_html->view()->Focus();
         first_focus_done = true;
     }
-
+    if (m_html->view()) {
+        m_html->view()->set_needs_paint(true);
+    }
     QOpenGLContext* qtContext = QOpenGLContext::currentContext();
     QOpenGLExtraFunctions* funcs = qtContext ? qtContext->extraFunctions() : nullptr;
     GLint native_kwin_fbo = 0;
-    if (funcs) funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
+    if (funcs) {
+        funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
+    }
     m_html->update();
+
+
     if (funcs) {
         funcs->glFlush();
         if (native_kwin_fbo != 0) {
@@ -127,7 +133,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
         }
         return m_cursorTexture.get();
     }
-
     if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 
     const uint8_t* pixels = m_html->pixels();
