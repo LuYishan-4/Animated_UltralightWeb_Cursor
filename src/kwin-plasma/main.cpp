@@ -78,13 +78,27 @@ bool KwinCursorEffect::isBlacklisted() const {
 }
 GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
+    
     static bool first_focus_done = false;
     if (!first_focus_done && m_html->view()) {
         m_html->view()->Focus();
         first_focus_done = true;
     }
 
+    QOpenGLContext* qtContext = QOpenGLContext::currentContext();
+    QOpenGLFunctions* funcs = qtContext ? qtContext->functions() : nullptr;
+
+    GLint native_kwin_fbo = 0;
+    if (funcs) {
+        funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
+    }
     m_html->update();
+
+    if (funcs) {
+        funcs->glFlush();
+        funcs->glFinish();
+        funcs->glBindFramebuffer(GL_FRAMEBUFFER, native_kwin_fbo);
+    }
 
     int w = m_html->width();
     int h = m_html->height();
@@ -96,6 +110,7 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
             m_cursorTexture.reset();
             m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
             if (!m_cursorTexture) return nullptr;
+            
             m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
             m_cursorTexture->setFilter(GL_LINEAR);
         }
@@ -118,7 +133,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
 
     if (m_html->hasNewFrame()) {
         m_cursorTexture->bind();
-        QOpenGLFunctions *funcs = QOpenGLContext::currentContext()->functions();
         if (funcs) {
             funcs->glPixelStorei(GL_UNPACK_ALIGNMENT, 4); 
             funcs->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
@@ -128,7 +142,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     }
     return m_cursorTexture.get();
 }
-
 void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const RenderViewport& viewport, int mask, const Region& region, LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return;

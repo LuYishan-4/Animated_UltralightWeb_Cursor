@@ -5,6 +5,7 @@
 #include <Ultralight/Ultralight.h>
 #include <AppCore/Platform.h>
 #include "UltralightPl/WebListener.hpp"
+#include <memory> 
 
 #include <iostream>
 #include <fstream>
@@ -69,7 +70,10 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     renderer_ = ultralight::Renderer::Create();
     if(!renderer_)return false;
     ultralight::ViewConfig vc;
+        vc.is_accelerated = true;
     vc.is_transparent = true;
+    vc.enable_images = true;
+    vc.enable_javascript = true;
     view_ = renderer_->CreateView(html_value_.width_, html_value_.height_, vc, nullptr);
     if(!view_)return false;
     listener_ = std::make_unique<LocalLoadListener>(&is_loaded_);
@@ -220,10 +224,11 @@ const uint8_t* UltralightHtmlEffect::pixels() const{
 }
 
 
-unsigned int UltralightHtmlEffect::textureId() const{
+unsigned int UltralightHtmlEffect::textureId() const {
     if (!view_ || !context_) return 0;
     return view_->render_target().texture_id;
 }
+
 
 ultralight::View* UltralightHtmlEffect::view() const {
     return view_.get();
