@@ -128,6 +128,7 @@ void UltralightHtmlEffect::reload(const ConfigValues& uconfig, const JSONConf& d
     UltralightHtmlEffect::load(html_value_.html_path_);
     UltralightHtmlEffect::resize(html_value_.width_, html_value_.height_);
 }
+
 void UltralightHtmlEffect::move(int x, int y, bool pressed)
 {
     if(!view_)return;
@@ -138,11 +139,12 @@ void UltralightHtmlEffect::move(int x, int y, bool pressed)
 void UltralightHtmlEffect::update(){
     if(!enabled_) return;
     if(!renderer_ || !view_) return;
+
+    if (context_ && context_->driver())context_->FlushPendingTextures();
     
     static int updateLoopCounter = 0;
     updateLoopCounter++;
 
-    // 💡 Active Watchdog Anti-Freeze Pass: Force-wake internal layout trees if view falls asleep
     if (!view_->needs_paint() && updateLoopCounter % 15 == 0) {
         view_->set_needs_paint(true);
     }
@@ -216,22 +218,19 @@ void UltralightHtmlEffect::clearNewFrame()
     new_frame_ = false;
 }
 
-
 const uint8_t* UltralightHtmlEffect::pixels() const{
     if(pixel_buffer_.empty())
         return nullptr;
     return pixel_buffer_.data();
 }
 
-
 unsigned int UltralightHtmlEffect::textureId() const {
     if (!view_ || !context_) return 0;
-    return context_->driver()->GetRealTextureId(view_->render_target().texture_id);
+    return context_->GetRealTextureId(view_->render_target().texture_id);
 }
-
 
 ultralight::View* UltralightHtmlEffect::view() const {
     return view_.get();
 }
 
-}
+} // namespace UltralightWebCursorM

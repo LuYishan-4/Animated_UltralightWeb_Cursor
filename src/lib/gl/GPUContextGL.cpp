@@ -66,5 +66,11 @@ int GPUContextGL::GetRealTextureId(uint32_t ultralight_texture_id) const {
     auto* gl_driver = static_cast<GPUDriverGL*>(driver_.get());
     return gl_driver ? gl_driver->GetRealTextureId(ultralight_texture_id) : 0;
 }
+void GPUContextGL::FlushPendingTextures() const {
+    auto* gl_driver = static_cast<GPUDriverGL*>(driver_.get());
+    if (gl_driver) {
+        gl_driver->FlushPendingTextures();
+    }
+}
 
 }  // namespace ultralight

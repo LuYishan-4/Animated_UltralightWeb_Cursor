@@ -13,7 +13,10 @@
 
 namespace ultralight {
 
+  class GPUDriverGL;
+
 class GPUContextGL {
+
 protected:
   std::unique_ptr<ultralight::GPUDriverImpl> driver_;
   bool msaa_enabled_;
@@ -29,6 +32,9 @@ public:
   virtual ultralight::GPUDriverImpl* driver() const { return driver_.get(); }
 
   virtual ultralight::FaceWinding face_winding() const { return ultralight::FaceWinding::CounterClockwise; }
+
+
+  void FlushPendingTextures() const;
 
   virtual void BeginDrawing() {}
 

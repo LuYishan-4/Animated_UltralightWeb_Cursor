@@ -9,10 +9,11 @@
 #include <QImage>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
+#include <QOpenGLExtraFunctions>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
-#include <QOpenGLExtraFunctions>
+
 namespace KWin {
 
 extern EffectsHandler *effects;
@@ -99,11 +100,9 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
 
     QOpenGLContext* qtContext = QOpenGLContext::currentContext();
     QOpenGLExtraFunctions* funcs = qtContext ? qtContext->extraFunctions() : nullptr;
-
     GLint native_kwin_fbo = 0;
     if (funcs) funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
     m_html->update();
-
     if (funcs) {
         funcs->glFlush();
         if (native_kwin_fbo != 0) {
@@ -114,7 +113,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
-
     unsigned int gpuTexId = m_html->textureId(); 
     if (gpuTexId != 0) {
         static unsigned int lastGpuTexId = 0;
@@ -129,6 +127,7 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
         }
         return m_cursorTexture.get();
     }
+
     if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 
     const uint8_t* pixels = m_html->pixels();
@@ -161,6 +160,7 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
 
 void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const RenderViewport& viewport, int mask, const Region& region, LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
+
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return;
     GLTexture* texture = ensureCursorTexture();
 
@@ -196,18 +196,15 @@ void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const Rende
 
     QOpenGLContext* qtContext = QOpenGLContext::currentContext();
     QOpenGLFunctions* funcs = qtContext ? qtContext->functions() : nullptr;
-
     if (funcs) {
         funcs->glEnable(GL_BLEND);
         funcs->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     }
-
     texture->render(QSizeF(w, h) * scale); 
 
     if (funcs) {
         funcs->glDisable(GL_BLEND);
     }
-
     QRect repaintRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
     effects->addRepaint(KWin::Rect(repaintRect));
 }

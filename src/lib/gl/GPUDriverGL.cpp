@@ -198,25 +198,55 @@ void GPUDriverGL::SetRenderBufferBitmapDirty(uint32_t render_buffer_id,
 }
 #endif
 
-void GPUDriverGL::CreateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
-  auto current_qt_context = QOpenGLContext::currentContext();
-  
-  TextureEntry& entry = texture_map[texture_id];
-  entry.bitmap = bitmap;
-  entry.width = bitmap->width();
-  entry.height = bitmap->height();
-
-  if (current_qt_context) {
-    UploadTextureToVRAM(texture_id);
+void GPUDriverGL::UpdateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
+  auto it = texture_map.find(texture_id);
+  if (it == texture_map.end()) {
+    qWarning() << "[UltralightGpuError] UpdateTexture called for non-existent Texture ID:" << texture_id;
     return;
   }
 
+  TextureEntry& entry = it->second;
+  entry.bitmap = bitmap;
 
-#if !defined(_WIN32)
-  qDebug() << "[UltralightGpuDebug] CreateTexture called without active GL Context. Deferred upload for Texture ID:" << texture_id;
-#endif
+#if defined(_WIN32)
+  glActiveTexture(GL_TEXTURE0 + 0);
+  glBindTexture(GL_TEXTURE_2D, entry.tex_id);
+  CHECK_GL();
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap->row_bytes() / bitmap->bpp());
+
+  if (!bitmap->IsEmpty()) {
+    if (bitmap->format() == BitmapFormat::A8_UNORM) {
+      const void* pixels = bitmap->LockPixels();
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, bitmap->width(), bitmap->height(), 0,
+        GL_RED, GL_UNSIGNED_BYTE, pixels);
+      bitmap->UnlockPixels();
+    } else if (bitmap->format() == BitmapFormat::BGRA8_UNORM_SRGB) {
+      const void* pixels = bitmap->LockPixels();
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap->width(), bitmap->height(), 0,
+        GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+      bitmap->UnlockPixels();
+    } else {
+      FATAL("Unhandled texture format: " << (int)bitmap->format());
+    }
+
+    CHECK_GL();
+    glGenerateMipmap(GL_TEXTURE_2D);
+  }
+  CHECK_GL();
+
+#else
+  auto current_qt_context = QOpenGLContext::currentContext();
+  if (!current_qt_context || entry.tex_id == 0) {
+    entry.is_pending_upload = true;
+    qDebug() << "[UltralightGpuDebug] Deferred UpdateTexture for Texture ID:" << texture_id;
+    return;
+  }
+
+  // 若 Context 存在，直接即時更新上傳
   entry.is_pending_upload = true;
-  entry.tex_id = 0;
+  UploadTextureToVRAM(texture_id);
+#endif
 }
 #if !defined(_WIN32)
 void GPUDriverGL::UploadTextureToVRAM(uint32_t texture_id) {
@@ -297,60 +327,46 @@ void GPUDriverGL::UploadTextureToVRAM(uint32_t texture_id) {
 void GPUDriverGL::FlushPendingTextures() {
   if (!QOpenGLContext::currentContext()) return;
 
-  for (auto& [id, entry] : texture_map) {
-    if (entry.is_pending_upload) {
-      UploadTextureToVRAM(id);
+  std::lock_guard<std::mutex> lock(texture_mutex_);
+  for (auto& pair : texture_map) {
+    uint32_t tex_id = pair.first;
+    TextureEntry& entry = pair.second;
+
+    if (entry.is_pending_upload || entry.tex_id == 0) {
+      UploadTextureToVRAM(tex_id);
     }
   }
 }
-void GPUDriverGL::UpdateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
-  auto it = texture_map.find(texture_id);
-  if (it == texture_map.end()) {
-    qWarning() << "[UltralightGpuError] UpdateTexture called for non-existent Texture ID:" << texture_id;
-    return;
+
+int GPUDriverGL::GetRealTextureId(uint32_t ultralight_texture_id) const {
+  std::lock_guard<std::mutex> lock(texture_mutex_);
+  auto it = texture_map.find(ultralight_texture_id);
+  if (it == texture_map.end()) return 0;
+
+  const TextureEntry& entry = it->second;
+  if ((entry.is_pending_upload || entry.tex_id == 0) && QOpenGLContext::currentContext()) {
+    const_cast<GPUDriverGL*>(this)->UploadTextureToVRAM(ultralight_texture_id);
   }
 
-  TextureEntry& entry = it->second;
+  return it->second.tex_id;
+}
+
+void GPUDriverGL::CreateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
+  std::lock_guard<std::mutex> lock(texture_mutex_);
+  
+  TextureEntry& entry = texture_map[texture_id];
   entry.bitmap = bitmap;
+  entry.width = bitmap ? bitmap->width() : 0;
+  entry.height = bitmap ? bitmap->height() : 0;
 
-#if defined(_WIN32)
-  glActiveTexture(GL_TEXTURE0 + 0);
-  glBindTexture(GL_TEXTURE_2D, entry.tex_id);
-  CHECK_GL();
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap->row_bytes() / bitmap->bpp());
-
-  if (!bitmap->IsEmpty()) {
-    if (bitmap->format() == BitmapFormat::A8_UNORM) {
-      const void* pixels = bitmap->LockPixels();
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, bitmap->width(), bitmap->height(), 0,
-        GL_RED, GL_UNSIGNED_BYTE, pixels);
-      bitmap->UnlockPixels();
-    } else if (bitmap->format() == BitmapFormat::BGRA8_UNORM_SRGB) {
-      const void* pixels = bitmap->LockPixels();
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap->width(), bitmap->height(), 0,
-        GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-      bitmap->UnlockPixels();
-    } else {
-      FATAL("Unhandled texture format: " << (int)bitmap->format());
-    }
-
-    CHECK_GL();
-    glGenerateMipmap(GL_TEXTURE_2D);
-  }
-  CHECK_GL();
-
-#else
-  auto current_qt_context = QOpenGLContext::currentContext();
-
-  if (!current_qt_context || entry.tex_id == 0 || entry.is_pending_upload) {
+  if (QOpenGLContext::currentContext()) {
+    UploadTextureToVRAM(texture_id);
+  } else {
     entry.is_pending_upload = true;
-    qDebug() << "[UltralightGpuDebug] Deferred UpdateTexture for Texture ID:" << texture_id;
-    return;
+    entry.tex_id = 0;
   }
-  UploadTextureToVRAM(texture_id);
-#endif
 }
+
 
 void GPUDriverGL::BindTexture(uint8_t texture_unit, uint32_t texture_id) {
   glActiveTexture(GL_TEXTURE0 + texture_unit);
@@ -492,6 +508,7 @@ void GPUDriverGL::DestroyRenderBuffer(uint32_t render_buffer_id) {
   glfwMakeContextCurrent(previous_context);
 #endif
 }
+
 
 void GPUDriverGL::BindUltralightTexture(uint32_t ultralight_texture_id) {
   TextureEntry& entry = texture_map[ultralight_texture_id];
@@ -966,7 +983,7 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
   GLFWwindow* current_context = reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
 #endif
 
-  // 💡 避免在 Linux 下傳入 nullptr 造成 map 查找失敗
+
   auto j = geometry_entry.vao_map.find(current_context);
   if (j != geometry_entry.vao_map.end())
     return; // Already exists, we can return
