@@ -44,7 +44,7 @@ private:
     bool isBlacklisted() const;
     GLTexture* ensureCursorTexture();
     void slotWindowStateChanged(EffectWindow *w);
-     QTimer* m_renderTimer = nullptr; 
+     //QTimer* m_renderTimer = nullptr; 
     std::unique_ptr<GLTexture> m_cursorTexture;
 };
 

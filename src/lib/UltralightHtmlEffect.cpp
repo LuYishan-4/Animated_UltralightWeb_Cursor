@@ -138,6 +138,11 @@ void UltralightHtmlEffect::update(){
     static int updateLoopCounter = 0;
     updateLoopCounter++;
 
+    // 💡 Active Watchdog Anti-Freeze Pass: Force-wake internal layout trees if view falls asleep
+    if (!view_->needs_paint() && updateLoopCounter % 15 == 0) {
+        view_->set_needs_paint(true);
+    }
+
     renderer_->Update();
     
     bool target_wants_paint = view_->needs_paint();
@@ -147,8 +152,15 @@ void UltralightHtmlEffect::update(){
     if (context_) {
         new_frame_ = true; 
         if (updateLoopCounter % 60 == 0) {
-            qDebug() << "[UltralightHtmlDebug] [GPU Update Pulse] Active Texture ID:" << view_->render_target().texture_id
-                     << "| view->needs_paint() branch returned:" << target_wants_paint;
+
+            ultralight::String title_script = "document.title";
+            ultralight::String element_script = "document.body ? document.body.innerHTML.length : -1";
+            ultralight::JSValue title_res = view_->EvaluateScript(title_script);
+            ultralight::JSValue elem_res = view_->EvaluateScript(element_script);
+
+            qDebug() << "[UltralightHtmlDebug] [GPU Pulse] VRAM Tex:" << view_->render_target().texture_id
+                     << " | needs_paint():" << target_wants_paint
+                     << " | Body InnerHTML Len:" << (elem_res.IsNumber() ? (int)elem_res.ToNumber() : -1);
         }
     } else {
         auto surface = view_->surface();
@@ -211,6 +223,10 @@ const uint8_t* UltralightHtmlEffect::pixels() const{
 unsigned int UltralightHtmlEffect::textureId() const{
     if (!view_ || !context_) return 0;
     return view_->render_target().texture_id;
+}
+
+ultralight::View* UltralightHtmlEffect::view() const {
+    return view_.get();
 }
 
 }

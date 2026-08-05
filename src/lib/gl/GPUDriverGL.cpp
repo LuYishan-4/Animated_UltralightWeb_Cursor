@@ -22,7 +22,8 @@
 #include "glsl/shader_v2f_c4f_t2f_t2f_d28f_vert.h"
 #include "glsl/shader_v2f_c4f_t2f_vert.h"
 #endif
-
+#include <thread>
+#include <QOpenGLContext>
 #define SHADER_PATH "glsl/"
 
 #ifdef _DEBUG
@@ -199,6 +200,16 @@ void GPUDriverGL::SetRenderBufferBitmapDirty(uint32_t render_buffer_id,
 
 void GPUDriverGL::CreateTexture(uint32_t texture_id,
   RefPtr<Bitmap> bitmap) {
+  
+
+#if !defined(_WIN32)
+
+  auto current_qt_context = QOpenGLContext::currentContext();
+  qDebug() << "[UltralightGpuDebug] CreateTexture() Called | Target Texture ID:" << texture_id
+           << " | Current Qt GL Context:" << current_qt_context;
+#endif
+  // -------------------------------------------------------------------------
+
   if (bitmap->IsEmpty()) {
     CreateFBOTexture(texture_id, bitmap);
     return;
@@ -237,8 +248,12 @@ void GPUDriverGL::CreateTexture(uint32_t texture_id,
   CHECK_GL();
   glGenerateMipmap(GL_TEXTURE_2D);
   CHECK_GL();
-}
 
+#if !defined(_WIN32)
+  qDebug() << "[UltralightGpuDebug] Texture loaded to VRAM | Allocated Native OpenGL Tex ID:" << entry.tex_id;
+#endif
+  // -------------------------------------------------------------------------
+}
 void GPUDriverGL::UpdateTexture(uint32_t texture_id,
   RefPtr<Bitmap> bitmap) {
   glActiveTexture(GL_TEXTURE0 + 0);

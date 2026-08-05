@@ -42,7 +42,7 @@ bool initialize(const ConfigValues& uconfig,const JSONConf& data);
         bool pressed
     );
 
-
+ultralight::View* view() const;
 void reload(const ConfigValues& uconfig,const JSONConf& data);
 
 bool resize(const int&  width,const int&  height);
