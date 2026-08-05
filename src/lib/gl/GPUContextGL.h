@@ -20,7 +20,11 @@ protected:
 public:
   GPUContextGL(bool enable_vsync, bool enable_msaa);
 
+
+
   virtual ~GPUContextGL() {}
+
+   virtual int GetRealTextureId(uint32_t ultralight_texture_id) const;
 
   virtual ultralight::GPUDriverImpl* driver() const { return driver_.get(); }
 

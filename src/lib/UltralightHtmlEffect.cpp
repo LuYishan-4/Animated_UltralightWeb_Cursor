@@ -70,7 +70,7 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     renderer_ = ultralight::Renderer::Create();
     if(!renderer_)return false;
     ultralight::ViewConfig vc;
-        vc.is_accelerated = true;
+    vc.is_accelerated = true;
     vc.is_transparent = true;
     vc.enable_images = true;
     vc.enable_javascript = true;
@@ -226,7 +226,7 @@ const uint8_t* UltralightHtmlEffect::pixels() const{
 
 unsigned int UltralightHtmlEffect::textureId() const {
     if (!view_ || !context_) return 0;
-    return view_->render_target().texture_id;
+    return context_->driver()->GetRealTextureId(view_->render_target().texture_id);
 }
 
 

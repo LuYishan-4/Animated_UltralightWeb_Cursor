@@ -80,8 +80,12 @@ public:
 
   virtual void DrawCommandList() override;
 
+  virtual int GetRealTextureId(uint32_t ultralight_texture_id) const override {
+        auto it = texture_map.find(ultralight_texture_id);
+        if(it == texture_map.end()) return 0;
+        return it->second.tex_id;
+    }
   void BindUltralightTexture(uint32_t ultralight_texture_id);
-
   void LoadPrograms();
   void DestroyPrograms();
 

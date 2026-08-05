@@ -104,7 +104,7 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
     
-    unsigned int gpuTexId = m_html->textureId();
+    unsigned int gpuTexId = m_html->textureId(); 
     if (gpuTexId != 0) {
         if (!m_cursorTexture || m_cursorTexture->width() != w || m_cursorTexture->height() != h) {
             m_cursorTexture.reset();
