@@ -281,6 +281,8 @@ void GPUDriverGL::BindTexture(uint8_t texture_unit, uint32_t texture_id) {
   CHECK_GL();
 }
 
+
+
 void GPUDriverGL::DestroyTexture(uint32_t texture_id) {
   TextureEntry& entry = texture_map[texture_id];
   glDeleteTextures(1, &entry.tex_id);
@@ -397,7 +399,12 @@ void GPUDriverGL::DestroyRenderBuffer(uint32_t render_buffer_id) {
 #endif
 }
 
-
+void GPUDriverGL::BindUltralightTexture(uint32_t ultralight_texture_id) {
+  TextureEntry& entry = texture_map[ultralight_texture_id];
+  ResolveIfNeeded(entry.render_buffer_id);
+  glBindTexture(GL_TEXTURE_2D, entry.tex_id);
+  CHECK_GL();
+}
 void GPUDriverGL::CreateGeometry(uint32_t geometry_id,
   const VertexBuffer& vertices,
   const IndexBuffer& indices) {
