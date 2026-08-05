@@ -444,7 +444,8 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   CHECK_GL();
 
   CreateVAOIfNeededForActiveContext(geometry_id);
-  auto vao_entry = geometry.vao_map[GetCurrentPlatformContext()];
+  auto vao_entry = geometry.vao_map[reinterpret_cast<GLFWwindow*>(GetCurrentPlatformContext())];
+
   glBindVertexArray(vao_entry);
   CHECK_GL();
 
