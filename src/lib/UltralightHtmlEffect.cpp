@@ -135,12 +135,11 @@ void UltralightHtmlEffect::update(){
     if(!enabled_) return;
     if(!renderer_ || !view_) return;
     renderer_->Update();
-    view_->set_needs_paint(true);
     renderer_->Render();
+
     if (context_) {
-        new_frame_ = true; 
-    } 
-    else {
+        new_frame_ = view_->needs_paint(); 
+    }else {
         auto surface = view_->surface();
         if(!surface) return;
         auto bitmap_surface = dynamic_cast<ultralight::BitmapSurface*>(surface);

@@ -36,8 +36,8 @@ KwinCursorEffect::KwinCursorEffect() {
         m_html->update(); 
         
         QRect newRect = getCursorRect(m_cursorPoint).toRect();
-        effects->addRepaint(KWin::Rect(oldRect));
-        effects->addRepaint(KWin::Rect(newRect));
+        effects->addRepaint(KWin::Rect(oldRect.adjusted(-5, -5, 5, 5)));
+        effects->addRepaint(KWin::Rect(newRect.adjusted(-5, -5, 5, 5)));
     });
 
     QDBusConnection::sessionBus().registerObject(
@@ -66,8 +66,14 @@ void KwinCursorEffect::enable() {
 
 void KwinCursorEffect::disable() {
     UltralightWebCursorM::MainCursorStaff::disable();
+    if (m_html) {
+        QRect lastCursorRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
+        effects->addRepaint(KWin::Rect(lastCursorRect));
+        m_html->setEnabled(false);
+    }
     m_cursorTexture.reset();
     effects->addRepaintFull();
+    qDebug() << "[UltralightDebug] isnowdisable";
 }
 
 void KwinCursorEffect::reloadHtml() {
@@ -83,33 +89,27 @@ bool KwinCursorEffect::isBlacklisted() const {
 GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
     
-    m_html->update();
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
+    
     unsigned int gpuTexId = m_html->textureId();
     if (gpuTexId != 0) {
         if (!m_cursorTexture || m_cursorTexture->width() != w || m_cursorTexture->height() != h) {
             m_cursorTexture.reset();
-            m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
+            m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA, QSize(w, h));
             if (!m_cursorTexture) return nullptr;
             m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
+            m_cursorTexture->setFilter(GL_LINEAR);
         }
-        m_html->clearNewFrame();
         return m_cursorTexture.get();
     }
     if (m_cursorTexture && m_cursorTexture->width() == w && m_cursorTexture->height() == h && !m_html->hasNewFrame()) return m_cursorTexture.get();
     const uint8_t* pixels = m_html->pixels();
     if (!pixels) return nullptr;
-    if (m_cursorTexture && (m_cursorTexture->width() != w || m_cursorTexture->height() != h))m_cursorTexture.reset(); 
+    if (m_cursorTexture && (m_cursorTexture->width() != w || m_cursorTexture->height() != h)) m_cursorTexture.reset(); 
     if (!m_cursorTexture) {
-        QImage wrapperImage(
-            const_cast<uint8_t*>(pixels), 
-            w, 
-            h, 
-            m_html->stride(), 
-            QImage::Format_ARGB32_Premultiplied
-        );
+        QImage wrapperImage(const_cast<uint8_t*>(pixels), w, h, m_html->stride(), QImage::Format_ARGB32_Premultiplied);
         m_cursorTexture = GLTexture::upload(wrapperImage);
         if (!m_cursorTexture) return nullptr;
         m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
@@ -130,15 +130,60 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     return m_cursorTexture.get();
 }
 
-void KwinCursorEffect::paintScreen( const RenderTarget& renderTarget,const RenderViewport& viewport, int mask, const Region& region,LogicalOutput* screen) {
+void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const RenderViewport& viewport, int mask, const Region& region, LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
+    
     GLTexture* texture = ensureCursorTexture();
-    if (!texture || !m_html)return;
+    
+    static int frameCounter = 0;
+    frameCounter++;
+    
+    if (frameCounter % 60 == 0) {
+        if (!m_html) {
+            qDebug() << "[UltralightDebug] html none！";
+        } else {
+            unsigned int gpuTexId = m_html->textureId();
+            qDebug() << "[UltralightDebug] info:" << m_html->width() << "x" << m_html->height()
+                     << "| isenable:" << m_html->isEnabled()
+                     << "| (hasNewFrame):" << m_html->hasNewFrame()
+                     << "| GPU  ID:" << gpuTexId
+                     << "| KWin " << (texture != nullptr);
+        }
+    }
+    // -------------------------------------------------------------------
+
+    if (!texture || !m_html) return;
+    
     const int w = m_html->width();
     const int h = m_html->height();
+    
+    // ----------------- [DEBUG ] -----------------
+    if (m_html->hasNewFrame() && frameCounter % 30 == 0) {
+        const uint8_t* rawPixels = m_html->pixels();
+        if (rawPixels) {
+            int centerX = w / 2;
+            int centerY = h / 2;
+            size_t pixelOffset = (centerY * m_html->stride()) + (centerX * 4);
+            uint8_t b = rawPixels[pixelOffset];
+            uint8_t g = rawPixels[pixelOffset + 1];
+            uint8_t r = rawPixels[pixelOffset + 2];
+            uint8_t a = rawPixels[pixelOffset + 3];
+            
+            qDebug() << "[UltralightDebug] htmlpixel(" << centerX << "," << centerY << ") "
+                     << "Raw RGBA: (" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")"
+                     << " -> " << (a == 0 ? "none" : "noneee");
+        } else {
+            if (m_html->textureId() == 0) {
+                qDebug() << "[UltralightDebug] none gpu";
+            }
+        }
+    }
     QPointF hotspot(m_html->hotspotX(), m_html->hotspotY());
     QPointF pos = effects->cursorPos() - screen->geometry().topLeft() - hotspot;
-    auto scale = viewport.scale();
+    
+    QMatrix4x4 mvp = viewport.projectionMatrix();
+    mvp.translate(pos.x(), pos.y()); 
+
     ShaderBinder binder(ShaderTrait::MapTexture | ShaderTrait::TransformColorspace);
     GLShader* shader = binder.shader();
     if (!shader) return;
@@ -148,19 +193,18 @@ void KwinCursorEffect::paintScreen( const RenderTarget& renderTarget,const Rende
         renderTarget.colorDescription(),
         RenderingIntent::Perceptual
     );
-
-    QMatrix4x4 mvp = viewport.projectionMatrix();
-    mvp.translate(pos.x() * scale, pos.y() * scale);
     shader->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
-
-    glEnablei(GL_BLEND, 0);
-    glBlendFunci(0, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-    texture->render(QSizeF(w, h) * scale);
-    glDisablei(GL_BLEND, 0);
+    texture->render(QSize(w, h)); 
     if (m_html->hasNewFrame()) {
-        effects->addRepaint(KWin::Rect(getCursorRect(effects->cursorPos()).toRect()));
+        QRect repaintRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-5, -5, 5, 5);
+        qDebug() << "[UltralightDebug] reloooooooooooooooooo" 
+                 << repaintRect;
+        effects->addRepaint(KWin::Rect(repaintRect));
+        m_html->clearNewFrame();
     }
+    // -------------------------------------------------------------------
 }
+
 
 bool KwinCursorEffect::isActive() const {
     return m_html != nullptr;
