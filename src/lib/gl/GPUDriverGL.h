@@ -16,7 +16,6 @@
 #include "GPUDriverImpl.h"
 #include <vector>
 #include <map>
-#include <mutex>
 
 namespace ultralight {
 
@@ -25,11 +24,13 @@ typedef ShaderType ProgramType;
 class GPUDriverGL : public GPUDriverImpl {
 public:
   GPUDriverGL(GPUContextGL* context);
+
   virtual ~GPUDriverGL() { }
 
   virtual const char* name() override { return "OpenGL"; }
 
   virtual void BeginDrawing() override {}
+
   virtual void EndDrawing() override {}
 
 #if ENABLE_OFFSCREEN_GL
@@ -79,12 +80,11 @@ public:
 
   virtual void DrawCommandList() override;
 
-
-  virtual int GetRealTextureId(uint32_t ultralight_texture_id) const ;
-
-
-  void FlushPendingTextures();
-
+  virtual int GetRealTextureId(uint32_t ultralight_texture_id) const override {
+        auto it = texture_map.find(ultralight_texture_id);
+        if(it == texture_map.end()) return 0;
+        return it->second.tex_id;
+    }
   void BindUltralightTexture(uint32_t ultralight_texture_id);
   void LoadPrograms();
   void DestroyPrograms();
@@ -102,20 +102,16 @@ public:
 
 protected:
   Matrix ApplyProjection(const Matrix4x4& transform, float screen_width, float screen_height, bool flip_y);
-  void UploadTextureToVRAM(uint32_t texture_id);
+
   void CreateFBOTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap);
 
   struct TextureEntry {
     GLuint tex_id = 0; // GL Texture ID
     GLuint msaa_tex_id = 0; // GL Texture ID (only used if MSAA is enabled)
     uint32_t render_buffer_id = 0; // Used to check if we need to perform MSAA resolve
-    GLuint width = 0, height = 0; // Used when resolving MSAA FBO, only valid if FBO
+    GLuint width, height; // Used when resolving MSAA FBO, only valid if FBO
     bool is_sRGB = false; // Whether or not the primary texture is sRGB or not.
-    bool is_pending_upload = false;
-    RefPtr<Bitmap> bitmap = nullptr;
   };
-
-  mutable std::mutex texture_mutex_;
 
   // Maps Ultralight Texture IDs to OpenGL texture handles
   std::map<uint32_t, TextureEntry> texture_map;
@@ -149,8 +145,11 @@ protected:
   };
 
   void CreateFBOIfNeededForActiveContext(uint32_t render_buffer_id);
+
   void CreateVAOIfNeededForActiveContext(uint32_t geometry_id);
+
   void ResolveIfNeeded(uint32_t render_buffer_id);
+
   void MakeTextureSRGBIfNeeded(uint32_t texture_id);
 
 #if ENABLE_OFFSCREEN_GL
@@ -167,9 +166,10 @@ protected:
   std::map<ProgramType, ProgramEntry> programs_;
   GLuint cur_program_id_;
 
-#if !defined(_WIN32)
+  #if !defined(_WIN32)
   GLint kwin_binding_fbo = 0;
 #endif
+
 
   GPUContextGL* context_;
 };

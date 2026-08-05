@@ -92,6 +92,12 @@ bool KwinCursorEffect::isBlacklisted() const {
 GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
     
+    QOpenGLContext* qtContext = QOpenGLContext::currentContext();
+    if (!qtContext) {
+        // 沒有綁定 Context 時，不執行 GPU Render 操作，直接丟給下一幀
+        return m_cursorTexture.get();
+    }
+
     static bool first_focus_done = false;
     if (!first_focus_done && m_html->view()) {
         m_html->view()->Focus();
@@ -100,14 +106,15 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (m_html->view()) {
         m_html->view()->set_needs_paint(true);
     }
-    QOpenGLContext* qtContext = QOpenGLContext::currentContext();
-    QOpenGLExtraFunctions* funcs = qtContext ? qtContext->extraFunctions() : nullptr;
+
+    QOpenGLExtraFunctions* funcs = qtContext->extraFunctions();
     GLint native_kwin_fbo = 0;
     if (funcs) {
         funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
     }
-    m_html->update();
 
+    // 進行 Ultralight 渲染與 VRAM 刷洗
+    m_html->update();
 
     if (funcs) {
         funcs->glFlush();
@@ -119,6 +126,7 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
+
     unsigned int gpuTexId = m_html->textureId(); 
     if (gpuTexId != 0) {
         static unsigned int lastGpuTexId = 0;
@@ -133,7 +141,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
         }
         return m_cursorTexture.get();
     }
-    if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 
     const uint8_t* pixels = m_html->pixels();
     if (!pixels) return nullptr;
@@ -164,9 +171,12 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
 }
 
 void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const RenderViewport& viewport, int mask, const Region& region, LogicalOutput* screen) {
+    // 1. 先讓 KWin 原生畫面繪製完成
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
 
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return;
+
+    // 2. 獲取 / 更新 Texture
     GLTexture* texture = ensureCursorTexture();
 
     static int frameCounter = 0;
@@ -178,6 +188,7 @@ void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const Rende
                  << " | Texture Valid:" << (texture != nullptr);
     }
 
+    // 3. 若紋理尚未建立成功（例如首次延遲），觸發持續重繪直到 VRAM 成功上傳
     if (!texture) {
         effects->addRepaintFull();
         return;
