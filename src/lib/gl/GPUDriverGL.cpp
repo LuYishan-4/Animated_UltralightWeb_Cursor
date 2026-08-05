@@ -307,9 +307,16 @@ void GPUDriverGL::CreateRenderBuffer(uint32_t render_buffer_id,
   // FBOs are not shared between contexts in GL 3.2)
 }
 
+inline void* GetCurrentPlatformContext() {
+#if defined(_WIN32)
+  return (void*)glfwGetCurrentContext();
+#else
+    return reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
+#endif
+}
+
 void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
   if (render_buffer_id == 0) {
-    // Render buffer id '0' is reserved for window's backbuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return;
   }
@@ -318,15 +325,13 @@ void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
 
   RenderBufferEntry& entry = render_buffer_map[render_buffer_id];
 
-  auto i = entry.fbo_map.find(glfwGetCurrentContext());
+  auto i = entry.fbo_map.find(reinterpret_cast<GLFWwindow*>(GetCurrentPlatformContext()));
   if (i == entry.fbo_map.end())
     return;
 
   auto& fbo_entry = i->second;
 
   if (context_->msaa_enabled()) {
-    // We use the MSAA FBO when doing multisampled rendering.
-    // The other FBO (entry.fbo_id) is used for resolving.
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_entry.msaa_fbo_id);
     fbo_entry.needs_resolve = true;
   } else {
@@ -337,7 +342,9 @@ void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
 }
 
 void GPUDriverGL::ClearRenderBuffer(uint32_t render_buffer_id) {
-    glfwMakeContextCurrent(context_->active_window());
+    #if defined(_WIN32)
+      glfwMakeContextCurrent(context_->active_window());
+#endif
 
   BindRenderBuffer(render_buffer_id);
   glDisable(GL_SCISSOR_TEST);
@@ -419,7 +426,9 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   uint32_t indices_offset,
   const GPUState& state) {
   
+#if defined(_WIN32)
   glfwMakeContextCurrent(context_->active_window());
+#endif
 
   if (programs_.empty())
     LoadPrograms();
@@ -435,7 +444,7 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   CHECK_GL();
 
   CreateVAOIfNeededForActiveContext(geometry_id);
-  auto vao_entry = geometry.vao_map[glfwGetCurrentContext()];
+  auto vao_entry = geometry.vao_map[GetCurrentPlatformContext()];
   glBindVertexArray(vao_entry);
   CHECK_GL();
 
@@ -501,8 +510,9 @@ void GPUDriverGL::DrawCommandList() {
   if (command_list_.empty())
     return;
 
+#if defined(_WIN32)
   glfwMakeContextCurrent(context_->active_window());
-
+#endif
   CHECK_GL();
 
   batch_count_ = 0;
