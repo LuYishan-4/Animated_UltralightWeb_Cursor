@@ -15,6 +15,7 @@ target_sources(ultralightwebcursor PRIVATE
     ../header/KwinMouseProvider.hpp
     ../header/UltralightHtmlEffect.hpp
     ../lib/BlackList/BlacklistManager.hpp
+    ../lib/CrashReport/CrashReport.hpp
     ${GL_SOURCES}
     ../lib/UltralightPl/WebListener.hpp
     ../lib/WebCall/WebCall.hpp

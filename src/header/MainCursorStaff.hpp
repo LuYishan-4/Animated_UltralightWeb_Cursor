@@ -13,6 +13,8 @@
 #include "../config/UserConfig.hpp"
 #include "../config/CursorJSON.hpp"
 #include "../lib/BlackList/BlacklistManager.hpp"
+#include "../lib/CrashReport/CrashReport.hpp"
+
 
 namespace UltralightWebCursorM {
 
@@ -52,6 +54,7 @@ public:
 protected:
     template <typename MouseProviderType>
     bool initializeCore() {
+        UltralightWebCursorM::CrashHandler::registerHandler();
         try {
             UltralightWebCursorM::UserConfig::instance()->load();
             UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
