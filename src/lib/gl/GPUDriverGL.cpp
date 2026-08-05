@@ -318,14 +318,21 @@ inline void* GetCurrentPlatformContext() {
 
 void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
   if (render_buffer_id == 0) {
+#if defined(_WIN32)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+#else
+    glBindFramebuffer(GL_FRAMEBUFFER, kwin_binding_fbo);
+#endif
     return;
   }
+
+#if !defined(_WIN32)
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &kwin_binding_fbo);
+#endif
 
   CreateFBOIfNeededForActiveContext(render_buffer_id);
 
   RenderBufferEntry& entry = render_buffer_map[render_buffer_id];
-
   auto i = entry.fbo_map.find(reinterpret_cast<GLFWwindow*>(GetCurrentPlatformContext()));
   if (i == entry.fbo_map.end())
     return;
@@ -343,8 +350,8 @@ void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
 }
 
 void GPUDriverGL::ClearRenderBuffer(uint32_t render_buffer_id) {
-    #if defined(_WIN32)
-      glfwMakeContextCurrent(context_->active_window());
+#if defined(_WIN32)
+  glfwMakeContextCurrent(context_->active_window());
 #endif
 
   BindRenderBuffer(render_buffer_id);
@@ -548,6 +555,7 @@ void GPUDriverGL::DrawCommandList() {
     };
   }
 
+  // 💡 補齊後半段截斷的清理與 FBO 還原邏輯：
   command_list_.clear();
   glDisable(GL_SCISSOR_TEST);
 
@@ -569,18 +577,16 @@ void GPUDriverGL::DrawCommandList() {
       CHECK_GL();
       UpdateBitmap(rbuf, rbuf.pbo_id);
       rbuf.needs_update = false;
+    }
   }
-}
 #endif
 
+#if defined(_WIN32)
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  CHECK_GL();
-}
+#else
+  glBindFramebuffer(GL_FRAMEBUFFER, kwin_binding_fbo);
+#endif
 
-void GPUDriverGL::BindUltralightTexture(uint32_t ultralight_texture_id) {
-  TextureEntry& entry = texture_map[ultralight_texture_id];
-  ResolveIfNeeded(entry.render_buffer_id);
-  glBindTexture(GL_TEXTURE_2D, entry.tex_id);
   CHECK_GL();
 }
 

@@ -134,18 +134,30 @@ void UltralightHtmlEffect::move(int x, int y, bool pressed)
 void UltralightHtmlEffect::update(){
     if(!enabled_) return;
     if(!renderer_ || !view_) return;
+    
+    static int updateLoopCounter = 0;
+    updateLoopCounter++;
+
     renderer_->Update();
+    
+    bool target_wants_paint = view_->needs_paint();
+    
     renderer_->Render();
 
     if (context_) {
-        new_frame_ = view_->needs_paint(); 
-    }else {
+        new_frame_ = true; 
+        if (updateLoopCounter % 60 == 0) {
+            qDebug() << "[UltralightHtmlDebug] [GPU Update Pulse] Active Texture ID:" << view_->render_target().texture_id
+                     << "| view->needs_paint() branch returned:" << target_wants_paint;
+        }
+    } else {
         auto surface = view_->surface();
         if(!surface) return;
         auto bitmap_surface = dynamic_cast<ultralight::BitmapSurface*>(surface);
         if(!bitmap_surface) return;
         auto bitmap = bitmap_surface->bitmap();
         if(!bitmap) return;
+        
         bitmap->LockPixels();
         uint8_t* raw = static_cast<uint8_t*>(bitmap->raw_pixels());
         if(raw) {
@@ -157,6 +169,11 @@ void UltralightHtmlEffect::update(){
             pixel_buffer_.resize(size);
             memcpy(pixel_buffer_.data(), raw, size);
             new_frame_ = true;
+
+            if (updateLoopCounter % 60 == 0) {
+                qDebug() << "[UltralightHtmlDebug] [CPU Memory Map Pulse] Mapped Pixel Size Buffer:" << size 
+                         << "bytes | Stride bounds alignment:" << html_value_.stride_;
+            }
         }
         bitmap->UnlockPixels();
     }
@@ -164,6 +181,7 @@ void UltralightHtmlEffect::update(){
 
 void UltralightHtmlEffect::setEnabled(bool enabled)
 {
+    qDebug() << "[UltralightHtmlDebug] Core active status update toggled to:" << enabled;
     enabled_ = enabled;
 }
 

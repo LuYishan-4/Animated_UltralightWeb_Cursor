@@ -27,18 +27,26 @@ KwinCursorEffect::KwinCursorEffect() {
     connect(effects, &EffectsHandler::windowActivated, this, &KwinCursorEffect::slotWindowStateChanged);
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
-        QRect oldRect = getCursorRect(m_cursorPoint).toRect(); 
+        QRect oldRect = getCursorRect(m_cursorPoint).toRect().adjusted(-20, -20, 20, 20); 
         m_cursorPoint = QPointF(pt.x, pt.y); 
 
-        
         m_html->move(pt.x, pt.y, pt.pressed);
-        
-        m_html->update(); 
-        
-        QRect newRect = getCursorRect(m_cursorPoint).toRect();
-        effects->addRepaint(KWin::Rect(oldRect.adjusted(-5, -5, 5, 5)));
-        effects->addRepaint(KWin::Rect(newRect.adjusted(-5, -5, 5, 5)));
+
+        QRect newRect = getCursorRect(m_cursorPoint).toRect().adjusted(-20, -20, 20, 20);
+        effects->addRepaint(KWin::Rect(oldRect));
+        effects->addRepaint(KWin::Rect(newRect));
     });
+       m_renderTimer = new QTimer(this);
+    connect(m_renderTimer, &QTimer::timeout, this, [this]() {
+        if (m_html && m_html->isEnabled() && !m_isIdleHidden) {
+            m_html->update(); 
+            if (m_html->hasNewFrame()) {
+                QRect currentRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
+                effects->addRepaint(KWin::Rect(currentRect));
+            }
+        }
+    });
+    m_renderTimer->start(16); // 60 FPS 驅動軸
 
     QDBusConnection::sessionBus().registerObject(
         QStringLiteral("/UltralightCursor"),
@@ -61,19 +69,15 @@ bool KwinCursorEffect::supported() {
 
 void KwinCursorEffect::enable() {
     UltralightWebCursorM::MainCursorStaff::enable();
+    if (m_renderTimer) m_renderTimer->start(16);
     effects->addRepaintFull();
 }
 
 void KwinCursorEffect::disable() {
     UltralightWebCursorM::MainCursorStaff::disable();
-    if (m_html) {
-        QRect lastCursorRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
-        effects->addRepaint(KWin::Rect(lastCursorRect));
-        m_html->setEnabled(false);
-    }
+    if (m_renderTimer) m_renderTimer->stop();
     m_cursorTexture.reset();
     effects->addRepaintFull();
-    qDebug() << "[UltralightDebug] isnowdisable";
 }
 
 void KwinCursorEffect::reloadHtml() {
@@ -133,6 +137,8 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
 void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const RenderViewport& viewport, int mask, const Region& region, LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
     
+    if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return;
+
     GLTexture* texture = ensureCursorTexture();
     
     static int frameCounter = 0;
@@ -146,43 +152,64 @@ void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const Rende
             qDebug() << "[UltralightDebug] info:" << m_html->width() << "x" << m_html->height()
                      << "| isenable:" << m_html->isEnabled()
                      << "| (hasNewFrame):" << m_html->hasNewFrame()
-                     << "| GPU  ID:" << gpuTexId
-                     << "| KWin " << (texture != nullptr);
+                     << "| GPU ID:" << gpuTexId
+                     << "| KWin Texture Ready:" << (texture != nullptr);
         }
     }
-    // -------------------------------------------------------------------
 
-    if (!texture || !m_html) return;
+    if (!texture) return;
     
     const int w = m_html->width();
     const int h = m_html->height();
     
-    // ----------------- [DEBUG ] -----------------
     if (m_html->hasNewFrame() && frameCounter % 30 == 0) {
-        const uint8_t* rawPixels = m_html->pixels();
-        if (rawPixels) {
+        unsigned int gpuTexId = m_html->textureId();
+        
+        if (gpuTexId != 0) {
+            std::vector<uint8_t> gpuPixels(w * h * 4);
+            texture->bind();
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, gpuPixels.data());
+            texture->unbind();
+            
             int centerX = w / 2;
             int centerY = h / 2;
-            size_t pixelOffset = (centerY * m_html->stride()) + (centerX * 4);
-            uint8_t b = rawPixels[pixelOffset];
-            uint8_t g = rawPixels[pixelOffset + 1];
-            uint8_t r = rawPixels[pixelOffset + 2];
-            uint8_t a = rawPixels[pixelOffset + 3];
+            size_t offset = (centerY * w + centerX) * 4;
+            uint8_t r = gpuPixels[offset];
+            uint8_t g = gpuPixels[offset + 1];
+            uint8_t b = gpuPixels[offset + 2];
+            uint8_t a = gpuPixels[offset + 3];
             
-            qDebug() << "[UltralightDebug] htmlpixel(" << centerX << "," << centerY << ") "
-                     << "Raw RGBA: (" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")"
-                     << " -> " << (a == 0 ? "none" : "noneee");
+            qDebug() << "[UltralightDebug] [GPU VRAM Read-back] Center(" << centerX << "," << centerY << ") "
+                     << "RGBA: (" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")"
+                     << " -> " << (a == 0 ? "EMPTY TRANSPARENT SHELL (Black box root cause)" : "VALID COLOR CONTENT");
+                     
         } else {
-            if (m_html->textureId() == 0) {
-                qDebug() << "[UltralightDebug] none gpu";
+            const uint8_t* rawPixels = m_html->pixels();
+            if (rawPixels) {
+                int centerX = w / 2;
+                int centerY = h / 2;
+                size_t pixelOffset = (centerY * m_html->stride()) + (centerX * 4);
+                uint8_t b = rawPixels[pixelOffset];
+                uint8_t g = rawPixels[pixelOffset + 1];
+                uint8_t r = rawPixels[pixelOffset + 2];
+                uint8_t a = rawPixels[pixelOffset + 3];
+                
+                qDebug() << "[UltralightDebug][CPU Memory Buffer] Center(" << centerX << "," << centerY << ") "
+                         << "Raw RGBA: (" << (int)r << "," << (int)g << "," << (int)b << "," << (int)a << ")"
+                         << " -> " << (a == 0 ? "EMPTY TRANSPARENT SHELL" : "VALID COLOR CONTENT");
+            } else {
+                qDebug() << "[UltralightDebug] WARNING: CPU Mode fallback but pixels() returned nullptr!";
             }
         }
     }
+
     QPointF hotspot(m_html->hotspotX(), m_html->hotspotY());
     QPointF pos = effects->cursorPos() - screen->geometry().topLeft() - hotspot;
     
+    // Scale coordinate bounds symmetrically to guard high-DPI scaling artifacts
+    auto scale = viewport.scale();
     QMatrix4x4 mvp = viewport.projectionMatrix();
-    mvp.translate(pos.x(), pos.y()); 
+    mvp.translate(pos.x() * scale, pos.y() * scale); 
 
     ShaderBinder binder(ShaderTrait::MapTexture | ShaderTrait::TransformColorspace);
     GLShader* shader = binder.shader();
@@ -194,16 +221,19 @@ void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const Rende
         RenderingIntent::Perceptual
     );
     shader->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
-    texture->render(QSize(w, h)); 
+    
+    // Bind render context constraints safely matching matrix alignments
+    texture->render(QSizeF(w, h) * scale); 
+    
     if (m_html->hasNewFrame()) {
-        QRect repaintRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-5, -5, 5, 5);
-        qDebug() << "[UltralightDebug] reloooooooooooooooooo" 
-                 << repaintRect;
+        QRect repaintRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
+        if (frameCounter % 10 == 0) {
+            qDebug() << "[UltralightDebug] reloooooooooooooooooo" << repaintRect;
+        }
         effects->addRepaint(KWin::Rect(repaintRect));
-        m_html->clearNewFrame();
     }
-    // -------------------------------------------------------------------
 }
+
 
 
 bool KwinCursorEffect::isActive() const {

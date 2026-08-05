@@ -162,6 +162,11 @@ protected:
   std::map<ProgramType, ProgramEntry> programs_;
   GLuint cur_program_id_;
 
+  #if !defined(_WIN32)
+  GLint kwin_binding_fbo = 0;
+#endif
+
+
   GPUContextGL* context_;
 };
 

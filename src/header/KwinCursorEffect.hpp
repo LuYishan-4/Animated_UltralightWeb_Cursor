@@ -3,7 +3,7 @@
 #include <core/output.h>
 #include <kwin/effect/effect.h>
 #include "MainCursorStaff.hpp"
-
+#include <QTimer> 
 namespace KWin {
 
 class LogicalOutput;
@@ -44,7 +44,7 @@ private:
     bool isBlacklisted() const;
     GLTexture* ensureCursorTexture();
     void slotWindowStateChanged(EffectWindow *w);
-
+     QTimer* m_renderTimer = nullptr; 
     std::unique_ptr<GLTexture> m_cursorTexture;
 };
 
