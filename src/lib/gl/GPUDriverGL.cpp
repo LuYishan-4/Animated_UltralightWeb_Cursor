@@ -198,33 +198,34 @@ void GPUDriverGL::SetRenderBufferBitmapDirty(uint32_t render_buffer_id,
 }
 #endif
 
-void GPUDriverGL::CreateTexture(uint32_t texture_id,
-  RefPtr<Bitmap> bitmap) {
-  
-
-#if !defined(_WIN32)
-
+void GPUDriverGL::CreateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
   auto current_qt_context = QOpenGLContext::currentContext();
-  qDebug() << "[UltralightGpuDebug] CreateTexture() Called | Target Texture ID:" << texture_id
-           << " | Current Qt GL Context:" << current_qt_context;
-#endif
-  // -------------------------------------------------------------------------
+  
+  #if !defined(_WIN32)
+    qDebug() << "[UltralightGpuDebug] CreateTexture() Called | Target Texture ID:" << texture_id
+             << " | Current Qt GL Context:" << current_qt_context;
+  #endif
+
+  if (!current_qt_context) {
+    qCritical() << "[UltralightGpuError] CRITICAL: CreateTexture called WITHOUT an active OpenGL Context! Skipping VRAM upload to prevent memory corruption.";
+    
+    texture_map[texture_id].tex_id = 0; 
+    return;
+  }
 
   if (bitmap->IsEmpty()) {
     CreateFBOTexture(texture_id, bitmap);
     return;
   }
 
-  CHECK_GL();
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  CHECK_GL();
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  CHECK_GL();
-
   TextureEntry& entry = texture_map[texture_id];
   glGenTextures(1, &entry.tex_id);
+  
+  if (entry.tex_id == 0) {
+    qCritical() << "[UltralightGpuError] glGenTextures failed to allocate a valid Texture ID!";
+    return;
+  }
+
   glActiveTexture(GL_TEXTURE0 + 0);
   glBindTexture(GL_TEXTURE_2D, entry.tex_id);
   CHECK_GL();
