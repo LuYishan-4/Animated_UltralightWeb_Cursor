@@ -772,6 +772,78 @@ void GPUDriverGL::CreateFBOTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
   CHECK_GL();
 }
 
+void GPUDriverGL::CreateFBOIfNeededForActiveContext(uint32_t render_buffer_id) {
+  if (render_buffer_id == 0)
+    return;
+
+  auto i = render_buffer_map.find(render_buffer_id);
+  if (i == render_buffer_map.end()) {
+    FATAL("Error, render buffer entry should exist here.")
+    return;
+  }
+
+#if defined(_WIN32)
+  GLFWwindow* current_context = glfwGetCurrentContext();
+#else
+  GLFWwindow* current_context = reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
+#endif
+
+  RenderBufferEntry& entry = i->second;
+
+  auto j = entry.fbo_map.find(current_context);
+  if (j != entry.fbo_map.end())return; // Already exists, we can return
+  FBOEntry& fbo_entry = entry.fbo_map[current_context];
+
+  glGenFramebuffers(1, &fbo_entry.fbo_id);
+  CHECK_GL();
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo_entry.fbo_id);
+  CHECK_GL();
+
+  TextureEntry& textureEntry = texture_map[entry.texture_id];
+
+#if ENABLE_OFFSCREEN_GL
+  if (entry.bitmap)
+    MakeTextureSRGBIfNeeded(entry.texture_id);
+#endif
+
+  glBindTexture(GL_TEXTURE_2D, textureEntry.tex_id);
+  CHECK_GL();
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureEntry.tex_id, 0);
+  CHECK_GL();
+
+  GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+  glDrawBuffers(1, drawBuffers);
+  CHECK_GL();
+
+  GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if (result != GL_FRAMEBUFFER_COMPLETE)
+    FATAL("Error creating FBO, this usually fails if your DPI scale is invalid or View dimensions are massive: " << result);
+  CHECK_GL();
+
+  if (!context_->msaa_enabled()) {
+    return;
+  }
+
+  // Create MSAA FBO
+  glGenFramebuffers(1, &fbo_entry.msaa_fbo_id);
+  CHECK_GL();
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo_entry.msaa_fbo_id);
+  CHECK_GL();
+
+  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureEntry.msaa_tex_id);
+  CHECK_GL();
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, textureEntry.msaa_tex_id, 0);
+  CHECK_GL();
+
+  glDrawBuffers(1, drawBuffers);
+  CHECK_GL();
+
+  result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+  if (result != GL_FRAMEBUFFER_COMPLETE)
+    FATAL("Error creating MSAA FBO, this usually fails if your DPI scale is invalid or View dimensions are massive: " << result);
+  CHECK_GL();
+}
+
 void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
   auto i = geometry_map.find(geometry_id);
   if (i == geometry_map.end()) {
