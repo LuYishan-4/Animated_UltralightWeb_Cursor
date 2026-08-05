@@ -1,17 +1,45 @@
-#include <epoxy/gl.h>  
 #include "../header/KwinCursorEffect.hpp"
 #include "../header/KwinMouseProvider.hpp"
 #include "core/rendertarget.h"
 #include "core/renderviewport.h"
 #include "effect/effecthandler.h"
+#include "opengl/glutils.h"
+
 #include <QDBusConnection>
 #include <QImage>
+#include <QOpenGLContext>
+#include <QOpenGLFunctions>
 #include <iostream>
 #include <stdexcept>
-#include <QOpenGLContext> 
-#include <QOpenGLFunctions> 
-#include <thread> 
-#include "opengl/glutils.h"
+#include <thread>
+#ifdef glGetIntegerv
+#undef glGetIntegerv
+#endif
+#ifdef glFlush
+#undef glFlush
+#endif
+#ifdef glFinish
+#undef glFinish
+#endif
+#ifdef glBindFramebuffer
+#undef glBindFramebuffer
+#endif
+#ifdef glPixelStorei
+#undef glPixelStorei
+#endif
+#ifdef glTexSubImage2D
+#undef glTexSubImage2D
+#endif
+#ifdef glEnable
+#undef glEnable
+#endif
+#ifdef glDisable
+#undef glDisable
+#endif
+#ifdef glBlendFunc
+#undef glBlendFunc
+#endif
+
 namespace KWin {
 
 extern EffectsHandler *effects;
@@ -23,8 +51,9 @@ KWIN_EFFECT_FACTORY_SUPPORTED(
 )
 
 KwinCursorEffect::KwinCursorEffect() {
-    if (!initializeCore<KwinMouseProvider>())return;
+    if (!initializeCore<KwinMouseProvider>()) return;
     connect(effects, &EffectsHandler::windowActivated, this, &KwinCursorEffect::slotWindowStateChanged);
+    
     m_mouseProvider->setCallback([this](const UltralightWebCursorM::MousePoint& pt) {
         if (!m_html) return;
         QMetaObject::invokeMethod(effects, [this, pt]() {
@@ -39,6 +68,7 @@ KwinCursorEffect::KwinCursorEffect() {
             effects->addRepaint(KWin::Rect(newRect));
         }, Qt::QueuedConnection);
     });
+
     QDBusConnection::sessionBus().registerObject(
         QStringLiteral("/UltralightCursor"),
         this,
@@ -58,30 +88,33 @@ bool KwinCursorEffect::supported() {
     return effects->isOpenGLCompositing();
 }
 
-    void KwinCursorEffect::enable(){
-        if(!m_html)return;
-        m_html->setEnabled(true);
-        effects->addRepaintFull();
-    }
+void KwinCursorEffect::enable() {
+    if (!m_html) return;
+    m_html->setEnabled(true);
+    effects->addRepaintFull();
+}
 
-    void KwinCursorEffect::disable(){
-        if(!m_html)return;
-        m_html->setEnabled(false);
-        m_cursorTexture.reset();
-        effects->addRepaintFull();
-    }
-    void KwinCursorEffect::reloadHtml(){
-        UltralightWebCursorM::UserConfig::instance()->load();
-        UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
-        if(!m_html)return;
-        m_html->reload(UserConfigimp,CursorJSONImp);
-        effects->addRepaintFull();
-    }
+void KwinCursorEffect::disable() {
+    if (!m_html) return;
+    m_html->setEnabled(false);
+    m_cursorTexture.reset();
+    effects->addRepaintFull();
+}
+
+void KwinCursorEffect::reloadHtml() {
+    UltralightWebCursorM::UserConfig::instance()->load();
+    UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
+    if (!m_html) return;
+    m_html->reload(UserConfigimp, CursorJSONImp);
+    effects->addRepaintFull();
+}
+
 bool KwinCursorEffect::isBlacklisted() const {
     auto window = effects->activeWindow();
     if (!window) return false;
     return isWindowBlacklisted(window->windowClass().toStdString());
 }
+
 GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
     
@@ -92,22 +125,24 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     }
 
     QOpenGLContext* qtContext = QOpenGLContext::currentContext();
-    if (!qtContext) {
-        return nullptr;
-    }
-
-    QOpenGLFunctions* funcs = qtContext->functions();
+    QOpenGLFunctions* funcs = qtContext ? qtContext->functions() : nullptr;
     GLint native_kwin_fbo = 0;
     if (funcs) {
         funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
+    }
+    m_html->update();
+    if (funcs) {
+        funcs->glFlush();
+        if (native_kwin_fbo != 0) {
+            funcs->glBindFramebuffer(GL_FRAMEBUFFER, native_kwin_fbo);
+        }
     }
 
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
-    
+
     unsigned int gpuTexId = m_html->textureId(); 
-    
     if (gpuTexId != 0) {
         static unsigned int lastGpuTexId = 0;
         if (!m_cursorTexture || m_cursorTexture->width() != w || m_cursorTexture->height() != h || lastGpuTexId != gpuTexId) {
@@ -119,11 +154,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
             m_cursorTexture->setFilter(GL_LINEAR);
             lastGpuTexId = gpuTexId;
         }
-        
-        if (funcs && native_kwin_fbo != 0) {
-            funcs->glBindFramebuffer(GL_FRAMEBUFFER, native_kwin_fbo);
-        }
-        
         return m_cursorTexture.get();
     }
     if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
@@ -155,32 +185,26 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     }
     return m_cursorTexture.get();
 }
+
 void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const RenderViewport& viewport, int mask, const Region& region, LogicalOutput* screen) {
     effects->paintScreen(renderTarget, viewport, mask, region, screen);
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return;
-
-    if (QOpenGLContext::currentContext())m_html->update();
-    
     GLTexture* texture = ensureCursorTexture();
-    static int frameCounter = 0;
-    frameCounter++;
-    
 
-    if (frameCounter % 60 == 0) {
+    static int frameCounter = 0;
+    if (++frameCounter % 60 == 0) {
         unsigned int gpuTexId = m_html->textureId();
-        auto kwin_qt_context = QOpenGLContext::currentContext();
-        
-        qDebug() << "[UltralightKwinLinkDebug] [KWin Pipeline Context Check]"
-                 << " | Qt Context :" << kwin_qt_context
-                 << " | Wrapped Native GL Texture ID:" << gpuTexId
-                 << " | Wrapped Status:" << (texture != nullptr);
+        qDebug() << "[UltralightKwinLinkDebug] [KWin Pipeline Check]"
+                 << " | Qt Context :" << QOpenGLContext::currentContext()
+                 << " | Native GL Tex ID:" << gpuTexId
+                 << " | Texture Valid:" << (texture != nullptr);
     }
-    // ----------------------------------------------------------------------
 
     if (!texture) {
         effects->addRepaintFull();
         return;
     }
+
     const int w = m_html->width();
     const int h = m_html->height();
 
@@ -190,23 +214,30 @@ void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const Rende
     auto scale = viewport.scale();
     QMatrix4x4 mvp = viewport.projectionMatrix();
     mvp.translate(pos.x() * scale, pos.y() * scale); 
+
     ShaderBinder binder(ShaderTrait::MapTexture);
     GLShader* shader = binder.shader();
     if (!shader) return;
 
     shader->setUniform(GLShader::Mat4Uniform::ModelViewProjectionMatrix, mvp);
 
-    glEnablei(GL_BLEND, 0);
-    glBlendFunci(0, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    QOpenGLContext* qtContext = QOpenGLContext::currentContext();
+    QOpenGLFunctions* funcs = qtContext ? qtContext->functions() : nullptr;
+
+    if (funcs) {
+        funcs->glEnable(GL_BLEND);
+        funcs->glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+    }
+
     texture->render(QSizeF(w, h) * scale); 
-    glDisablei(GL_BLEND, 0);
+
+    if (funcs) {
+        funcs->glDisable(GL_BLEND);
+    }
 
     QRect repaintRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
     effects->addRepaint(KWin::Rect(repaintRect));
 }
-
-
-
 
 bool KwinCursorEffect::isActive() const {
     return m_html != nullptr;
