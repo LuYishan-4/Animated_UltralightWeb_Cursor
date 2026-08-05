@@ -60,7 +60,7 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
             )
         );
         if (html_value_.use_gpu_){
-            context_ = std::make_unique<ultralight::GPUContextGL>(true, true); 
+            context_ = std::make_unique<ultralight::GPUContextGL>(false, false); 
             platform.set_gpu_driver(context_->driver());
         }
         platform_initialized_ = true;

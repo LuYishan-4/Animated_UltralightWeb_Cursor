@@ -3,10 +3,14 @@
 
 #if defined(_WIN32)
   #include <glad/glad.h>
+  #ifndef GLFW_INCLUDE_NONE
+    #define GLFW_INCLUDE_NONE
+  #endif
+  #include <GLFW/glfw3.h>
 #else
   #include <epoxy/gl.h>
+  typedef struct GLFWwindow GLFWwindow;
 #endif
-
 #include <GLFW/glfw3.h>
 #include "GPUContextGL.h"
 #include "GPUDriverImpl.h"

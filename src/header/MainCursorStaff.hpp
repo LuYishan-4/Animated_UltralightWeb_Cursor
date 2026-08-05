@@ -54,6 +54,8 @@ public:
 protected:
     template <typename MouseProviderType>
     bool initializeCore() {
+        static bool isPermanentlyDisabled = false;
+        if (isPermanentlyDisabled)return false; 
         UltralightWebCursorM::CrashHandler::registerHandler();
         try {
             UltralightWebCursorM::UserConfig::instance()->load();
@@ -65,6 +67,7 @@ protected:
 
             if (!m_html || !m_mouseProvider) {
                  qDebug() << "[UltralightCursorEffect] deeeeeeeeee";
+                  isPermanentlyDisabled = true;
                 return false;
             }
            
@@ -73,11 +76,16 @@ protected:
                  qDebug() << "[UltralightCursorEffect] dccce";
                 m_html.reset();
                 m_mouseProvider.reset();
+                 isPermanentlyDisabled = true;
                 return false;
             }
             m_blacklist.setBlacklist(UltralightWebCursorM::UserConfig::instance()->getBlacklist());
             return true;
+        } catch (const std::exception& e) {
+            isPermanentlyDisabled = true;
+            return false;
         } catch (...) {
+            isPermanentlyDisabled = true;
             return false;
         }
     }

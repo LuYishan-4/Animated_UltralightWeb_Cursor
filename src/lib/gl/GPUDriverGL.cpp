@@ -5,6 +5,7 @@
   #include <glad/glad.h>
 #else
   #include "opengl/glutils.h" 
+  #include <chrono>
 #endif
 #include <Ultralight/platform/FileSystem.h>
 #include <iostream>
@@ -358,14 +359,18 @@ void GPUDriverGL::ClearRenderBuffer(uint32_t render_buffer_id) {
 void GPUDriverGL::DestroyRenderBuffer(uint32_t render_buffer_id) {
   if (render_buffer_id == 0)
     return;
-
+#if defined(_WIN32)
   auto previous_context = glfwGetCurrentContext();
+#endif
   
   RenderBufferEntry& entry = render_buffer_map[render_buffer_id];
   for (auto i = entry.fbo_map.begin(); i != entry.fbo_map.end(); ++i) {
     auto context = i->first;
     auto fbo_entry = i->second;
+#if defined(_WIN32)
     glfwMakeContextCurrent(context);
+#endif
+
     glDeleteFramebuffers(1, &fbo_entry.fbo_id);
     CHECK_GL();
     if (context_->msaa_enabled())
@@ -380,9 +385,11 @@ void GPUDriverGL::DestroyRenderBuffer(uint32_t render_buffer_id) {
 #endif
   CHECK_GL();
   render_buffer_map.erase(render_buffer_id);
-
+#if defined(_WIN32)
   glfwMakeContextCurrent(previous_context);
+#endif
 }
+
 
 void GPUDriverGL::CreateGeometry(uint32_t geometry_id,
   const VertexBuffer& vertices,
@@ -490,22 +497,26 @@ void GPUDriverGL::DestroyGeometry(uint32_t geometry_id) {
   glDeleteBuffers(1, &geometry.vbo_indices);
   glDeleteBuffers(1, &geometry.vbo_vertices);
   CHECK_GL();
-
+#if defined(_WIN32)
   auto previous_context = glfwGetCurrentContext();
+#endif
 
   for (auto i = geometry.vao_map.begin(); i != geometry.vao_map.end(); ++i) {
     auto context = i->first;
     auto vao_entry = i->second;
+#if defined(_WIN32)
     glfwMakeContextCurrent(context);
+#endif
     glDeleteVertexArrays(1, &vao_entry);
     CHECK_GL();
   }
-
   CHECK_GL();
   geometry_map.erase(geometry_id);
-
+#if defined(_WIN32)
   glfwMakeContextCurrent(previous_context);
+#endif
 }
+
 
 void GPUDriverGL::DrawCommandList() {
   if (command_list_.empty())
@@ -657,7 +668,18 @@ void GPUDriverGL::UpdateUniforms(const GPUState& state) {
   bool flip_y = state.render_buffer_id != 0;
   Matrix model_view_projection = ApplyProjection(state.transform, (float)state.viewport_width, (float)state.viewport_height, flip_y);
 
-  float params[4] = { (float)(glfwGetTime() / 1000.0), (float)state.viewport_width, (float)state.viewport_height, 1.0f };
+  float current_time_value = 0.0f;
+
+#if defined(_WIN32)
+  current_time_value = (float)(glfwGetTime() / 1000.0);
+#else
+  static const auto start_time = std::chrono::steady_clock::now();
+  auto current_time = std::chrono::steady_clock::now();
+  float elapsed_seconds = std::chrono::duration<float>(current_time - start_time).count();
+  current_time_value = elapsed_seconds / 1000.0f;
+#endif
+
+  float params[4] = { current_time_value, (float)state.viewport_width, (float)state.viewport_height, 1.0f };
   SetUniform4f("State", params);
   CHECK_GL();
   ultralight::Matrix4x4 mat = model_view_projection.GetMatrix4x4();
@@ -750,73 +772,6 @@ void GPUDriverGL::CreateFBOTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
   CHECK_GL();
 }
 
-void GPUDriverGL::CreateFBOIfNeededForActiveContext(uint32_t render_buffer_id) {
-  if (render_buffer_id == 0)
-    return;
-
-  auto i = render_buffer_map.find(render_buffer_id);
-  if (i == render_buffer_map.end()) {
-    FATAL("Error, render buffer entry should exist here.")
-    return;
-  }
-
-  RenderBufferEntry& entry = i->second;
-  auto j = entry.fbo_map.find(glfwGetCurrentContext());
-  if (j != entry.fbo_map.end())
-    return; // Already exists, we can return
-
-  FBOEntry& fbo_entry = entry.fbo_map[glfwGetCurrentContext()];
-
-  glGenFramebuffers(1, &fbo_entry.fbo_id);
-  CHECK_GL();
-  glBindFramebuffer(GL_FRAMEBUFFER, fbo_entry.fbo_id);
-  CHECK_GL();
-
-  TextureEntry& textureEntry = texture_map[entry.texture_id];
-
-#if ENABLE_OFFSCREEN_GL
-  if (entry.bitmap)
-    MakeTextureSRGBIfNeeded(entry.texture_id);
-#endif
-
-  glBindTexture(GL_TEXTURE_2D, textureEntry.tex_id);
-  CHECK_GL();
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureEntry.tex_id, 0);
-  CHECK_GL();
-
-  GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-  glDrawBuffers(1, drawBuffers);
-  CHECK_GL();
-
-  GLenum result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if (result != GL_FRAMEBUFFER_COMPLETE)
-    FATAL("Error creating FBO, this usually fails if your DPI scale is invalid or View dimensions are massive: " << result);
-  CHECK_GL();
-
-  if (!context_->msaa_enabled()) {
-    return;
-  }
-
-  // Create MSAA FBO
-  glGenFramebuffers(1, &fbo_entry.msaa_fbo_id);
-  CHECK_GL();
-  glBindFramebuffer(GL_FRAMEBUFFER, fbo_entry.msaa_fbo_id);
-  CHECK_GL();
-
-  glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, textureEntry.msaa_tex_id);
-  CHECK_GL();
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, textureEntry.msaa_tex_id, 0);
-  CHECK_GL();
-
-  glDrawBuffers(1, drawBuffers);
-  CHECK_GL();
-
-  result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if (result != GL_FRAMEBUFFER_COMPLETE)
-    FATAL("Error creating MSAA FBO, this usually fails if your DPI scale is invalid or View dimensions are massive: " << result);
-  CHECK_GL();
-}
-
 void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
   auto i = geometry_map.find(geometry_id);
   if (i == geometry_map.end()) {
@@ -826,7 +781,14 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
 
   auto& geometry_entry = i->second;
 
-  auto j = geometry_entry.vao_map.find(glfwGetCurrentContext());
+#if defined(_WIN32)
+  GLFWwindow* current_context = glfwGetCurrentContext();
+#else
+  GLFWwindow* current_context = reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
+#endif
+
+  // 💡 避免在 Linux 下傳入 nullptr 造成 map 查找失敗
+  auto j = geometry_entry.vao_map.find(current_context);
   if (j != geometry_entry.vao_map.end())
     return; // Already exists, we can return
 
@@ -884,10 +846,8 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
   } else {
     FATAL("Unhandled vertex format: " << (int)geometry_entry.vertex_format);
   }
-
   glBindVertexArray(0);
-
-  geometry_entry.vao_map[glfwGetCurrentContext()] = vao_entry;
+  geometry_entry.vao_map[current_context] = vao_entry;
 }
   
 void GPUDriverGL::ResolveIfNeeded(uint32_t render_buffer_id) {
