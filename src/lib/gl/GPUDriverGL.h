@@ -85,6 +85,7 @@ public:
         if(it == texture_map.end()) return 0;
         return it->second.tex_id;
     }
+  void FlushPendingTextures();
   void BindUltralightTexture(uint32_t ultralight_texture_id);
   void LoadPrograms();
   void DestroyPrograms();
@@ -102,15 +103,17 @@ public:
 
 protected:
   Matrix ApplyProjection(const Matrix4x4& transform, float screen_width, float screen_height, bool flip_y);
-
+  void UploadTextureToVRAM(uint32_t texture_id);
   void CreateFBOTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap);
 
-  struct TextureEntry {
+ struct TextureEntry {
     GLuint tex_id = 0; // GL Texture ID
     GLuint msaa_tex_id = 0; // GL Texture ID (only used if MSAA is enabled)
     uint32_t render_buffer_id = 0; // Used to check if we need to perform MSAA resolve
-    GLuint width, height; // Used when resolving MSAA FBO, only valid if FBO
+    GLuint width = 0, height = 0; // Used when resolving MSAA FBO, only valid if FBO
     bool is_sRGB = false; // Whether or not the primary texture is sRGB or not.
+    bool is_pending_upload = false;
+    RefPtr<Bitmap> bitmap = nullptr;
   };
 
   // Maps Ultralight Texture IDs to OpenGL texture handles

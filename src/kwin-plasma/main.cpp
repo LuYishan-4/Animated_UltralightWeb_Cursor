@@ -12,34 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <thread>
-#ifdef glGetIntegerv
-#undef glGetIntegerv
-#endif
-#ifdef glFlush
-#undef glFlush
-#endif
-#ifdef glFinish
-#undef glFinish
-#endif
-#ifdef glBindFramebuffer
-#undef glBindFramebuffer
-#endif
-#ifdef glPixelStorei
-#undef glPixelStorei
-#endif
-#ifdef glTexSubImage2D
-#undef glTexSubImage2D
-#endif
-#ifdef glEnable
-#undef glEnable
-#endif
-#ifdef glDisable
-#undef glDisable
-#endif
-#ifdef glBlendFunc
-#undef glBlendFunc
-#endif
-
+#include <QOpenGLExtraFunctions>
 namespace KWin {
 
 extern EffectsHandler *effects;
@@ -125,12 +98,12 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     }
 
     QOpenGLContext* qtContext = QOpenGLContext::currentContext();
-    QOpenGLFunctions* funcs = qtContext ? qtContext->functions() : nullptr;
+    QOpenGLExtraFunctions* funcs = qtContext ? qtContext->extraFunctions() : nullptr;
+
     GLint native_kwin_fbo = 0;
-    if (funcs) {
-        funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
-    }
+    if (funcs) funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
     m_html->update();
+
     if (funcs) {
         funcs->glFlush();
         if (native_kwin_fbo != 0) {

@@ -201,64 +201,120 @@ void GPUDriverGL::SetRenderBufferBitmapDirty(uint32_t render_buffer_id,
 void GPUDriverGL::CreateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
   auto current_qt_context = QOpenGLContext::currentContext();
   
-  #if !defined(_WIN32)
-    qDebug() << "[UltralightGpuDebug] CreateTexture() Called | Target Texture ID:" << texture_id
-             << " | Current Qt GL Context:" << current_qt_context;
-  #endif
-
-  if (!current_qt_context) {
-    qCritical() << "[UltralightGpuError] CRITICAL: CreateTexture called WITHOUT an active OpenGL Context! Skipping VRAM upload to prevent memory corruption.";
-    
-    texture_map[texture_id].tex_id = 0; 
-    return;
-  }
-
-  if (bitmap->IsEmpty()) {
-    CreateFBOTexture(texture_id, bitmap);
-    return;
-  }
-
   TextureEntry& entry = texture_map[texture_id];
-  glGenTextures(1, &entry.tex_id);
-  
+  entry.bitmap = bitmap;
+  entry.width = bitmap->width();
+  entry.height = bitmap->height();
+
+  if (current_qt_context) {
+    UploadTextureToVRAM(texture_id);
+    return;
+  }
+
+
+#if !defined(_WIN32)
+  qDebug() << "[UltralightGpuDebug] CreateTexture called without active GL Context. Deferred upload for Texture ID:" << texture_id;
+#endif
+  entry.is_pending_upload = true;
+  entry.tex_id = 0;
+}
+#if !defined(_WIN32)
+void GPUDriverGL::UploadTextureToVRAM(uint32_t texture_id) {
+  auto it = texture_map.find(texture_id);
+  if (it == texture_map.end()) return;
+
+  TextureEntry& entry = it->second;
+  RefPtr<Bitmap> bitmap = entry.bitmap;
+
+  if (!bitmap || bitmap->IsEmpty()) {
+    CreateFBOTexture(texture_id, bitmap);
+    entry.is_pending_upload = false;
+    return;
+  }
+
+  bool is_new_allocation = (entry.tex_id == 0);
+
+  if (is_new_allocation) {
+    glGenTextures(1, &entry.tex_id);
+  }
+
   if (entry.tex_id == 0) {
     qCritical() << "[UltralightGpuError] glGenTextures failed to allocate a valid Texture ID!";
     return;
   }
 
-  glActiveTexture(GL_TEXTURE0 + 0);
+  GLint prev_unpack_alignment = 1, prev_row_length = 0;
+  glGetIntegerv(GL_UNPACK_ALIGNMENT, &prev_unpack_alignment);
+  glGetIntegerv(GL_UNPACK_ROW_LENGTH, &prev_row_length);
+
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, entry.tex_id);
   CHECK_GL();
+
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glPixelStorei(GL_UNPACK_ROW_LENGTH, bitmap->row_bytes() / bitmap->bpp());
   CHECK_GL();
+
+  const void* pixels = bitmap->LockPixels();
+
   if (bitmap->format() == BitmapFormat::A8_UNORM) {
-    const void* pixels = bitmap->LockPixels();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, bitmap->width(), bitmap->height(), 0,
-      GL_RED, GL_UNSIGNED_BYTE, pixels);
-    bitmap->UnlockPixels();
+    if (is_new_allocation) {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, bitmap->width(), bitmap->height(), 0,
+                   GL_RED, GL_UNSIGNED_BYTE, pixels);
+    } else {
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bitmap->width(), bitmap->height(),
+                      GL_RED, GL_UNSIGNED_BYTE, pixels);
+    }
   } else if (bitmap->format() == BitmapFormat::BGRA8_UNORM_SRGB) {
-    const void* pixels = bitmap->LockPixels();
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap->width(), bitmap->height(), 0,
-      GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-    bitmap->UnlockPixels();
+    if (is_new_allocation) {
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap->width(), bitmap->height(), 0,
+                   GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+    } else {
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, bitmap->width(), bitmap->height(),
+                      GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+    }
   } else {
-    FATAL("Unhandled texture format: " << (int)bitmap->format())
+    bitmap->UnlockPixels();
+    FATAL("Unhandled texture format: " << (int)bitmap->format());
   }
 
-  CHECK_GL();
-  glGenerateMipmap(GL_TEXTURE_2D);
+  bitmap->UnlockPixels();
   CHECK_GL();
 
-#if !defined(_WIN32)
-  qDebug() << "[UltralightGpuDebug] Texture loaded to VRAM | Allocated Native OpenGL Tex ID:" << entry.tex_id;
-#endif
-  // -------------------------------------------------------------------------
+  glGenerateMipmap(GL_TEXTURE_2D);
+  CHECK_GL();
+  glPixelStorei(GL_UNPACK_ALIGNMENT, prev_unpack_alignment);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, prev_row_length);
+
+  entry.is_pending_upload = false;
+  entry.width = bitmap->width();
+  entry.height = bitmap->height();
+
+  qDebug() << "[UltralightGpuDebug] Texture VRAM Sync Complete | Native GL Tex ID:" << entry.tex_id;
 }
-void GPUDriverGL::UpdateTexture(uint32_t texture_id,
-  RefPtr<Bitmap> bitmap) {
+#endif
+
+void GPUDriverGL::FlushPendingTextures() {
+  if (!QOpenGLContext::currentContext()) return;
+
+  for (auto& [id, entry] : texture_map) {
+    if (entry.is_pending_upload) {
+      UploadTextureToVRAM(id);
+    }
+  }
+}
+void GPUDriverGL::UpdateTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap) {
+  auto it = texture_map.find(texture_id);
+  if (it == texture_map.end()) {
+    qWarning() << "[UltralightGpuError] UpdateTexture called for non-existent Texture ID:" << texture_id;
+    return;
+  }
+
+  TextureEntry& entry = it->second;
+  entry.bitmap = bitmap;
+
+#if defined(_WIN32)
   glActiveTexture(GL_TEXTURE0 + 0);
-  TextureEntry& entry = texture_map[texture_id];
   glBindTexture(GL_TEXTURE_2D, entry.tex_id);
   CHECK_GL();
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -282,8 +338,18 @@ void GPUDriverGL::UpdateTexture(uint32_t texture_id,
     CHECK_GL();
     glGenerateMipmap(GL_TEXTURE_2D);
   }
-
   CHECK_GL();
+
+#else
+  auto current_qt_context = QOpenGLContext::currentContext();
+
+  if (!current_qt_context || entry.tex_id == 0 || entry.is_pending_upload) {
+    entry.is_pending_upload = true;
+    qDebug() << "[UltralightGpuDebug] Deferred UpdateTexture for Texture ID:" << texture_id;
+    return;
+  }
+  UploadTextureToVRAM(texture_id);
+#endif
 }
 
 void GPUDriverGL::BindTexture(uint8_t texture_unit, uint32_t texture_id) {
@@ -300,12 +366,24 @@ void GPUDriverGL::BindTexture(uint8_t texture_unit, uint32_t texture_id) {
 
 
 void GPUDriverGL::DestroyTexture(uint32_t texture_id) {
-  TextureEntry& entry = texture_map[texture_id];
-  glDeleteTextures(1, &entry.tex_id);
-  CHECK_GL();
-  if (entry.msaa_tex_id)
-    glDeleteTextures(1, &entry.msaa_tex_id);
-  CHECK_GL();
+  auto it = texture_map.find(texture_id);
+  if (it == texture_map.end()) return;
+  TextureEntry& entry = it->second;
+
+  if (entry.tex_id != 0) {
+#if defined(_WIN32)
+    glDeleteTextures(1, &entry.tex_id);
+#else
+    if (QOpenGLContext::currentContext()) {
+      glDeleteTextures(1, &entry.tex_id);
+    } else {
+      qWarning() << "[UltralightGpuDebug] DestroyTexture called without Context, skipping glDeleteTextures for Tex ID:" << entry.tex_id;
+    }
+#endif
+  }
+
+  entry.bitmap = nullptr; 
+  texture_map.erase(it);
 }
 
 void GPUDriverGL::CreateRenderBuffer(uint32_t render_buffer_id,
