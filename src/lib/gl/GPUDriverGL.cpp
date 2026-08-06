@@ -1,33 +1,21 @@
 #include "GPUDriverGL.h"
 #include "GPUContextGL.h"
-#include <Ultralight/platform/Platform.h>
-#if defined(_WIN32)
-  #include <glad/glad.h>
-#else
-  #include "opengl/glutils.h" 
-  #include <chrono>
-#endif
-#include <Ultralight/platform/FileSystem.h>
 #include <iostream>
-#include <fstream>
 #include <sstream>
-#if ENABLE_OFFSCREEN_GL
-#include "shader_fill_frag.h"
-#include "shader_fill_path_frag.h"
-#include "shader_v2f_c4f_t2f_t2f_d28f_vert.h"
-#include "shader_v2f_c4f_t2f_vert.h"
-#else
-#include "glsl/shader_fill_frag.h"
-#include "glsl/shader_fill_path_frag.h"
-#include "glsl/shader_v2f_c4f_t2f_t2f_d28f_vert.h"
-#include "glsl/shader_v2f_c4f_t2f_vert.h"
+// Include generated GLSL shader headers
+#include "glsl/shaders.h"
+
+
+// GL 3.3+ texture swizzle constants (GLAD was generated for GL 3.2)
+#ifndef GL_TEXTURE_SWIZZLE_R
+#define GL_TEXTURE_SWIZZLE_R 0x8E42
+#define GL_TEXTURE_SWIZZLE_G 0x8E43
+#define GL_TEXTURE_SWIZZLE_B 0x8E44
+#define GL_TEXTURE_SWIZZLE_A 0x8E45
 #endif
-#include <thread>
-#include <QOpenGLContext>
-#define SHADER_PATH "glsl/"
 
 #ifdef _DEBUG
-#if defined(_WIN32)
+  #if defined(_WIN32)
 #define INFO(x) { std::cerr << "[INFO] " << __FUNCSIG__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; }
 #else
 #define INFO(x) { std::cerr << "[INFO] " << __PRETTY_FUNCTION__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; }
@@ -36,7 +24,7 @@
 #define INFO(x)
 #endif
 
-#if defined(_WIN32)
+  #if defined(_WIN32)
 #include <Windows.h>
 #define FATAL(x) { std::stringstream str; \
   str << "[ERROR] " << __FUNCSIG__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; \
@@ -48,24 +36,6 @@
   std::cin.get(); exit(-1); }
 #endif
 
-static void ReadFile(const char* filepath, std::string& result) {
-  // To maintain predictable behavior across platforms we use
-  // whatever FileSystem that Ultralight is using:
-  ultralight::FileSystem* fs = ultralight::Platform::instance().file_system();
-  if (!fs)
-    FATAL("No FileSystem defined.");
-
-  if (!fs->FileExists(filepath))
-    FATAL("Error loading shader from file path: " << filepath);
-
-  ultralight::RefPtr<ultralight::Buffer> buffer = fs->OpenFile(filepath);
-  if (!buffer)
-    FATAL("Could not open file path: " << filepath);
-
-  size_t fileSize = buffer->size();
-  result.resize(fileSize);
-  memcpy(&result[0], buffer->data(), fileSize);
-}
 
 inline char const* glErrorString(GLenum const err) noexcept
 {
@@ -76,12 +46,8 @@ inline char const* glErrorString(GLenum const err) noexcept
   case GL_INVALID_ENUM: return "GL_INVALID_ENUM";
   case GL_INVALID_VALUE: return "GL_INVALID_VALUE";
   case GL_INVALID_OPERATION: return "GL_INVALID_OPERATION";
-#ifdef GL_STACK_OVERFLOW
   case GL_STACK_OVERFLOW: return "GL_STACK_OVERFLOW";
-#endif
-#ifdef GL_STACK_UNDERFLOW
   case GL_STACK_UNDERFLOW: return "GL_STACK_UNDERFLOW";
-#endif
   case GL_OUT_OF_MEMORY: return "GL_OUT_OF_MEMORY";
   // OpenGL 3.0+ Errors
   case GL_INVALID_FRAMEBUFFER_OPERATION: return "GL_INVALID_FRAMEBUFFER_OPERATION";
@@ -117,22 +83,6 @@ static GLuint LoadShaderFromSource(GLenum shader_type, const char* source, const
     return shader_id;
 }
 
-static GLuint LoadShaderFromFile(GLenum shader_type, const char* filename) {
-  std::string shader_source;
-  std::string path = std::string(SHADER_PATH) + filename;
-  ReadFile(path.c_str(), shader_source);
-  GLint compileStatus;
-  const char* shader_source_str = shader_source.c_str();
-  GLuint shader_id = glCreateShader(shader_type);
-  glShaderSource(shader_id, 1, &shader_source_str, NULL);
-  glCompileShader(shader_id);
-  glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compileStatus);
-  if (compileStatus == GL_FALSE)
-    FATAL("Unable to compile shader. Filename: " << filename << "\n\tError:" 
-      << glErrorString(glGetError()) << "\n\tLog: " << GetShaderLog(shader_id))
-  return shader_id;
-}
-
 #ifdef _DEBUG
 #define CHECK_GL()  {if (GLenum err = glGetError()) FATAL(glErrorString(err)) }                                                     
 #else
@@ -141,7 +91,47 @@ static GLuint LoadShaderFromFile(GLenum shader_type, const char* filename) {
 
 namespace ultralight {
 
+// Map platform-agnostic BlendFactor enum to OpenGL blend constants
+static GLenum MapBlendFactor(BlendFactor factor) {
+  switch (factor) {
+  case BlendFactor::Zero:             return GL_ZERO;
+  case BlendFactor::One:              return GL_ONE;
+  case BlendFactor::SrcColor:         return GL_SRC_COLOR;
+  case BlendFactor::InvSrcColor:      return GL_ONE_MINUS_SRC_COLOR;
+  case BlendFactor::SrcAlpha:         return GL_SRC_ALPHA;
+  case BlendFactor::InvSrcAlpha:      return GL_ONE_MINUS_SRC_ALPHA;
+  case BlendFactor::DestColor:        return GL_DST_COLOR;
+  case BlendFactor::InvDestColor:     return GL_ONE_MINUS_DST_COLOR;
+  case BlendFactor::DestAlpha:        return GL_DST_ALPHA;
+  case BlendFactor::InvDestAlpha:     return GL_ONE_MINUS_DST_ALPHA;
+  case BlendFactor::SrcAlphaSaturate: return GL_SRC_ALPHA_SATURATE;
+  default:                            return GL_ONE;
+  }
+}
+
+// Map platform-agnostic BlendEquation enum to OpenGL blend operation
+static GLenum MapBlendEquation(BlendEquation equation) {
+  switch (equation) {
+  case BlendEquation::Add:         return GL_FUNC_ADD;
+  case BlendEquation::Subtract:    return GL_FUNC_SUBTRACT;
+  case BlendEquation::RevSubtract: return GL_FUNC_REVERSE_SUBTRACT;
+  case BlendEquation::Min:         return GL_MIN;
+  case BlendEquation::Max:         return GL_MAX;
+  default:                         return GL_FUNC_ADD;
+  }
+}
+
 GPUDriverGL::GPUDriverGL(GPUContextGL* context) : context_(context) {
+  glGenBuffers(1, &ubo_id_);
+  glBindBuffer(GL_UNIFORM_BUFFER, ubo_id_);
+  glBufferData(GL_UNIFORM_BUFFER, sizeof(Uniforms), nullptr, GL_DYNAMIC_DRAW);
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  CHECK_GL();
+}
+
+GPUDriverGL::~GPUDriverGL() {
+  if (ubo_id_)
+    glDeleteBuffers(1, &ubo_id_);
 }
 
 #if ENABLE_OFFSCREEN_GL
@@ -200,16 +190,6 @@ void GPUDriverGL::SetRenderBufferBitmapDirty(uint32_t render_buffer_id,
 
 void GPUDriverGL::CreateTexture(uint32_t texture_id,
   RefPtr<Bitmap> bitmap) {
-  
-
-#if !defined(_WIN32)
-
-  auto current_qt_context = QOpenGLContext::currentContext();
-  qDebug() << "[UltralightGpuDebug] CreateTexture() Called | Target Texture ID:" << texture_id
-           << " | Current Qt GL Context:" << current_qt_context;
-#endif
-  // -------------------------------------------------------------------------
-
   if (bitmap->IsEmpty()) {
     CreateFBOTexture(texture_id, bitmap);
     return;
@@ -236,6 +216,11 @@ void GPUDriverGL::CreateTexture(uint32_t texture_id,
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, bitmap->width(), bitmap->height(), 0,
       GL_RED, GL_UNSIGNED_BYTE, pixels);
     bitmap->UnlockPixels();
+    // GL_R8 stores data in .r, but HLSL A8_UNORM reads .a — set up swizzle to match
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ZERO);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ZERO);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
   } else if (bitmap->format() == BitmapFormat::BGRA8_UNORM_SRGB) {
     const void* pixels = bitmap->LockPixels();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap->width(), bitmap->height(), 0,
@@ -248,12 +233,8 @@ void GPUDriverGL::CreateTexture(uint32_t texture_id,
   CHECK_GL();
   glGenerateMipmap(GL_TEXTURE_2D);
   CHECK_GL();
-
-#if !defined(_WIN32)
-  qDebug() << "[UltralightGpuDebug] Texture loaded to VRAM | Allocated Native OpenGL Tex ID:" << entry.tex_id;
-#endif
-  // -------------------------------------------------------------------------
 }
+
 void GPUDriverGL::UpdateTexture(uint32_t texture_id,
   RefPtr<Bitmap> bitmap) {
   glActiveTexture(GL_TEXTURE0 + 0);
@@ -296,8 +277,6 @@ void GPUDriverGL::BindTexture(uint8_t texture_unit, uint32_t texture_id) {
   CHECK_GL();
 }
 
-
-
 void GPUDriverGL::DestroyTexture(uint32_t texture_id) {
   TextureEntry& entry = texture_map[texture_id];
   glDeleteTextures(1, &entry.tex_id);
@@ -325,38 +304,26 @@ void GPUDriverGL::CreateRenderBuffer(uint32_t render_buffer_id,
   // FBOs are not shared between contexts in GL 3.2)
 }
 
-inline void* GetCurrentPlatformContext() {
-#if defined(_WIN32)
-  return (void*)glfwGetCurrentContext();
-#else
-    return reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
-#endif
-}
-
 void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
   if (render_buffer_id == 0) {
-#if defined(_WIN32)
+    // Render buffer id '0' is reserved for window's backbuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-#else
-    glBindFramebuffer(GL_FRAMEBUFFER, kwin_binding_fbo);
-#endif
     return;
   }
-
-#if !defined(_WIN32)
-  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &kwin_binding_fbo);
-#endif
 
   CreateFBOIfNeededForActiveContext(render_buffer_id);
 
   RenderBufferEntry& entry = render_buffer_map[render_buffer_id];
-  auto i = entry.fbo_map.find(reinterpret_cast<GLFWwindow*>(GetCurrentPlatformContext()));
+
+  auto i = entry.fbo_map.find(glfwGetCurrentContext());
   if (i == entry.fbo_map.end())
     return;
 
   auto& fbo_entry = i->second;
 
   if (context_->msaa_enabled()) {
+    // We use the MSAA FBO when doing multisampled rendering.
+    // The other FBO (entry.fbo_id) is used for resolving.
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_entry.msaa_fbo_id);
     fbo_entry.needs_resolve = true;
   } else {
@@ -367,9 +334,7 @@ void GPUDriverGL::BindRenderBuffer(uint32_t render_buffer_id) {
 }
 
 void GPUDriverGL::ClearRenderBuffer(uint32_t render_buffer_id) {
-#if defined(_WIN32)
-  glfwMakeContextCurrent(context_->active_window());
-#endif
+    glfwMakeContextCurrent(context_->active_window());
 
   BindRenderBuffer(render_buffer_id);
   glDisable(GL_SCISSOR_TEST);
@@ -383,18 +348,14 @@ void GPUDriverGL::ClearRenderBuffer(uint32_t render_buffer_id) {
 void GPUDriverGL::DestroyRenderBuffer(uint32_t render_buffer_id) {
   if (render_buffer_id == 0)
     return;
-#if defined(_WIN32)
+
   auto previous_context = glfwGetCurrentContext();
-#endif
   
   RenderBufferEntry& entry = render_buffer_map[render_buffer_id];
   for (auto i = entry.fbo_map.begin(); i != entry.fbo_map.end(); ++i) {
     auto context = i->first;
     auto fbo_entry = i->second;
-#if defined(_WIN32)
     glfwMakeContextCurrent(context);
-#endif
-
     glDeleteFramebuffers(1, &fbo_entry.fbo_id);
     CHECK_GL();
     if (context_->msaa_enabled())
@@ -409,17 +370,10 @@ void GPUDriverGL::DestroyRenderBuffer(uint32_t render_buffer_id) {
 #endif
   CHECK_GL();
   render_buffer_map.erase(render_buffer_id);
-#if defined(_WIN32)
+
   glfwMakeContextCurrent(previous_context);
-#endif
 }
 
-void GPUDriverGL::BindUltralightTexture(uint32_t ultralight_texture_id) {
-  TextureEntry& entry = texture_map[ultralight_texture_id];
-  ResolveIfNeeded(entry.render_buffer_id);
-  glBindTexture(GL_TEXTURE_2D, entry.tex_id);
-  CHECK_GL();
-}
 void GPUDriverGL::CreateGeometry(uint32_t geometry_id,
   const VertexBuffer& vertices,
   const IndexBuffer& indices) {
@@ -462,14 +416,7 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   uint32_t indices_offset,
   const GPUState& state) {
 
-    qDebug() << "[UltralightGpuDebug] DrawGeometry | render_buffer_id:" << state.render_buffer_id
-           << "| tex1:" << state.texture_1_id
-           << "| indices:" << indices_count
-           << "| viewport:" << state.viewport_width << "x" << state.viewport_height;
-  
-#if defined(_WIN32)
   glfwMakeContextCurrent(context_->active_window());
-#endif
 
   if (programs_.empty())
     LoadPrograms();
@@ -485,8 +432,7 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   CHECK_GL();
 
   CreateVAOIfNeededForActiveContext(geometry_id);
-  auto vao_entry = geometry.vao_map[reinterpret_cast<GLFWwindow*>(GetCurrentPlatformContext())];
-
+  auto vao_entry = geometry.vao_map[glfwGetCurrentContext()];
   glBindVertexArray(vao_entry);
   CHECK_GL();
 
@@ -504,10 +450,14 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
     glDisable(GL_SCISSOR_TEST);
   }
 
-  if (state.enable_blend)
+  if (state.enable_blend) {
     glEnable(GL_BLEND);
-  else
+    glBlendFunc(MapBlendFactor(state.blend_src_factor),
+                MapBlendFactor(state.blend_dst_factor));
+    glBlendEquation(MapBlendEquation(state.blend_equation));
+  } else {
     glDisable(GL_BLEND);
+  }
   CHECK_GL();
   glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT,
     (GLvoid*)(indices_offset * sizeof(unsigned int)));
@@ -531,46 +481,36 @@ void GPUDriverGL::DestroyGeometry(uint32_t geometry_id) {
   glDeleteBuffers(1, &geometry.vbo_indices);
   glDeleteBuffers(1, &geometry.vbo_vertices);
   CHECK_GL();
-#if defined(_WIN32)
+
   auto previous_context = glfwGetCurrentContext();
-#endif
 
   for (auto i = geometry.vao_map.begin(); i != geometry.vao_map.end(); ++i) {
     auto context = i->first;
     auto vao_entry = i->second;
-#if defined(_WIN32)
     glfwMakeContextCurrent(context);
-#endif
     glDeleteVertexArrays(1, &vao_entry);
     CHECK_GL();
   }
+
   CHECK_GL();
   geometry_map.erase(geometry_id);
-#if defined(_WIN32)
+
   glfwMakeContextCurrent(previous_context);
-#endif
 }
 
-
 void GPUDriverGL::DrawCommandList() {
-  if (command_list_.empty()) {
-    qDebug() << "[UltralightGpuDebug] DrawCommandList: EMPTY, nothing to draw this frame";
+  if (command_list_.empty())
     return;
-  }
-   qDebug() << "[UltralightGpuDebug] DrawCommandList: " << command_list_.size() << " commands";
 
-#if defined(_WIN32)
   glfwMakeContextCurrent(context_->active_window());
-#endif
+
   CHECK_GL();
 
   batch_count_ = 0;
 
-  glEnable(GL_BLEND);
   glDisable(GL_SCISSOR_TEST);
   glDisable(GL_DEPTH_TEST);
   glDepthFunc(GL_NEVER);
-  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
   CHECK_GL();
 
@@ -585,7 +525,6 @@ void GPUDriverGL::DrawCommandList() {
     };
   }
 
-  // 💡 補齊後半段截斷的清理與 FBO 還原邏輯：
   command_list_.clear();
   glDisable(GL_SCISSOR_TEST);
 
@@ -607,26 +546,30 @@ void GPUDriverGL::DrawCommandList() {
       CHECK_GL();
       UpdateBitmap(rbuf, rbuf.pbo_id);
       rbuf.needs_update = false;
-    }
   }
+}
 #endif
 
-#if defined(_WIN32)
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-#else
-  glBindFramebuffer(GL_FRAMEBUFFER, kwin_binding_fbo);
-#endif
+  CHECK_GL();
+}
 
+void GPUDriverGL::BindUltralightTexture(uint32_t ultralight_texture_id) {
+  TextureEntry& entry = texture_map[ultralight_texture_id];
+  ResolveIfNeeded(entry.render_buffer_id);
+  glBindTexture(GL_TEXTURE_2D, entry.tex_id);
   CHECK_GL();
 }
 
 void GPUDriverGL::LoadPrograms(void) {
   LoadProgram(ultralight::ShaderType::Fill);
   LoadProgram(ultralight::ShaderType::FillPath);
+  LoadProgram(ultralight::ShaderType::FilterBasic);
+  LoadProgram(ultralight::ShaderType::FilterBlur);
+  LoadProgram(ultralight::ShaderType::FilterDropShadow);
 }
 
 void GPUDriverGL::DestroyPrograms(void) {
-  GLenum ErrorCheckValue = glGetError();
   glUseProgram(0);
   for (auto i = programs_.begin(); i != programs_.end(); i++) {
     ProgramEntry& prog = i->second;
@@ -640,53 +583,89 @@ void GPUDriverGL::DestroyPrograms(void) {
 }
 
 void GPUDriverGL::LoadProgram(ProgramType type) {
-  GLenum ErrorCheckValue = glGetError();
   ProgramEntry prog;
-  if (type == ShaderType::Fill)
-  {
-    prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
-      shader_v2f_c4f_t2f_t2f_d28f_vert().c_str(), "shader_v2f_c4f_t2f_t2f_d28f.vert");
-    prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-      shader_fill_frag().c_str(), "shader_fill.frag");
-  }
-  else if (type == ShaderType::FillPath) {
-    prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
-      shader_v2f_c4f_t2f_vert().c_str(), "shader_v2f_c4f_t2f.vert");
-    prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-      shader_fill_path_frag().c_str(), "shader_fill_path.frag");
+  
+  // Map shader types to vertex and fragment shaders
+  switch (type) {
+    case ShaderType::Fill:
+      prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
+        vertex_quad_vs_source, "vertex_quad.vs");
+      prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
+        fill_fs_source, "fill.fs");
+      break;
+    case ShaderType::FillPath:
+      prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
+        vertex_path_vs_source, "vertex_path.vs");
+      prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
+        fill_path_fs_source, "fill_path.fs");
+      break;
+    case ShaderType::FilterBasic:
+      prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
+        vertex_quad_vs_source, "vertex_quad.vs");
+      prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
+        filter_basic_fs_source, "filter_basic.fs");
+      break;
+    case ShaderType::FilterBlur:
+      prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
+        vertex_quad_vs_source, "vertex_quad.vs");
+      prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
+        filter_blur_fs_source, "filter_blur.fs");
+      break;
+    case ShaderType::FilterDropShadow:
+      prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
+        vertex_quad_vs_source, "vertex_quad.vs");
+      prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
+        filter_dropshadow_fs_source, "filter_dropshadow.fs");
+      break;
+    default:
+      FATAL("Unknown shader type: " << (int)type);
+      break;
   }
 
   prog.program_id = glCreateProgram();
   glAttachShader(prog.program_id, prog.vert_shader_id);
   glAttachShader(prog.program_id, prog.frag_shader_id);
 
-  glBindAttribLocation(prog.program_id, 0, "in_Position");
-  glBindAttribLocation(prog.program_id, 1, "in_Color");
-  glBindAttribLocation(prog.program_id, 2, "in_TexCoord");
+  // Bind vertex attributes to match GLSL layout locations.
+  // Note: shaders use explicit layout(location = N), so these are redundant
+  // but kept for documentation and compatibility.
+  glBindAttribLocation(prog.program_id, 0, "in_var_POSITION");
+  glBindAttribLocation(prog.program_id, 1, "in_var_COLOR0");
+  glBindAttribLocation(prog.program_id, 2, "in_var_TEXCOORD0");
 
-  if (type == ShaderType::Fill) {
-    glBindAttribLocation(prog.program_id, 3, "in_ObjCoord");
-    glBindAttribLocation(prog.program_id, 4, "in_Data0");
-    glBindAttribLocation(prog.program_id, 5, "in_Data1");
-    glBindAttribLocation(prog.program_id, 6, "in_Data2");
-    glBindAttribLocation(prog.program_id, 7, "in_Data3");
-    glBindAttribLocation(prog.program_id, 8, "in_Data4");
-    glBindAttribLocation(prog.program_id, 9, "in_Data5");
-    glBindAttribLocation(prog.program_id, 10, "in_Data6");
+  if (type == ShaderType::FillPath) {
+    glBindAttribLocation(prog.program_id, 3, "in_var_TEXCOORD1");
+  } else {
+    glBindAttribLocation(prog.program_id, 3, "in_var_TEXCOORD1");
+    glBindAttribLocation(prog.program_id, 4, "in_var_COLOR1");
+    glBindAttribLocation(prog.program_id, 5, "in_var_COLOR2");
+    glBindAttribLocation(prog.program_id, 6, "in_var_COLOR3");
+    glBindAttribLocation(prog.program_id, 7, "in_var_COLOR4");
+    glBindAttribLocation(prog.program_id, 8, "in_var_COLOR5");
+    glBindAttribLocation(prog.program_id, 9, "in_var_COLOR6");
+    glBindAttribLocation(prog.program_id, 10, "in_var_COLOR7");
   }
 
   glLinkProgram(prog.program_id);
+
+  GLint linkStatus;
+  glGetProgramiv(prog.program_id, GL_LINK_STATUS, &linkStatus);
+  if (linkStatus == GL_FALSE)
+    FATAL("Unable to link shader.\n\tError:" << glErrorString(glGetError()) << "\n\tLog: " << GetProgramLog(prog.program_id))
+
   glUseProgram(prog.program_id);
 
-  if (type == ShaderType::Fill) {
-    glUniform1i(glGetUniformLocation(prog.program_id, "Texture1"), 0);
-    glUniform1i(glGetUniformLocation(prog.program_id, "Texture2"), 1);
-    glUniform1i(glGetUniformLocation(prog.program_id, "Texture3"), 2);
-  }
+  // Bind the uniform block to binding point 0 (for shaders that have it)
+  GLuint blockIndex = glGetUniformBlockIndex(prog.program_id, "type_Uniforms");
+  if (blockIndex != GL_INVALID_INDEX)
+    glUniformBlockBinding(prog.program_id, blockIndex, 0);
 
-  if (glGetError())
-    FATAL("Unable to link shader.\n\tError:" << glErrorString(glGetError()) << "\n\tLog: " << GetProgramLog(prog.program_id))
- 
+  // Set texture sampler uniforms (these are regular uniforms, not in the UBO block)
+  if (type == ShaderType::Fill || type == ShaderType::FilterBasic ||
+      type == ShaderType::FilterBlur || type == ShaderType::FilterDropShadow) {
+    glUniform1i(glGetUniformLocation(prog.program_id, "SPIRV_Cross_CombinedTexture0Sampler0"), 0);
+    glUniform1i(glGetUniformLocation(prog.program_id, "SPIRV_Cross_CombinedTexture1Sampler0"), 1);
+  }
   programs_[type] = prog;
 }
 
@@ -702,58 +681,45 @@ void GPUDriverGL::SelectProgram(ProgramType type) {
 
 void GPUDriverGL::UpdateUniforms(const GPUState& state) {
   bool flip_y = state.render_buffer_id != 0;
-  Matrix model_view_projection = ApplyProjection(state.transform, (float)state.viewport_width, (float)state.viewport_height, flip_y);
+  Matrix model_view_projection = ApplyProjection(state.transform,
+    (float)state.viewport_width, (float)state.viewport_height, flip_y);
 
-  float current_time_value = 0.0f;
+  Uniforms uniforms;
 
-#if defined(_WIN32)
-  current_time_value = (float)(glfwGetTime() / 1000.0);
-#else
-  static const auto start_time = std::chrono::steady_clock::now();
-  auto current_time = std::chrono::steady_clock::now();
-  float elapsed_seconds = std::chrono::duration<float>(current_time - start_time).count();
-  current_time_value = elapsed_seconds / 1000.0f;
-#endif
+  // State: [time, screenWidth, screenHeight, screenScale]
+  uniforms.State[0] = 0.0f;
+  uniforms.State[1] = (float)state.viewport_width;
+  uniforms.State[2] = (float)state.viewport_height;
+  uniforms.State[3] = 1.0f;
 
-  float params[4] = { current_time_value, (float)state.viewport_width, (float)state.viewport_height, 1.0f };
-  SetUniform4f("State", params);
+  // Transform (row-major mat4)
+  Matrix4x4 mat = model_view_projection.GetMatrix4x4();
+  memcpy(uniforms.Transform, mat.data, sizeof(uniforms.Transform));
+
+  // Integer4 (ivec4[2])
+  memcpy(uniforms.Integer4, state.uniform_integer, sizeof(uniforms.Integer4));
+
+  // Scalar4 (vec4[2])
+  memcpy(uniforms.Scalar4, state.uniform_scalar, sizeof(uniforms.Scalar4));
+
+  // Vector (vec4[8])
+  memcpy(uniforms.Vector, &state.uniform_vector[0].x, sizeof(uniforms.Vector));
+
+  // ClipData (ivec4)
+  uniforms.ClipData[0] = (int32_t)state.clip_size;
+  uniforms.ClipData[1] = 0;
+  uniforms.ClipData[2] = 0;
+  uniforms.ClipData[3] = 0;
+
+  // Clip matrices (row-major mat4[8])
+  memcpy(uniforms.Clip, &state.clip[0].data[0], sizeof(uniforms.Clip));
+
+  // Upload to UBO and bind
+  glBindBuffer(GL_UNIFORM_BUFFER, ubo_id_);
+  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Uniforms), &uniforms);
+  glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo_id_);
+
   CHECK_GL();
-  ultralight::Matrix4x4 mat = model_view_projection.GetMatrix4x4();
-  SetUniformMatrix4fv("Transform", 1, mat.data);
-  CHECK_GL();
-  SetUniform4fv("Scalar4", 2, &state.uniform_scalar[0]);
-  CHECK_GL();
-  SetUniform4fv("Vector", 8, &state.uniform_vector[0].x);
-  CHECK_GL();
-  SetUniform1ui("ClipSize", state.clip_size);
-  CHECK_GL();
-  SetUniformMatrix4fv("Clip", 8, &state.clip[0].data[0]);
-  CHECK_GL();
-}
-
-void GPUDriverGL::SetUniform1ui(const char* name, GLuint val) {
-  glUniform1ui(glGetUniformLocation(cur_program_id_, name), val);
-}
-
-void GPUDriverGL::SetUniform1f(const char* name, float val) {
-  glUniform1f(glGetUniformLocation(cur_program_id_, name), (GLfloat)val);
-}
-
-void GPUDriverGL::SetUniform1fv(const char* name, size_t count, const float* val) {
-  glUniform1fv(glGetUniformLocation(cur_program_id_, name), (GLsizei)count, val);
-}
-
-void GPUDriverGL::SetUniform4f(const char* name, const float val[4]) {
-  glUniform4f(glGetUniformLocation(cur_program_id_, name),
-    (GLfloat)val[0], (GLfloat)val[1], (GLfloat)val[2], (GLfloat)val[3]);
-}
-
-void GPUDriverGL::SetUniform4fv(const char* name, size_t count, const float* val) {
-  glUniform4fv(glGetUniformLocation(cur_program_id_, name), (GLsizei)count, val);
-}
-
-void GPUDriverGL::SetUniformMatrix4fv(const char* name, size_t count, const float* val) {
-  glUniformMatrix4fv(glGetUniformLocation(cur_program_id_, name), (GLsizei)count, false, val);
 }
 
 void GPUDriverGL::SetViewport(uint32_t width, uint32_t height) {
@@ -818,17 +784,12 @@ void GPUDriverGL::CreateFBOIfNeededForActiveContext(uint32_t render_buffer_id) {
     return;
   }
 
-#if defined(_WIN32)
-  GLFWwindow* current_context = glfwGetCurrentContext();
-#else
-  GLFWwindow* current_context = reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
-#endif
-
   RenderBufferEntry& entry = i->second;
+  auto j = entry.fbo_map.find(glfwGetCurrentContext());
+  if (j != entry.fbo_map.end())
+    return; // Already exists, we can return
 
-  auto j = entry.fbo_map.find(current_context);
-  if (j != entry.fbo_map.end())return; // Already exists, we can return
-  FBOEntry& fbo_entry = entry.fbo_map[current_context];
+  FBOEntry& fbo_entry = entry.fbo_map[glfwGetCurrentContext()];
 
   glGenFramebuffers(1, &fbo_entry.fbo_id);
   CHECK_GL();
@@ -875,8 +836,6 @@ void GPUDriverGL::CreateFBOIfNeededForActiveContext(uint32_t render_buffer_id) {
   CHECK_GL();
 
   result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    qDebug() << "[UltralightGpuDebug] FBO status for render_buffer_id" << render_buffer_id
-           << ":" << (result == GL_FRAMEBUFFER_COMPLETE ? "COMPLETE" : "INCOMPLETE!!") << result;
   if (result != GL_FRAMEBUFFER_COMPLETE)
     FATAL("Error creating MSAA FBO, this usually fails if your DPI scale is invalid or View dimensions are massive: " << result);
   CHECK_GL();
@@ -891,13 +850,7 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
 
   auto& geometry_entry = i->second;
 
-#if defined(_WIN32)
-  GLFWwindow* current_context = glfwGetCurrentContext();
-#else
-  GLFWwindow* current_context = reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
-#endif
-
-  auto j = geometry_entry.vao_map.find(current_context);
+  auto j = geometry_entry.vao_map.find(glfwGetCurrentContext());
   if (j != geometry_entry.vao_map.end())
     return; // Already exists, we can return
 
@@ -955,8 +908,10 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
   } else {
     FATAL("Unhandled vertex format: " << (int)geometry_entry.vertex_format);
   }
+
   glBindVertexArray(0);
-  geometry_entry.vao_map[current_context] = vao_entry;
+
+  geometry_entry.vao_map[glfwGetCurrentContext()] = vao_entry;
 }
   
 void GPUDriverGL::ResolveIfNeeded(uint32_t render_buffer_id) {

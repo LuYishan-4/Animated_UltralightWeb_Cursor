@@ -7,7 +7,6 @@
 #include <QImage>
 #include <iostream>
 #include <stdexcept>
-#include <GLES3/gl3.h>
 #include <thread> 
 #include "opengl/glutils.h"
 namespace KWin {
@@ -84,17 +83,28 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     }
 
     GLint native_kwin_fbo = 0;
+    GLint native_active_program = 0;
+    GLint native_vertex_array = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
-
+    glGetIntegerv(GL_CURRENT_PROGRAM, &native_active_program);
+    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &native_vertex_array);
     m_html->update();
 
     glFlush();
     glFinish();
+    glBindVertexArray(native_vertex_array);
+    glUseProgram(native_active_program);
     glBindFramebuffer(GL_FRAMEBUFFER, native_kwin_fbo);
 
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
+
+
+    if (m_html->view() && m_html->view()->needs_paint()) {
+        QRect repaintRect = getCursorRect(effects->cursorPos()).toRect().adjusted(-20, -20, 20, 20);
+        effects->addRepaint(KWin::Rect(repaintRect));
+    }
 
     unsigned int gpuTexId = m_html->textureId();
     if (gpuTexId != 0) {
@@ -112,8 +122,6 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
         return m_cursorTexture.get();
     }
     
-    // ---- 以下是 CPU (bitmap) fallback 路徑，只有在 GPU texture 不可用時才會走到 ----
-
     if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 
     const uint8_t* pixels = m_html->pixels();

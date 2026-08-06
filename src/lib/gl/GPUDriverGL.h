@@ -1,46 +1,43 @@
 #pragma once
 #include <Ultralight/platform/GPUDriver.h>
-
-#if defined(_WIN32)
-  #include <glad/glad.h>
-  #ifndef GLFW_INCLUDE_NONE
-    #define GLFW_INCLUDE_NONE
-  #endif
-  #include <GLFW/glfw3.h>
-#else
-  #include <epoxy/gl.h>
-  typedef struct GLFWwindow GLFWwindow;
-#endif
+#include "glad/glad.h"
 #include <GLFW/glfw3.h>
 #include "GPUContextGL.h"
 #include "GPUDriverImpl.h"
 #include <vector>
 #include <map>
+#include <cstdint>
+#include <cstring>
 
 namespace ultralight {
 
 typedef ShaderType ProgramType;
 
+// Uniform buffer layout matching std140 in GLSL shaders.
+// Must match the type_Uniforms block in the generated GLSL headers.
+#pragma pack(push, 1)
+struct alignas(16) Uniforms {
+  float State[4];           // vec4: [time, screenWidth, screenHeight, screenScale]
+  float Transform[16];      // row_major mat4
+  int32_t Integer4[8];      // ivec4[2]
+  float Scalar4[8];         // vec4[2]
+  float Vector[32];         // vec4[8]
+  int32_t ClipData[4];      // ivec4
+  float Clip[128];          // row_major mat4[8]
+};
+#pragma pack(pop)
+
+static_assert(sizeof(Uniforms) == 800, "Uniforms struct size must be 800 bytes to match std140 layout");
+
 class GPUDriverGL : public GPUDriverImpl {
 public:
   GPUDriverGL(GPUContextGL* context);
 
-  virtual ~GPUDriverGL() { }
+  virtual ~GPUDriverGL();
 
   virtual const char* name() override { return "OpenGL"; }
 
   virtual void BeginDrawing() override {}
-
-    struct TextureEntry {
-    GLuint tex_id = 0; // GL Texture ID
-    GLuint msaa_tex_id = 0; // GL Texture ID (only used if MSAA is enabled)
-    uint32_t render_buffer_id = 0; // Used to check if we need to perform MSAA resolve
-    GLuint width, height; // Used when resolving MSAA FBO, only valid if FBO
-    bool is_sRGB = false; // Whether or not the primary texture is sRGB or not.
-  };
-
-  // Maps Ultralight Texture IDs to OpenGL texture handles
-  std::map<uint32_t, TextureEntry> texture_map;
 
   virtual void EndDrawing() override {}
 
@@ -99,12 +96,6 @@ public:
   void LoadProgram(ProgramType type);
   void SelectProgram(ProgramType type);
   void UpdateUniforms(const GPUState& state);
-  void SetUniform1ui(const char* name, GLuint val);
-  void SetUniform1f(const char* name, float val);
-  void SetUniform1fv(const char* name, size_t count, const float* val);
-  void SetUniform4f(const char* name, const float val[4]);
-  void SetUniform4fv(const char* name, size_t count, const float* val);
-  void SetUniformMatrix4fv(const char* name, size_t count, const float* val);
   void SetViewport(uint32_t width, uint32_t height);
 
 protected:
@@ -112,7 +103,16 @@ protected:
 
   void CreateFBOTexture(uint32_t texture_id, RefPtr<Bitmap> bitmap);
 
+  struct TextureEntry {
+    GLuint tex_id = 0; // GL Texture ID
+    GLuint msaa_tex_id = 0; // GL Texture ID (only used if MSAA is enabled)
+    uint32_t render_buffer_id = 0; // Used to check if we need to perform MSAA resolve
+    GLuint width, height; // Used when resolving MSAA FBO, only valid if FBO
+    bool is_sRGB = false; // Whether or not the primary texture is sRGB or not.
+  };
 
+  // Maps Ultralight Texture IDs to OpenGL texture handles
+  std::map<uint32_t, TextureEntry> texture_map;
   
   struct GeometryEntry {
     // VAOs are not shared across GL contexts so we create them lazily for each
@@ -162,12 +162,8 @@ protected:
     GLuint frag_shader_id;
   };
   std::map<ProgramType, ProgramEntry> programs_;
-  GLuint cur_program_id_;
-
-  #if !defined(_WIN32)
-  GLint kwin_binding_fbo = 0;
-#endif
-
+  GLuint cur_program_id_ = 0;
+  GLuint ubo_id_ = 0;
 
   GPUContextGL* context_;
 };

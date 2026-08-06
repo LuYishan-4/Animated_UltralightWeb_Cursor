@@ -16,6 +16,8 @@ public:
 
   virtual void EndDrawing() = 0;
 
+  
+
   virtual void BindTexture(uint8_t texture_unit, uint32_t texture_id) = 0;
 
   virtual void BindRenderBuffer(uint32_t render_buffer_id) = 0;
