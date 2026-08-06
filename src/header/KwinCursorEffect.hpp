@@ -40,6 +40,7 @@ public Q_SLOTS:
     void reloadHtml() override;
 
 private:
+    unsigned int m_lastGpuTexId = 0;
     bool checkFullScreen() const override;
     bool isBlacklisted() const;
     GLTexture* ensureCursorTexture();

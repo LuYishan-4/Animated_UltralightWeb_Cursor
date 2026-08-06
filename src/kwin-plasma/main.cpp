@@ -78,7 +78,6 @@ bool KwinCursorEffect::isBlacklisted() const {
 }
 GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
-    
     static bool first_focus_done = false;
     if (!first_focus_done && m_html->view()) {
         m_html->view()->Focus();
@@ -104,18 +103,22 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
     
-    unsigned int gpuTexId = m_html->textureId();
-    if (gpuTexId != 0) {
-        if (!m_cursorTexture || m_cursorTexture->width() != w || m_cursorTexture->height() != h) {
-            m_cursorTexture.reset();
-            m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
-            if (!m_cursorTexture) return nullptr;
-            
-            m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
-            m_cursorTexture->setFilter(GL_LINEAR);
-        }
-        return m_cursorTexture.get();
+   unsigned int gpuTexId = m_html->textureId();
+if (gpuTexId != 0) {
+    if (!m_cursorTexture
+        || m_lastGpuTexId != gpuTexId
+        || m_cursorTexture->width() != w
+        || m_cursorTexture->height() != h) {
+        m_cursorTexture.reset();
+        m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
+        if (!m_cursorTexture) return nullptr;
+        m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
+        m_cursorTexture->setFilter(GL_LINEAR);
+        qDebug() << "[UltralightKwinLinkDebug] Rebuilding wrapper, old:" << m_lastGpuTexId << "new:" << gpuTexId;
+        m_lastGpuTexId = gpuTexId;
     }
+    return m_cursorTexture.get();
+}
     
     if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 

@@ -142,7 +142,6 @@ void UltralightHtmlEffect::update(){
     static int updateLoopCounter = 0;
     updateLoopCounter++;
 
-    // 💡 Active Watchdog Anti-Freeze Pass: Force-wake internal layout trees if view falls asleep
     if (!view_->needs_paint() && updateLoopCounter % 15 == 0) {
         view_->set_needs_paint(true);
     }
@@ -226,15 +225,11 @@ const uint8_t* UltralightHtmlEffect::pixels() const{
 
 unsigned int UltralightHtmlEffect::textureId() const {
     if (!view_ || !context_) return 0;
-
     uint32_t ultralight_tex_id = view_->render_target().texture_id;
-
     auto* gl_driver = static_cast<ultralight::GPUDriverGL*>(context_->driver());
     if (!gl_driver) return 0;
-
     auto it = gl_driver->texture_map.find(ultralight_tex_id);
     if (it == gl_driver->texture_map.end()) return 0;
-
     return it->second.tex_id;
 }
 
