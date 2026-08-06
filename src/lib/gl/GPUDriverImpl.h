@@ -16,11 +16,14 @@ public:
 
   virtual void EndDrawing() = 0;
 
-  
-
   virtual void BindTexture(uint8_t texture_unit, uint32_t texture_id) = 0;
 
   virtual void BindRenderBuffer(uint32_t render_buffer_id) = 0;
+
+  
+  virtual const unsigned int GetNativeTextureId(uint32_t ultralight_texture_id){return 0;};
+
+
 
   virtual void ClearRenderBuffer(uint32_t render_buffer_id) = 0;
 

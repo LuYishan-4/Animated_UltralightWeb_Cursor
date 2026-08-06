@@ -37,6 +37,8 @@ public:
 
   virtual const char* name() override { return "OpenGL"; }
 
+  virtual const unsigned int GetNativeTextureId(uint32_t ultralight_texture_id)override{return 0;};
+
   virtual void BeginDrawing() override {}
 
   virtual void EndDrawing() override {}
@@ -97,6 +99,7 @@ public:
   void SelectProgram(ProgramType type);
   void UpdateUniforms(const GPUState& state);
   void SetViewport(uint32_t width, uint32_t height);
+
 
 protected:
   Matrix ApplyProjection(const Matrix4x4& transform, float screen_width, float screen_height, bool flip_y);

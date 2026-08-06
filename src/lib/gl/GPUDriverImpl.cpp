@@ -27,6 +27,7 @@ void GPUDriverImpl::DrawCommandList() {
   command_list_.clear();
 }
 
+
 int GPUDriverImpl::batch_count() const {
   return batch_count_;
 }

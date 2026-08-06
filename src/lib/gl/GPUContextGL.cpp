@@ -1,18 +1,34 @@
 #include "GPUContextGL.h"
 #include "GPUDriverGL.h"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+
+#if defined(_WIN32)
+  #include <glad/glad.h>
+  #ifndef GLFW_INCLUDE_NONE
+    #define GLFW_INCLUDE_NONE
+  #endif
+  #include <GLFW/glfw3.h>
+#else
+  #include "opengl/glutils.h"
+#endif
+
+#include <iostream>
+
+void error_callback(int error, const char* description){
+    std::cerr << "GLFW Error [" << error << "]: " << description << std::endl;
+}
 
 namespace ultralight {
 
 GPUContextGL::GPUContextGL(bool enable_vsync, bool enable_msaa) : 
   msaa_enabled_(enable_msaa) {
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  #if defined(_WIN32)
+  glfwSetErrorCallback(error_callback);
+  // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
 
 #ifdef __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #endif
 
   if (enable_msaa) {
@@ -33,7 +49,8 @@ GPUContextGL::GPUContextGL(bool enable_vsync, bool enable_msaa) :
   glfwMakeContextCurrent(window_);
   gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
   glfwSwapInterval(enable_vsync ? 1 : 0);
-
+#else
+#endif
   int samples = 4;
   glGetIntegerv(GL_SAMPLES, &samples);
   if (!samples) {
@@ -46,5 +63,9 @@ GPUContextGL::GPUContextGL(bool enable_vsync, bool enable_msaa) :
 
   driver_.reset(new ultralight::GPUDriverGL(this));
 }
+unsigned int GPUContextGL::getTextureId(uint32_t ultralight_texture_id) const {
+    return driver_->GetNativeTextureId(ultralight_texture_id);
+}
+
 
 }  // namespace ultralight
