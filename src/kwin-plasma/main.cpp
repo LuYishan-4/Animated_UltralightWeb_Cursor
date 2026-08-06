@@ -1,4 +1,3 @@
-#include <epoxy/gl.h>  
 #include "../header/KwinCursorEffect.hpp"
 #include "../header/KwinMouseProvider.hpp"
 #include "core/rendertarget.h"
@@ -8,8 +7,7 @@
 #include <QImage>
 #include <iostream>
 #include <stdexcept>
-#include <QOpenGLContext> 
-#include <QOpenGLFunctions> 
+#include <GLES3/gl3.h>
 #include <thread> 
 #include "opengl/glutils.h"
 namespace KWin {
@@ -78,48 +76,44 @@ bool KwinCursorEffect::isBlacklisted() const {
 }
 GLTexture* KwinCursorEffect::ensureCursorTexture() {
     if (!m_html || !m_html->isEnabled() || m_isIdleHidden) return nullptr;
+
     static bool first_focus_done = false;
     if (!first_focus_done && m_html->view()) {
         m_html->view()->Focus();
         first_focus_done = true;
     }
 
-    QOpenGLContext* qtContext = QOpenGLContext::currentContext();
-    QOpenGLFunctions* funcs = qtContext ? qtContext->functions() : nullptr;
-
     GLint native_kwin_fbo = 0;
-    if (funcs) {
-        funcs->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
-    }
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &native_kwin_fbo);
+
     m_html->update();
 
-    if (funcs) {
-        funcs->glFlush();
-        funcs->glFinish();
-        funcs->glBindFramebuffer(GL_FRAMEBUFFER, native_kwin_fbo);
-    }
+    glFlush();
+    glFinish();
+    glBindFramebuffer(GL_FRAMEBUFFER, native_kwin_fbo);
 
     int w = m_html->width();
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
-    
-   unsigned int gpuTexId = m_html->textureId();
-if (gpuTexId != 0) {
-    if (!m_cursorTexture
-        || m_lastGpuTexId != gpuTexId
-        || m_cursorTexture->width() != w
-        || m_cursorTexture->height() != h) {
-        m_cursorTexture.reset();
-        m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
-        if (!m_cursorTexture) return nullptr;
-        m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
-        m_cursorTexture->setFilter(GL_LINEAR);
-        qDebug() << "[UltralightKwinLinkDebug] Rebuilding wrapper, old:" << m_lastGpuTexId << "new:" << gpuTexId;
-        m_lastGpuTexId = gpuTexId;
+
+    unsigned int gpuTexId = m_html->textureId();
+    if (gpuTexId != 0) {
+        if (!m_cursorTexture
+            || m_lastGpuTexId != gpuTexId
+            || m_cursorTexture->width() != w
+            || m_cursorTexture->height() != h) {
+            m_cursorTexture.reset();
+            m_cursorTexture = GLTexture::createNonOwningWrapper(gpuTexId, GL_RGBA8, QSize(w, h));
+            if (!m_cursorTexture) return nullptr;
+            m_cursorTexture->setWrapMode(GL_CLAMP_TO_EDGE);
+            m_cursorTexture->setFilter(GL_LINEAR);
+            m_lastGpuTexId = gpuTexId;
+        }
+        return m_cursorTexture.get();
     }
-    return m_cursorTexture.get();
-}
     
+    // ---- 以下是 CPU (bitmap) fallback 路徑，只有在 GPU texture 不可用時才會走到 ----
+
     if (m_cursorTexture && !m_html->hasNewFrame()) return m_cursorTexture.get();
 
     const uint8_t* pixels = m_html->pixels();
@@ -136,10 +130,8 @@ if (gpuTexId != 0) {
 
     if (m_html->hasNewFrame()) {
         m_cursorTexture->bind();
-        if (funcs) {
-            funcs->glPixelStorei(GL_UNPACK_ALIGNMENT, 4); 
-            funcs->glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-        }
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
         m_cursorTexture->unbind();
         m_html->clearNewFrame();
     }
@@ -156,10 +148,8 @@ void KwinCursorEffect::paintScreen(const RenderTarget& renderTarget, const Rende
 
     if (frameCounter % 60 == 0) {
         unsigned int gpuTexId = m_html->textureId();
-        auto kwin_qt_context = QOpenGLContext::currentContext();
         
         qDebug() << "[UltralightKwinLinkDebug]  [KWin Pipeline Context Check]"
-                 << " | Qt Context :" << kwin_qt_context
                  << " | Wrapped Texture ID:" << gpuTexId
                  << " | Wrapped Status:" << (texture != nullptr);
     }
