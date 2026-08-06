@@ -62,9 +62,5 @@ GPUContextGL::GPUContextGL(bool enable_vsync, bool enable_msaa) :
   }
   driver_.reset(new ultralight::GPUDriverGL(this));
 }
-int GPUContextGL::GetRealTextureId(uint32_t ultralight_texture_id) const {
-    auto* gl_driver = static_cast<GPUDriverGL*>(driver_.get());
-    return gl_driver ? gl_driver->GetRealTextureId(ultralight_texture_id) : 0;
-}
 
 }  // namespace ultralight

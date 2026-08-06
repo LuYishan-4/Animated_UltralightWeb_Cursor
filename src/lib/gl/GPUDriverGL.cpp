@@ -887,7 +887,6 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
   GLFWwindow* current_context = reinterpret_cast<GLFWwindow*>(static_cast<uintptr_t>(1));
 #endif
 
-  // 💡 避免在 Linux 下傳入 nullptr 造成 map 查找失敗
   auto j = geometry_entry.vao_map.find(current_context);
   if (j != geometry_entry.vao_map.end())
     return; // Already exists, we can return

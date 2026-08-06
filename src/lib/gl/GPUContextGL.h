@@ -11,6 +11,13 @@
 
 #define ENABLE_OFFSCREEN_GL 0
 
+
+#if defined(_WIN32)
+struct GLFWwindow; 
+#else
+class QOpenGLContext;
+#endif
+
 namespace ultralight {
 
 class GPUContextGL {
@@ -20,11 +27,9 @@ protected:
 public:
   GPUContextGL(bool enable_vsync, bool enable_msaa);
 
-
+  
 
   virtual ~GPUContextGL() {}
-
-   virtual int GetRealTextureId(uint32_t ultralight_texture_id) const;
 
   virtual ultralight::GPUDriverImpl* driver() const { return driver_.get(); }
 

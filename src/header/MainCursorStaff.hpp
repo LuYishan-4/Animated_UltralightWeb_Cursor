@@ -37,6 +37,20 @@ public:
     }
 
 public:
+    virtual void enable() {
+        if (m_html) m_html->setEnabled(true);
+    }
+
+    virtual void disable() {
+        if (m_html) m_html->setEnabled(false);
+    }
+
+    virtual void reloadHtml() {
+        UltralightWebCursorM::UserConfig::instance()->load();
+        UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
+        if (m_html) m_html->reload(UserConfigimp, CursorJSONImp);
+    }
+
 protected:
     template <typename MouseProviderType>
     bool initializeCore() {

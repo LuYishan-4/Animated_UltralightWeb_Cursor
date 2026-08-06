@@ -55,25 +55,22 @@ bool KwinCursorEffect::supported() {
     return effects->isOpenGLCompositing();
 }
 
-    void KwinCursorEffect::enable(){
-        if(!m_html)return;
-        m_html->setEnabled(true);
-        effects->addRepaintFull();
-    }
+void KwinCursorEffect::enable() {
+    UltralightWebCursorM::MainCursorStaff::enable();
+    effects->addRepaintFull();
+}
 
-    void KwinCursorEffect::disable(){
-        if(!m_html)return;
-        m_html->setEnabled(false);
-        m_cursorTexture.reset();
-        effects->addRepaintFull();
-    }
-    void KwinCursorEffect::reloadHtml(){
-        UltralightWebCursorM::UserConfig::instance()->load();
-        UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
-        if(!m_html)return;
-        m_html->reload(UserConfigimp,CursorJSONImp);
-        effects->addRepaintFull();
-    }
+void KwinCursorEffect::disable() {
+    UltralightWebCursorM::MainCursorStaff::disable();
+    m_cursorTexture.reset();
+    effects->addRepaintFull();
+}
+
+void KwinCursorEffect::reloadHtml() {
+    UltralightWebCursorM::MainCursorStaff::reloadHtml();
+    effects->addRepaintFull();
+}
+
 bool KwinCursorEffect::isBlacklisted() const {
     auto window = effects->activeWindow();
     if (!window) return false;
@@ -107,7 +104,7 @@ GLTexture* KwinCursorEffect::ensureCursorTexture() {
     int h = m_html->height();
     if (w <= 0 || h <= 0) return nullptr;
     
-    unsigned int gpuTexId = m_html->textureId(); 
+    unsigned int gpuTexId = m_html->textureId();
     if (gpuTexId != 0) {
         if (!m_cursorTexture || m_cursorTexture->width() != w || m_cursorTexture->height() != h) {
             m_cursorTexture.reset();

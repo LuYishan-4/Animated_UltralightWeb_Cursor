@@ -35,9 +35,9 @@ public:
 
     static bool supported();
 public Q_SLOTS:
-    void enable();
-    void disable();
-    void reloadHtml();
+    void enable() override;
+    void disable() override;
+    void reloadHtml() override;
 
 private:
     bool checkFullScreen() const override;

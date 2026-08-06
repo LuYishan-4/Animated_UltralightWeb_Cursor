@@ -12,8 +12,6 @@ public:
 
   virtual const char* name() = 0;
 
-  virtual int GetRealTextureId(uint32_t ultralight_texture_id) const { return 0; }
-
   virtual void BeginDrawing() = 0;
 
   virtual void EndDrawing() = 0;

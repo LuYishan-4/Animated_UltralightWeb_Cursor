@@ -6,7 +6,7 @@
 #include <AppCore/Platform.h>
 #include "UltralightPl/WebListener.hpp"
 #include <memory> 
-
+#include "gl/GPUDriverGL.h"
 #include <iostream>
 #include <fstream>
 #include <cstring>
@@ -70,7 +70,7 @@ bool UltralightHtmlEffect::initialize(const ConfigValues& uconfig, const JSONCon
     renderer_ = ultralight::Renderer::Create();
     if(!renderer_)return false;
     ultralight::ViewConfig vc;
-    vc.is_accelerated = true;
+        vc.is_accelerated = true;
     vc.is_transparent = true;
     vc.enable_images = true;
     vc.enable_javascript = true;
@@ -226,7 +226,16 @@ const uint8_t* UltralightHtmlEffect::pixels() const{
 
 unsigned int UltralightHtmlEffect::textureId() const {
     if (!view_ || !context_) return 0;
-    return context_->driver()->GetRealTextureId(view_->render_target().texture_id);
+
+    uint32_t ultralight_tex_id = view_->render_target().texture_id;
+
+    auto* gl_driver = static_cast<ultralight::GPUDriverGL*>(context_->driver());
+    if (!gl_driver) return 0;
+
+    auto it = gl_driver->texture_map.find(ultralight_tex_id);
+    if (it == gl_driver->texture_map.end()) return 0;
+
+    return it->second.tex_id;
 }
 
 
