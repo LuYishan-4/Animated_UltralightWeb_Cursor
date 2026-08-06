@@ -461,6 +461,11 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   uint32_t indices_count,
   uint32_t indices_offset,
   const GPUState& state) {
+
+    qDebug() << "[UltralightGpuDebug] DrawGeometry | render_buffer_id:" << state.render_buffer_id
+           << "| tex1:" << state.texture_1_id
+           << "| indices:" << indices_count
+           << "| viewport:" << state.viewport_width << "x" << state.viewport_height;
   
 #if defined(_WIN32)
   glfwMakeContextCurrent(context_->active_window());
@@ -548,8 +553,11 @@ void GPUDriverGL::DestroyGeometry(uint32_t geometry_id) {
 
 
 void GPUDriverGL::DrawCommandList() {
-  if (command_list_.empty())
+  if (command_list_.empty()) {
+    qDebug() << "[UltralightGpuDebug] DrawCommandList: EMPTY, nothing to draw this frame";
     return;
+  }
+   qDebug() << "[UltralightGpuDebug] DrawCommandList: " << command_list_.size() << " commands";
 
 #if defined(_WIN32)
   glfwMakeContextCurrent(context_->active_window());
@@ -867,6 +875,8 @@ void GPUDriverGL::CreateFBOIfNeededForActiveContext(uint32_t render_buffer_id) {
   CHECK_GL();
 
   result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    qDebug() << "[UltralightGpuDebug] FBO status for render_buffer_id" << render_buffer_id
+           << ":" << (result == GL_FRAMEBUFFER_COMPLETE ? "COMPLETE" : "INCOMPLETE!!") << result;
   if (result != GL_FRAMEBUFFER_COMPLETE)
     FATAL("Error creating MSAA FBO, this usually fails if your DPI scale is invalid or View dimensions are massive: " << result);
   CHECK_GL();
