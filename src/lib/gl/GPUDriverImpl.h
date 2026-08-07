@@ -20,11 +20,6 @@ public:
 
   virtual void BindRenderBuffer(uint32_t render_buffer_id) = 0;
 
-  
-  virtual const unsigned int GetNativeTextureId(uint32_t ultralight_texture_id){return 0;};
-
-
-
   virtual void ClearRenderBuffer(uint32_t render_buffer_id) = 0;
 
   virtual void DrawGeometry(uint32_t geometry_id,

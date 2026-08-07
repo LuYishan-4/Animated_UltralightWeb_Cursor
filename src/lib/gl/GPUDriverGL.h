@@ -1,43 +1,23 @@
 #pragma once
 #include <Ultralight/platform/GPUDriver.h>
-#include "glad/glad.h"
+#include <Ultralight/>
 #include <GLFW/glfw3.h>
 #include "GPUContextGL.h"
 #include "GPUDriverImpl.h"
 #include <vector>
 #include <map>
-#include <cstdint>
-#include <cstring>
 
 namespace ultralight {
 
 typedef ShaderType ProgramType;
 
-// Uniform buffer layout matching std140 in GLSL shaders.
-// Must match the type_Uniforms block in the generated GLSL headers.
-#pragma pack(push, 1)
-struct alignas(16) Uniforms {
-  float State[4];           // vec4: [time, screenWidth, screenHeight, screenScale]
-  float Transform[16];      // row_major mat4
-  int32_t Integer4[8];      // ivec4[2]
-  float Scalar4[8];         // vec4[2]
-  float Vector[32];         // vec4[8]
-  int32_t ClipData[4];      // ivec4
-  float Clip[128];          // row_major mat4[8]
-};
-#pragma pack(pop)
-
-static_assert(sizeof(Uniforms) == 800, "Uniforms struct size must be 800 bytes to match std140 layout");
-
 class GPUDriverGL : public GPUDriverImpl {
 public:
   GPUDriverGL(GPUContextGL* context);
 
-  virtual ~GPUDriverGL();
+  virtual ~GPUDriverGL() { }
 
   virtual const char* name() override { return "OpenGL"; }
-
-  virtual const unsigned int GetNativeTextureId(uint32_t ultralight_texture_id)override{return 0;};
 
   virtual void BeginDrawing() override {}
 
@@ -98,8 +78,13 @@ public:
   void LoadProgram(ProgramType type);
   void SelectProgram(ProgramType type);
   void UpdateUniforms(const GPUState& state);
+  void SetUniform1ui(const char* name, GLuint val);
+  void SetUniform1f(const char* name, float val);
+  void SetUniform1fv(const char* name, size_t count, const float* val);
+  void SetUniform4f(const char* name, const float val[4]);
+  void SetUniform4fv(const char* name, size_t count, const float* val);
+  void SetUniformMatrix4fv(const char* name, size_t count, const float* val);
   void SetViewport(uint32_t width, uint32_t height);
-
 
 protected:
   Matrix ApplyProjection(const Matrix4x4& transform, float screen_width, float screen_height, bool flip_y);
@@ -165,8 +150,7 @@ protected:
     GLuint frag_shader_id;
   };
   std::map<ProgramType, ProgramEntry> programs_;
-  GLuint cur_program_id_ = 0;
-  GLuint ubo_id_ = 0;
+  GLuint cur_program_id_;
 
   GPUContextGL* context_;
 };

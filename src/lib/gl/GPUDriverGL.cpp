@@ -1,21 +1,16 @@
 #include "GPUDriverGL.h"
 #include "GPUContextGL.h"
+#include <Ultralight/platform/Platform.h>
+#include <Ultralight/platform/FileSystem.h>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 // Include generated GLSL shader headers
-#include "glsl/shaders.h"
+#include "../glsl/shaders.h"
 
-
-// GL 3.3+ texture swizzle constants (GLAD was generated for GL 3.2)
-#ifndef GL_TEXTURE_SWIZZLE_R
-#define GL_TEXTURE_SWIZZLE_R 0x8E42
-#define GL_TEXTURE_SWIZZLE_G 0x8E43
-#define GL_TEXTURE_SWIZZLE_B 0x8E44
-#define GL_TEXTURE_SWIZZLE_A 0x8E45
-#endif
 
 #ifdef _DEBUG
-  #if defined(_WIN32)
+#if _WIN32
 #define INFO(x) { std::cerr << "[INFO] " << __FUNCSIG__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; }
 #else
 #define INFO(x) { std::cerr << "[INFO] " << __PRETTY_FUNCTION__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; }
@@ -24,7 +19,7 @@
 #define INFO(x)
 #endif
 
-  #if defined(_WIN32)
+#if _WIN32
 #include <Windows.h>
 #define FATAL(x) { std::stringstream str; \
   str << "[ERROR] " << __FUNCSIG__ << " @ Line " << __LINE__ << ":\n\t" << x << std::endl; \
@@ -83,6 +78,22 @@ static GLuint LoadShaderFromSource(GLenum shader_type, const char* source, const
     return shader_id;
 }
 
+static GLuint LoadShaderFromFile(GLenum shader_type, const char* filename) {
+  std::string shader_source;
+  std::string path = std::string(SHADER_PATH) + filename;
+  ReadFile(path.c_str(), shader_source);
+  GLint compileStatus;
+  const char* shader_source_str = shader_source.c_str();
+  GLuint shader_id = glCreateShader(shader_type);
+  glShaderSource(shader_id, 1, &shader_source_str, NULL);
+  glCompileShader(shader_id);
+  glGetShaderiv(shader_id, GL_COMPILE_STATUS, &compileStatus);
+  if (compileStatus == GL_FALSE)
+    FATAL("Unable to compile shader. Filename: " << filename << "\n\tError:" 
+      << glErrorString(glGetError()) << "\n\tLog: " << GetShaderLog(shader_id))
+  return shader_id;
+}
+
 #ifdef _DEBUG
 #define CHECK_GL()  {if (GLenum err = glGetError()) FATAL(glErrorString(err)) }                                                     
 #else
@@ -91,47 +102,7 @@ static GLuint LoadShaderFromSource(GLenum shader_type, const char* source, const
 
 namespace ultralight {
 
-// Map platform-agnostic BlendFactor enum to OpenGL blend constants
-static GLenum MapBlendFactor(BlendFactor factor) {
-  switch (factor) {
-  case BlendFactor::Zero:             return GL_ZERO;
-  case BlendFactor::One:              return GL_ONE;
-  case BlendFactor::SrcColor:         return GL_SRC_COLOR;
-  case BlendFactor::InvSrcColor:      return GL_ONE_MINUS_SRC_COLOR;
-  case BlendFactor::SrcAlpha:         return GL_SRC_ALPHA;
-  case BlendFactor::InvSrcAlpha:      return GL_ONE_MINUS_SRC_ALPHA;
-  case BlendFactor::DestColor:        return GL_DST_COLOR;
-  case BlendFactor::InvDestColor:     return GL_ONE_MINUS_DST_COLOR;
-  case BlendFactor::DestAlpha:        return GL_DST_ALPHA;
-  case BlendFactor::InvDestAlpha:     return GL_ONE_MINUS_DST_ALPHA;
-  case BlendFactor::SrcAlphaSaturate: return GL_SRC_ALPHA_SATURATE;
-  default:                            return GL_ONE;
-  }
-}
-
-// Map platform-agnostic BlendEquation enum to OpenGL blend operation
-static GLenum MapBlendEquation(BlendEquation equation) {
-  switch (equation) {
-  case BlendEquation::Add:         return GL_FUNC_ADD;
-  case BlendEquation::Subtract:    return GL_FUNC_SUBTRACT;
-  case BlendEquation::RevSubtract: return GL_FUNC_REVERSE_SUBTRACT;
-  case BlendEquation::Min:         return GL_MIN;
-  case BlendEquation::Max:         return GL_MAX;
-  default:                         return GL_FUNC_ADD;
-  }
-}
-
 GPUDriverGL::GPUDriverGL(GPUContextGL* context) : context_(context) {
-  glGenBuffers(1, &ubo_id_);
-  glBindBuffer(GL_UNIFORM_BUFFER, ubo_id_);
-  glBufferData(GL_UNIFORM_BUFFER, sizeof(Uniforms), nullptr, GL_DYNAMIC_DRAW);
-  glBindBuffer(GL_UNIFORM_BUFFER, 0);
-  CHECK_GL();
-}
-
-GPUDriverGL::~GPUDriverGL() {
-  if (ubo_id_)
-    glDeleteBuffers(1, &ubo_id_);
 }
 
 #if ENABLE_OFFSCREEN_GL
@@ -216,11 +187,6 @@ void GPUDriverGL::CreateTexture(uint32_t texture_id,
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, bitmap->width(), bitmap->height(), 0,
       GL_RED, GL_UNSIGNED_BYTE, pixels);
     bitmap->UnlockPixels();
-    // GL_R8 stores data in .r, but HLSL A8_UNORM reads .a — set up swizzle to match
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ZERO);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ZERO);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ZERO);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
   } else if (bitmap->format() == BitmapFormat::BGRA8_UNORM_SRGB) {
     const void* pixels = bitmap->LockPixels();
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, bitmap->width(), bitmap->height(), 0,
@@ -415,7 +381,7 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
   uint32_t indices_count,
   uint32_t indices_offset,
   const GPUState& state) {
-
+  
   glfwMakeContextCurrent(context_->active_window());
 
   if (programs_.empty())
@@ -450,14 +416,10 @@ void GPUDriverGL::DrawGeometry(uint32_t geometry_id,
     glDisable(GL_SCISSOR_TEST);
   }
 
-  if (state.enable_blend) {
+  if (state.enable_blend)
     glEnable(GL_BLEND);
-    glBlendFunc(MapBlendFactor(state.blend_src_factor),
-                MapBlendFactor(state.blend_dst_factor));
-    glBlendEquation(MapBlendEquation(state.blend_equation));
-  } else {
+  else
     glDisable(GL_BLEND);
-  }
   CHECK_GL();
   glDrawElements(GL_TRIANGLES, indices_count, GL_UNSIGNED_INT,
     (GLvoid*)(indices_offset * sizeof(unsigned int)));
@@ -508,9 +470,11 @@ void GPUDriverGL::DrawCommandList() {
 
   batch_count_ = 0;
 
+  glEnable(GL_BLEND);
   glDisable(GL_SCISSOR_TEST);
   glDisable(GL_DEPTH_TEST);
   glDepthFunc(GL_NEVER);
+  glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
   CHECK_GL();
 
@@ -570,6 +534,7 @@ void GPUDriverGL::LoadPrograms(void) {
 }
 
 void GPUDriverGL::DestroyPrograms(void) {
+  GLenum ErrorCheckValue = glGetError();
   glUseProgram(0);
   for (auto i = programs_.begin(); i != programs_.end(); i++) {
     ProgramEntry& prog = i->second;
@@ -583,6 +548,7 @@ void GPUDriverGL::DestroyPrograms(void) {
 }
 
 void GPUDriverGL::LoadProgram(ProgramType type) {
+  GLenum ErrorCheckValue = glGetError();
   ProgramEntry prog;
   
   // Map shader types to vertex and fragment shaders
@@ -591,31 +557,31 @@ void GPUDriverGL::LoadProgram(ProgramType type) {
       prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
         vertex_quad_vs_source, "vertex_quad.vs");
       prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-        fill_fs_source, "fill.fs");
+        fill_ps_source, "fill.fs");
       break;
     case ShaderType::FillPath:
       prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
         vertex_path_vs_source, "vertex_path.vs");
       prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-        fill_path_fs_source, "fill_path.fs");
+        fill_path_ps_source, "fill_path.fs");
       break;
     case ShaderType::FilterBasic:
       prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
         vertex_quad_vs_source, "vertex_quad.vs");
       prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-        filter_basic_fs_source, "filter_basic.fs");
+        filter_basic_ps_source, "filter_basic.fs");
       break;
     case ShaderType::FilterBlur:
       prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
         vertex_quad_vs_source, "vertex_quad.vs");
       prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-        filter_blur_fs_source, "filter_blur.fs");
+        filter_blur_ps_source, "filter_blur.fs");
       break;
     case ShaderType::FilterDropShadow:
       prog.vert_shader_id = LoadShaderFromSource(GL_VERTEX_SHADER,
         vertex_quad_vs_source, "vertex_quad.vs");
       prog.frag_shader_id = LoadShaderFromSource(GL_FRAGMENT_SHADER,
-        filter_dropshadow_fs_source, "filter_dropshadow.fs");
+        filter_dropshadow_ps_source, "filter_dropshadow.fs");
       break;
     default:
       FATAL("Unknown shader type: " << (int)type);
@@ -626,46 +592,39 @@ void GPUDriverGL::LoadProgram(ProgramType type) {
   glAttachShader(prog.program_id, prog.vert_shader_id);
   glAttachShader(prog.program_id, prog.frag_shader_id);
 
-  // Bind vertex attributes to match GLSL layout locations.
-  // Note: shaders use explicit layout(location = N), so these are redundant
-  // but kept for documentation and compatibility.
-  glBindAttribLocation(prog.program_id, 0, "in_var_POSITION");
-  glBindAttribLocation(prog.program_id, 1, "in_var_COLOR0");
-  glBindAttribLocation(prog.program_id, 2, "in_var_TEXCOORD0");
+  // Bind vertex attributes - common attributes for all shaders
+  glBindAttribLocation(prog.program_id, 0, "in_Position");
+  glBindAttribLocation(prog.program_id, 1, "in_Color");
+  glBindAttribLocation(prog.program_id, 2, "in_TexCoord");
 
+  // FillPath uses simple vertex format, others use complex format
   if (type == ShaderType::FillPath) {
-    glBindAttribLocation(prog.program_id, 3, "in_var_TEXCOORD1");
+    glBindAttribLocation(prog.program_id, 3, "in_ObjCoord");
   } else {
-    glBindAttribLocation(prog.program_id, 3, "in_var_TEXCOORD1");
-    glBindAttribLocation(prog.program_id, 4, "in_var_COLOR1");
-    glBindAttribLocation(prog.program_id, 5, "in_var_COLOR2");
-    glBindAttribLocation(prog.program_id, 6, "in_var_COLOR3");
-    glBindAttribLocation(prog.program_id, 7, "in_var_COLOR4");
-    glBindAttribLocation(prog.program_id, 8, "in_var_COLOR5");
-    glBindAttribLocation(prog.program_id, 9, "in_var_COLOR6");
-    glBindAttribLocation(prog.program_id, 10, "in_var_COLOR7");
+    // Fill, FilterBasic, FilterBlur, FilterDropShadow use complex vertex format
+    glBindAttribLocation(prog.program_id, 3, "in_ObjCoord");
+    glBindAttribLocation(prog.program_id, 4, "in_Data0");
+    glBindAttribLocation(prog.program_id, 5, "in_Data1");
+    glBindAttribLocation(prog.program_id, 6, "in_Data2");
+    glBindAttribLocation(prog.program_id, 7, "in_Data3");
+    glBindAttribLocation(prog.program_id, 8, "in_Data4");
+    glBindAttribLocation(prog.program_id, 9, "in_Data5");
+    glBindAttribLocation(prog.program_id, 10, "in_Data6");
   }
 
   glLinkProgram(prog.program_id);
-
-  GLint linkStatus;
-  glGetProgramiv(prog.program_id, GL_LINK_STATUS, &linkStatus);
-  if (linkStatus == GL_FALSE)
-    FATAL("Unable to link shader.\n\tError:" << glErrorString(glGetError()) << "\n\tLog: " << GetProgramLog(prog.program_id))
-
   glUseProgram(prog.program_id);
 
-  // Bind the uniform block to binding point 0 (for shaders that have it)
-  GLuint blockIndex = glGetUniformBlockIndex(prog.program_id, "type_Uniforms");
-  if (blockIndex != GL_INVALID_INDEX)
-    glUniformBlockBinding(prog.program_id, blockIndex, 0);
-
-  // Set texture sampler uniforms (these are regular uniforms, not in the UBO block)
-  if (type == ShaderType::Fill || type == ShaderType::FilterBasic ||
+  // Set texture uniforms for shaders that use textures
+  if (type == ShaderType::Fill || type == ShaderType::FilterBasic || 
       type == ShaderType::FilterBlur || type == ShaderType::FilterDropShadow) {
-    glUniform1i(glGetUniformLocation(prog.program_id, "SPIRV_Cross_CombinedTexture0Sampler0"), 0);
-    glUniform1i(glGetUniformLocation(prog.program_id, "SPIRV_Cross_CombinedTexture1Sampler0"), 1);
+    glUniform1i(glGetUniformLocation(prog.program_id, "Texture0"), 0);
+    glUniform1i(glGetUniformLocation(prog.program_id, "Texture1"), 1);
   }
+
+  if (glGetError())
+    FATAL("Unable to link shader.\n\tError:" << glErrorString(glGetError()) << "\n\tLog: " << GetProgramLog(prog.program_id))
+ 
   programs_[type] = prog;
 }
 
@@ -681,45 +640,64 @@ void GPUDriverGL::SelectProgram(ProgramType type) {
 
 void GPUDriverGL::UpdateUniforms(const GPUState& state) {
   bool flip_y = state.render_buffer_id != 0;
-  Matrix model_view_projection = ApplyProjection(state.transform,
-    (float)state.viewport_width, (float)state.viewport_height, flip_y);
+  Matrix model_view_projection = ApplyProjection(state.transform, (float)state.viewport_width, (float)state.viewport_height, flip_y);
 
-  Uniforms uniforms;
-
-  // State: [time, screenWidth, screenHeight, screenScale]
-  uniforms.State[0] = 0.0f;
-  uniforms.State[1] = (float)state.viewport_width;
-  uniforms.State[2] = (float)state.viewport_height;
-  uniforms.State[3] = 1.0f;
-
-  // Transform (row-major mat4)
-  Matrix4x4 mat = model_view_projection.GetMatrix4x4();
-  memcpy(uniforms.Transform, mat.data, sizeof(uniforms.Transform));
-
-  // Integer4 (ivec4[2])
-  memcpy(uniforms.Integer4, state.uniform_integer, sizeof(uniforms.Integer4));
-
-  // Scalar4 (vec4[2])
-  memcpy(uniforms.Scalar4, state.uniform_scalar, sizeof(uniforms.Scalar4));
-
-  // Vector (vec4[8])
-  memcpy(uniforms.Vector, &state.uniform_vector[0].x, sizeof(uniforms.Vector));
-
-  // ClipData (ivec4)
-  uniforms.ClipData[0] = (int32_t)state.clip_size;
-  uniforms.ClipData[1] = 0;
-  uniforms.ClipData[2] = 0;
-  uniforms.ClipData[3] = 0;
-
-  // Clip matrices (row-major mat4[8])
-  memcpy(uniforms.Clip, &state.clip[0].data[0], sizeof(uniforms.Clip));
-
-  // Upload to UBO and bind
-  glBindBuffer(GL_UNIFORM_BUFFER, ubo_id_);
-  glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(Uniforms), &uniforms);
-  glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo_id_);
-
+  // State uniform: time, screenWidth, screenHeight, screenScale
+  float params[4] = { (float)(glfwGetTime() / 1000.0), (float)state.viewport_width, (float)state.viewport_height, 1.0f };
+  SetUniform4f("State", params);
   CHECK_GL();
+  
+  // Transform matrix
+  ultralight::Matrix4x4 mat = model_view_projection.GetMatrix4x4();
+  SetUniformMatrix4fv("Transform", 1, mat.data);
+  CHECK_GL();
+  
+  // Integer4 uniform (for discrete parameters - initialized to zero for now)
+  int integer_params[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  glUniform4iv(glGetUniformLocation(cur_program_id_, "Integer4"), 2, integer_params);
+  CHECK_GL();
+  
+  // Scalar4 uniform (8 scalar values)
+  SetUniform4fv("Scalar4", 2, &state.uniform_scalar[0]);
+  CHECK_GL();
+  
+  // Vector uniform (8 vector values)
+  SetUniform4fv("Vector", 8, &state.uniform_vector[0].x);
+  CHECK_GL();
+  
+  // ClipData uniform (x = ClipSize, yzw = reserved)
+  int clip_data[4] = { (int)state.clip_size, 0, 0, 0 };
+  glUniform4iv(glGetUniformLocation(cur_program_id_, "ClipData"), 1, clip_data);
+  CHECK_GL();
+  
+  // Clip matrices
+  SetUniformMatrix4fv("Clip", 8, &state.clip[0].data[0]);
+  CHECK_GL();
+}
+
+void GPUDriverGL::SetUniform1ui(const char* name, GLuint val) {
+  glUniform1ui(glGetUniformLocation(cur_program_id_, name), val);
+}
+
+void GPUDriverGL::SetUniform1f(const char* name, float val) {
+  glUniform1f(glGetUniformLocation(cur_program_id_, name), (GLfloat)val);
+}
+
+void GPUDriverGL::SetUniform1fv(const char* name, size_t count, const float* val) {
+  glUniform1fv(glGetUniformLocation(cur_program_id_, name), (GLsizei)count, val);
+}
+
+void GPUDriverGL::SetUniform4f(const char* name, const float val[4]) {
+  glUniform4f(glGetUniformLocation(cur_program_id_, name),
+    (GLfloat)val[0], (GLfloat)val[1], (GLfloat)val[2], (GLfloat)val[3]);
+}
+
+void GPUDriverGL::SetUniform4fv(const char* name, size_t count, const float* val) {
+  glUniform4fv(glGetUniformLocation(cur_program_id_, name), (GLsizei)count, val);
+}
+
+void GPUDriverGL::SetUniformMatrix4fv(const char* name, size_t count, const float* val) {
+  glUniformMatrix4fv(glGetUniformLocation(cur_program_id_, name), (GLsizei)count, false, val);
 }
 
 void GPUDriverGL::SetViewport(uint32_t width, uint32_t height) {
@@ -869,7 +847,7 @@ void GPUDriverGL::CreateVAOIfNeededForActiveContext(uint32_t geometry_id) {
     GLsizei stride = 140;
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)0);
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, stride, (GLvoid*)8);
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_FALSE, stride, (GLvoid*)8);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)12);
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)20);
     glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, stride, (GLvoid*)28);
