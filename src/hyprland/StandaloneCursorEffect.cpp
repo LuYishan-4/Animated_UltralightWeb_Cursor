@@ -1,41 +1,43 @@
 #include "StandaloneCursorEffect.hpp"
+#include "../lib/SharedCursorRender.hpp"
 #include <QCoreApplication>
 #include <QDebug>
-#include "../lib/SharedCursorRender.hpp"
 
-StandaloneCursorEffect::StandaloneCursorEffect(QObject* parent)
-    : QObject(parent)
-{
-    connect(&timer_, &QTimer::timeout, this, &StandaloneCursorEffect::onTick);
+StandaloneCursorEffect::StandaloneCursorEffect(QObject *parent)
+    : QObject(parent) {
+  connect(&timer_, &QTimer::timeout, this, &StandaloneCursorEffect::onTick);
 }
 
-StandaloneCursorEffect::~StandaloneCursorEffect(){ }
+StandaloneCursorEffect::~StandaloneCursorEffect() {}
 
-bool StandaloneCursorEffect::initialize(){
-    html_ = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
-    mouseProvider_ = std::make_unique<PlatformMouseProvider>();
-    if(!html_) return false;
-    if(!mouseProvider_) return false;
-    UltralightWebCursorM::UserConfig::instance()->load();
-    std::filesystem::path htmlPath(UserConfigimp.html);
-    UltralightWebCursorM::CursorJSON::instance()->load(htmlPath.parent_path().string());
+bool StandaloneCursorEffect::initialize() {
+  html_ = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
+  mouseProvider_ = std::make_unique<PlatformMouseProvider>();
+  if (!html_)
+    return false;
+  if (!mouseProvider_)
+    return false;
+  UltralightWebCursorM::UserConfig::instance()->load();
+  std::filesystem::path htmlPath(UserConfigimp.html);
+  UltralightWebCursorM::CursorJSON::instance()->load(
+      htmlPath.parent_path().string());
 
-    if(!html_->initialize(UserConfigimp, CursorJSONImp)){
-        qCritical() << "UltralightHtmlEffect initialize failed";
-        return false;
-    }
+  if (!html_->initialize(UserConfigimp, CursorJSONImp)) {
+    qCritical() << "UltralightHtmlEffect initialize failed";
+    return false;
+  }
 
-    mouseProvider_->setCallback([this](const UltralightWebCursorM::MousePoint& pt){
+  mouseProvider_->setCallback(
+      [this](const UltralightWebCursorM::MousePoint &pt) {
         html_->move(pt.x, pt.y, pt.pressed);
-    });
-    mouseProvider_->initialize();
-    return true;
+      });
+  mouseProvider_->initialize();
+  return true;
 }
 
-void StandaloneCursorEffect::start(){
-    timer_.start(16);
-}
+void StandaloneCursorEffect::start() { timer_.start(16); }
 
-void StandaloneCursorEffect::onTick(){
-    if(html_) html_->update();
+void StandaloneCursorEffect::onTick() {
+  if (html_)
+    html_->update();
 }

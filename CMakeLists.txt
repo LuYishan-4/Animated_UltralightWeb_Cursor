@@ -10,6 +10,14 @@ endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# KDE compiler settings may inject GCC-only flags (for example
+# -mno-direct-extern-access) that older/system clangd versions cannot parse
+# from compile_commands.json. When configuring with Clang, filter that flag out
+# so the generated compilation database remains clangd-compatible.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    string(REPLACE " -mno-direct-extern-access" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -172,11 +180,11 @@ else()
             FATAL_ON_MISSING_REQUIRED_PACKAGES
         )
 
-    #elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND")
-     #   add_subdirectory(GUI/hyprland)
-    #    add_subdirectory(src/hyprland) not now :D
+        #elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND")
+        #   add_subdirectory(GUI/hyprland)
+        #    add_subdirectory(src/hyprland) not now :D
     elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "X11")
-      target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
+        target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
         add_subdirectory(GUI/x11)
         add_subdirectory(src/x11)
     else()
