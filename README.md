@@ -29,7 +29,7 @@ The project is split into three independent pieces so each part stays simple and
 
 | Component | Role |
 |---|---|
-| `kwin-plugin` | The actual KWin Effect — renders your HTML theme and draws it as the system cursor, globally, across every window |
+| `kwin-plugin` | The actual KWin Effect — renders your HTML theme and Cs it as the system cursor, globally, across every window |
 | `settings-app` | A small Qt/QML GUI to pick your theme, toggle the effect on/off, and manage settings |
 
 

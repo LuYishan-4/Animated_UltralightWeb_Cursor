@@ -3,5 +3,7 @@
   "Author": "LuYishan",
   "minWidth": "128",
   "minHeight": "128",
-  "describe": "test"
+  "describe": "test",
+    "hotspotX": "64",
+  "hotspotY": "64"
 }

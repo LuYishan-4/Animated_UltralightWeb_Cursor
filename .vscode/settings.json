@@ -1,4 +1,7 @@
 {
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build-hyprland/compile_commands.json",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
+    "C_Cpp.intelliSenseEngine": "default",
     "files.associations": {
         "*.embeddedhtml": "html",
         "map": "cpp",

@@ -1,0 +1,67 @@
+name: Build Windows
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.7.3"
+          target: "desktop"
+          modules: "qtdeclarative qtquickcontrols2"
+          cache: true
+
+      # The Ultralight SDK archives are committed flat (no top-level folder),
+      # so extract directly into the directory CMake expects.
+      - name: Extract Ultralight SDK
+        shell: pwsh
+        run: 7z x "sdk/ultralight-free-sdk-1.4.0-win-x64.7z" "-osdk/ultralight-free-sdk-1.4.0-win-x64"
+
+      - name: Configure
+        shell: pwsh
+        run: >
+          cmake -S . -B build-windows
+          -DCMAKE_BUILD_TYPE=Release
+          -DFORCE_DESKTOP_ENVIRONMENT=windows
+          -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+
+      - name: Build
+        shell: pwsh
+        run: cmake --build build-windows --config Release --parallel
+
+      - name: Stage portable install
+        shell: pwsh
+        run: cmake --install build-windows --config Release --prefix "$PWD/stage"
+
+      - name: Package
+        shell: pwsh
+        run: >
+          Compress-Archive -Path "stage/bin/*"
+          -DestinationPath "ultralightwebcursor-windows-x64.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ultralightwebcursor-windows-x64
+          path: ultralightwebcursor-windows-x64.zip
+          if-no-files-found: error
+
+      # Publish a GitHub Release when a tag (e.g. v1.0.2) is pushed.
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ultralightwebcursor-windows-x64.zip
+          generate_release_notes: true

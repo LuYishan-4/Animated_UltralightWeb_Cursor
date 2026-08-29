@@ -3,6 +3,12 @@
         {
             "name": "Linux",
             "includePath": [
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/src/config",
+                "${workspaceFolder}/src/header",
+                "${workspaceFolder}/src/lib",
+                "${workspaceFolder}/src/hyprland",
+                "${workspaceFolder}/src/x11",
                 "${workspaceFolder}/**"
             ],
             "defines": [],

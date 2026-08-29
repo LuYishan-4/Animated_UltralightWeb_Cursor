@@ -1,6 +1,18 @@
 build/
+.clanged
 ultralight-free-sdk-1.4.0-linux-x64/
+ultralight-free-sdk-1.4.0-win-x64/
+.zed/
 pkg/
+.cache/
+build-hyprland/
+build-gnome/
+build-windows/
+build-niri/
+build-kde/
+build-sway/
+build-x11/
+build-zed/
 # Prerequisites
 *.d
 

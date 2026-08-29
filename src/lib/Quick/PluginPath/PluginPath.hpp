@@ -3,7 +3,7 @@
 
 #include <filesystem>
 
-namespace KWin
+namespace UltralightWebCursorM
 {
 
 class PluginPath
