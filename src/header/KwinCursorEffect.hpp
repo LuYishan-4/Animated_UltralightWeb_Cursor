@@ -30,9 +30,9 @@ public:
 
   static bool supported();
 public Q_SLOTS:
-  void enable() override;
-  void disable() override;
-  void reloadHtml() override;
+  void enable();
+  void disable();
+  void reloadHtml();
 
 private:
   unsigned int m_lastGpuTexId = 0;
@@ -40,19 +40,9 @@ private:
   bool isBlacklisted() const;
   GLTexture *ensureCursorTexture();
   void slotWindowStateChanged(EffectWindow *w);
-  void ensureDebugQuadResources();
-  void renderGpuTextureDirect(unsigned int gpuTexId, const QMatrix4x4 &mvp,
-                              float width, float height,
-                              bool debugSolidColor = false);
+
   // QTimer* m_renderTimer = nullptr;
   std::unique_ptr<GLTexture> m_cursorTexture;
-  unsigned int m_debugQuadProgram = 0;
-  unsigned int m_debugQuadVao = 0;
-  unsigned int m_debugQuadVbo = 0;
-  int m_mvpLoc = -1;
-  int m_texLoc = -1;
-  int m_debugSolidLoc = -1;
-  int m_solidColorLoc = -1;
 };
 
 } // namespace KWin
