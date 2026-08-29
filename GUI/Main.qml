@@ -2,12 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 
-import "../MainUi"
 ApplicationWindow {
+    id: window
     visible: true
-    width: 1024
-    height: 720
-    title: qsTr("Ultralight_WebCursor")
+    width: 1080
+    height: 760
+    title: qsTr("Web Cursor")
 
     Material.theme: Material.Dark
     Material.accent: Material.DeepPurple

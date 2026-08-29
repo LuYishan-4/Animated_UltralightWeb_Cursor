@@ -44,7 +44,7 @@ configure_variant() {
 sudo rm -rf build
 mkdir -p build
 
-configure_variant "build" "kde"
+configure_variant "build" "x11"
 
 cmake --build build
 

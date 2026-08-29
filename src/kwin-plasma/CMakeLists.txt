@@ -3,13 +3,13 @@ kcoreaddons_add_plugin(
     INSTALL_NAMESPACE "kwin/effects/plugins"
 )
 
-file(GLOB_RECURSE GL_SOURCES "../lib/gl/*.cpp" "../lib/gl/*.h")
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(EPOXY REQUIRED epoxy)
 
 
 target_sources(ultralightwebcursor PRIVATE
     main.cpp
     ../lib/UltralightHtmlEffect.cpp
-    ../lib/gl/glad/glad.c
     KwinMouseProvider.cpp
     ../lib/BlackList/BlacklistManager.cpp
     ../header/KwinCursorEffect.hpp
@@ -17,7 +17,7 @@ target_sources(ultralightwebcursor PRIVATE
     ../header/UltralightHtmlEffect.hpp
     ../lib/BlackList/BlacklistManager.hpp
     ../lib/CrashReport/CrashReport.hpp
-    ${GL_SOURCES}
+    #../../dep/glad/src/glad.c
     ../lib/UltralightPl/WebListener.hpp
     ../lib/WebCall/WebCall.hpp
     ../header/MainCursorStaff.hpp
@@ -35,9 +35,6 @@ target_include_directories(ultralightwebcursor
 )
 
 
-
-find_package(OpenGL REQUIRED COMPONENTS EGL)
-
 target_link_libraries(ultralightwebcursor
     PRIVATE
     Qt6::Core
@@ -48,14 +45,5 @@ target_link_libraries(ultralightwebcursor
     KF6::ConfigCore
     KWin::kwin
     Ultralight::SDK
-    OpenGL::EGL
-     ${GLFW_LIBRARIES}
-)
-
-
-set_target_properties(ultralightwebcursor PROPERTIES PREFIX "")
-
-install(
-    FILES metadata.json
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
+    PkgConfig::EPOXY
 )

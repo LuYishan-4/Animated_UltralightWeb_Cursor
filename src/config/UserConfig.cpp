@@ -1,7 +1,6 @@
 #include "UserConfig.hpp"
 #include "../lib/Quick/PluginPath/PluginPath.hpp"
 #include "GlobalConstas.hpp"
-#include <QDBusConnection>
 #include <QDebug>
 #include <cstdlib>
 #include <filesystem>

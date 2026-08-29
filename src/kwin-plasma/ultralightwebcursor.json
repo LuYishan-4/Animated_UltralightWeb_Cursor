@@ -1,0 +1,10 @@
+{
+    "KPlugin": {
+        "Id": "ultralightwebcursor",
+        "Name": "Ultralight Web Cursor",
+        "Description": "customsize your cursor",
+        "Icon": "preferences-system-windows",
+        "Category": "Window Management",
+        "EnabledByDefault": true
+    }
+}

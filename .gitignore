@@ -12,6 +12,7 @@ build-niri/
 build-kde/
 build-sway/
 build-x11/
+build-zed/
 # Prerequisites
 *.d
 

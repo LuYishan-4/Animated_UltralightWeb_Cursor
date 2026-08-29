@@ -1,44 +1,42 @@
 #include "../header/UltralightHtmlEffect.hpp"
 
 #include "UltralightPl/WebListener.hpp"
-#include "gl/GPUDriverGL.h"
 #include <AppCore/Platform.h>
-#include <QDBusConnection>
 #include <QDebug>
-#include <QProcess>
 #include <Ultralight/Ultralight.h>
-#include <Ultralight/platform/GPUDriver.h>
 #include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <stdatomic.h>
 
 namespace UltralightWebCursorM {
+
 UltralightHtmlEffect::UltralightHtmlEffect() {}
 
 UltralightHtmlEffect::~UltralightHtmlEffect() {
+  if (view_)
+    view_->set_load_listener(nullptr);
+  webcall = nullptr;
   listener_.reset();
   view_ = nullptr;
   renderer_ = nullptr;
-  webcall = nullptr;
-  context_ = nullptr;
 }
 
 // initialize
 bool UltralightHtmlEffect::initialize(const ConfigValues &uconfig,
                                       const JSONConf &data) {
-  html_value_ = {.width_ = data.minWidth,
-                 .height_ = data.minHeight,
+  qDebug() << "[UltralightHtmlDebug] initialize called with width:"
+           << uconfig.width << "height:" << uconfig.sdk;
+  html_value_ = {.width_ = uconfig.width,
+                 .height_ = uconfig.height,
                  .stride_ = 0,
-                 .minwidth = data.minWidth,
-                 .minheight = data.minHeight,
+                 .minwidth = uconfig.width,
+                 .minheight = uconfig.height,
                  .hotspot_x_ = data.hotspotX,
                  .hotspot_y_ = data.hotspotY,
                  .m_permanentSdkPath = uconfig.sdk,
-                 .html_path_ = uconfig.html,
-                 .use_gpu_ = uconfig.EnableGPU};
-  pending_gpu_init_ = html_value_.use_gpu_;
+                 .html_path_ = uconfig.html};
+
   std::filesystem::path sdk_dir(html_value_.m_permanentSdkPath);
   std::filesystem::path resources_dir = sdk_dir / "resources";
   if (!std::filesystem::exists(resources_dir))
@@ -51,8 +49,7 @@ bool UltralightHtmlEffect::initialize(const ConfigValues &uconfig,
       return false;
   if (!platform_initialized_) {
     ultralight::Config config;
-    if (pending_gpu_init_)
-      config.face_winding = ultralight::FaceWinding::CounterClockwise;
+    // config.face_winding = ultralight::FaceWinding::CounterClockwise;
     config.resource_path_prefix = ultralight::String("resources/");
     auto &platform = ultralight::Platform::instance();
 
@@ -62,6 +59,9 @@ bool UltralightHtmlEffect::initialize(const ConfigValues &uconfig,
         ultralight::String(html_value_.m_permanentSdkPath.c_str())));
     platform_initialized_ = true;
   }
+  renderer_ = sharedRenderer();
+  if (!renderer_)
+    return false;
 
   if (std::filesystem::exists(html_value_.html_path_))
     html_time_ = std::filesystem::last_write_time(html_value_.html_path_);
@@ -69,37 +69,25 @@ bool UltralightHtmlEffect::initialize(const ConfigValues &uconfig,
   return true;
 }
 
+ultralight::RefPtr<ultralight::Renderer>
+UltralightHtmlEffect::sharedRenderer() {
+  static ultralight::RefPtr<ultralight::Renderer> s_renderer =
+      ultralight::Renderer::Create();
+  return s_renderer;
+}
+
 bool UltralightHtmlEffect::ensureInitialized() {
-  if (renderer_ && view_)
+  if ((renderer_ && view_) || renderer_initialized_)
     return true;
-
-  auto &platform = ultralight::Platform::instance();
-  if (pending_gpu_init_ && !context_) {
-    qDebug() << "[UltralightCursorEffect] intiglglglglg";
-    context_ = std::make_unique<ultralight::GPUContextGL>(
-        ultralight::GPUContextGL::Mode::ExternalCurrent, false, false);
-  }
-
-  if (pending_gpu_init_ && context_ && !context_->is_glad_ready()) {
-    qDebug() << "[UltralightCursorEffect] glad not initialized on current "
-                "Linux/KWin path";
-  }
-
-  if (pending_gpu_init_ && context_ && !context_->has_current_context()) {
-    qDebug() << "[UltralightCursorEffect] GPU init deferred: no current GL "
-                "context yet";
-    return false;
-  }
-
-  if (pending_gpu_init_ && context_) {
-    platform.set_gpu_driver(context_->driver());
-  }
-  renderer_ = ultralight::Renderer::Create();
+  qDebug() << "[UltralightCursorEffect] init4" << html_value_.html_path_.c_str()
+           << html_value_.m_permanentSdkPath.c_str();
+  if (!renderer_)
+    renderer_ = sharedRenderer();
   if (!renderer_)
     return false;
 
   ultralight::ViewConfig vc;
-  vc.is_accelerated = pending_gpu_init_;
+  vc.is_accelerated = false;
   vc.is_transparent = true;
   vc.enable_images = true;
   vc.enable_javascript = true;
@@ -112,17 +100,19 @@ bool UltralightHtmlEffect::ensureInitialized() {
   view_->set_load_listener(listener_.get());
   webcall = std::make_shared<WebCall>();
   webcall->view_ = view_;
+  renderer_initialized_ = true;
   return load(html_value_.html_path_);
 }
 
 bool UltralightHtmlEffect::load(const std::string &path) {
+  if (!view_)
+    return false;
   std::ifstream file(path);
   if (!file) {
     qDebug() << "[UltralightCursorEffect] Failed to open file:"
              << QString::fromStdString(path);
     return false;
   }
-  qDebug() << "[UltralightCursorEffect] 5";
   std::filesystem::path p(path);
   std::string folderName = p.parent_path().filename().string();
   std::string fileUrl = "file:///" + folderName + "/index.html";
@@ -131,13 +121,14 @@ bool UltralightHtmlEffect::load(const std::string &path) {
            << " | htmlPath:" << QString::fromStdString(path)
            << " | fileUrl:" << QString::fromStdString(fileUrl);
   view_->LoadURL(fileUrl.c_str());
-  qDebug() << "[UltralightCursorEffect] LoadURL submitted";
   view_->set_needs_paint(true);
   return true;
 }
 
 bool UltralightHtmlEffect::resize(const int &width, const int &height) {
-  if (width > html_value_.minwidth || height > html_value_.minheight)
+  if (!view_)
+    return false;
+  if (width < html_value_.minwidth || height < html_value_.minheight)
     return false;
   view_->Resize(width, height);
   return true;
@@ -145,19 +136,21 @@ bool UltralightHtmlEffect::resize(const int &width, const int &height) {
 
 void UltralightHtmlEffect::reload(const ConfigValues &uconfig,
                                   const JSONConf &data) {
-  html_value_ = {.width_ = data.minWidth,
-                 .height_ = data.minHeight,
+  html_value_ = {.width_ = uconfig.width,
+                 .height_ = uconfig.height,
                  .stride_ = 0,
-                 .minwidth = data.minWidth,
-                 .minheight = data.minHeight,
+                 .minwidth = uconfig.width,
+                 .minheight = uconfig.height,
                  .hotspot_x_ = data.hotspotX,
                  .hotspot_y_ = data.hotspotY,
                  .m_permanentSdkPath = uconfig.sdk,
-                 .html_path_ = uconfig.html,
-                 .use_gpu_ = uconfig.EnableGPU};
+                 .html_path_ = uconfig.html};
+  if (!view_)
+    return;
   UltralightHtmlEffect::load(html_value_.html_path_);
   UltralightHtmlEffect::resize(html_value_.width_, html_value_.height_);
 }
+
 void UltralightHtmlEffect::move(int x, int y, bool pressed) {
   if (!view_)
     return;
@@ -173,23 +166,12 @@ void UltralightHtmlEffect::update() {
     return;
   if (!renderer_ || !view_)
     return;
+  if (!view_->needs_paint())
+    view_->set_needs_paint(true);
 
   renderer_->Update();
   renderer_->RefreshDisplay(0);
   renderer_->Render();
-
-  if (context_) {
-    if (auto *driver =
-            dynamic_cast<ultralight::GPUDriverGL *>(context_->driver())) {
-      // The View's render target is the texture consumed by KWin. Supplying
-      // it here keeps driver diagnostics away from temporary filter targets.
-      driver->SetDebugOutputTextureId(view_->render_target().texture_id);
-      context_->BeginDrawing();
-      driver->DrawCommandList();
-      context_->EndDrawing();
-    }
-    return;
-  }
 
   auto surface = view_->surface();
   if (!surface)
@@ -234,23 +216,24 @@ const uint8_t *UltralightHtmlEffect::pixels() const {
   return pixel_buffer_.data();
 }
 
+/*
 unsigned int UltralightHtmlEffect::textureId() const {
-  if (!context_ || !view_)
-    return 0;
+    if (!context_ || !view_)
+        return 0;
 
-  auto *driver = dynamic_cast<ultralight::GPUDriverGL *>(context_->driver());
-  if (!driver)
-    return 0;
+    auto* driver = dynamic_cast<ultralight::GPUDriverGL*>(context_->driver());
+    if (!driver)
+        return 0;
 
-  const auto render_target = view_->render_target();
-  if (render_target.texture_id == 0)
-    return 0;
+    const auto render_target = view_->render_target();
+    if (render_target.texture_id == 0)
+        return 0;
 
-  const unsigned int resolved =
-      driver->GetGLTextureId(render_target.texture_id);
-  return glIsTexture(resolved) ? resolved : 0;
+    const unsigned int resolved =
+driver->GetGLTextureId(render_target.texture_id); return glIsTexture(resolved) ?
+resolved : 0;
 }
-
+*/
 ultralight::View *UltralightHtmlEffect::view() const { return view_.get(); }
 
 } // namespace UltralightWebCursorM

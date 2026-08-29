@@ -5,6 +5,7 @@
 #include <array>
 #include <core/output.h>
 #include <kwin/effect/effect.h>
+
 namespace KWin {
 
 class LogicalOutput;
@@ -25,6 +26,7 @@ public:
                    const Region &region, LogicalOutput *screen) override;
 
   bool isActive() const override;
+  void reconfigure(ReconfigureFlags flags) override;
 
   int requestedEffectChainPosition() const override { return 99; }
 
@@ -40,9 +42,12 @@ private:
   bool isBlacklisted() const;
   GLTexture *ensureCursorTexture();
   void slotWindowStateChanged(EffectWindow *w);
-
-  // QTimer* m_renderTimer = nullptr;
+  void startIdleTimer();
+  void slotIdleTimeout();
   std::unique_ptr<GLTexture> m_cursorTexture;
+  QTimer m_idleTimer;
+  bool m_autoHidden = false;
+  bool m_firstFocusDone = false;
 };
 
 } // namespace KWin

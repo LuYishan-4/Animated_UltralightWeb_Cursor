@@ -3,13 +3,13 @@
 #include "../config/CursorJSON.hpp"
 #include "../config/UserConfig.hpp"
 #include "../lib/WebCall/WebCall.hpp"
-#include "../lib/gl/GPUContextGL.h"
 #include <AppCore/AppCore.h>
 #include <Ultralight/Ultralight.h>
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
+
 namespace UltralightWebCursorM {
 
 class UltralightHtmlEffect {
@@ -33,6 +33,8 @@ public:
 
   bool resize(const int &width, const int &height);
 
+  static ultralight::RefPtr<ultralight::Renderer> sharedRenderer();
+
   const uint8_t *pixels() const;
   unsigned int textureId() const;
 
@@ -42,8 +44,15 @@ public:
 
   int stride() const { return html_value_.stride_; }
 
-  int hotspotX() const { return html_value_.hotspot_x_; }
-  int hotspotY() const { return html_value_.hotspot_y_; }
+  int hotspotX() const {
+    // return html_value_.hotspot_x_;
+    return html_value_.width_ / 2;
+  }
+
+  int hotspotY() const {
+    // return html_value_.hotspot_y_;
+    return html_value_.height_ / 2;
+  }
 
   void setEnabled(bool enabled);
 
@@ -64,11 +73,10 @@ private:
     int hotspot_y_ = 64;
     std::string m_permanentSdkPath;
     std::filesystem::path html_path_;
-    bool use_gpu_ = true;
   };
+
   Html_Value html_value_;
 
-  std::unique_ptr<ultralight::GPUContextGL> context_;
   ultralight::RefPtr<ultralight::Renderer> renderer_;
   std::shared_ptr<WebCall> webcall;
 
@@ -77,13 +85,14 @@ private:
   std::unique_ptr<ultralight::LoadListener> listener_;
 
   bool is_loaded_ = false;
-  bool pending_gpu_init_ = false;
 
   bool enabled_ = true;
 
   bool new_frame_ = false;
 
-  bool platform_initialized_ = false;
+  bool renderer_initialized_ = false;
+
+  inline static bool platform_initialized_ = false;
 
   std::vector<uint8_t> pixel_buffer_;
 

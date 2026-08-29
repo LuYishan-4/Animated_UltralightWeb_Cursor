@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Ultralight Web Cursor
+Comment=Configure the animated HTML/CSS cursor
+Exec=ultralightwebcursor-gui
+Icon=org.ultralightwebcursor
+Terminal=false
+Categories=Settings;Qt;Graphics;

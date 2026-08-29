@@ -26,11 +26,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
 
-set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64")
-
+if(WIN32)
+    set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-win-x64")
+else()
+    set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64")
+endif()
 
 set(ULTRALIGHT_BIN "${ULTRALIGHT_ROOT}/bin")
 
@@ -44,7 +45,7 @@ function(ultralight_import_library target_name lib_basename)
     if(WIN32)
         set_target_properties(${target_name} PROPERTIES
             IMPORTED_LOCATION "${ULTRALIGHT_BIN}/${lib_basename}.dll"
-            IMPORTED_IMPLIB   "${ULTRALIGHT_BIN}/${lib_basename}.lib"
+            IMPORTED_IMPLIB   "${ULTRALIGHT_ROOT}/lib/${lib_basename}.lib"
             INTERFACE_INCLUDE_DIRECTORIES "${ULTRALIGHT_ROOT}/include"
         )
     else()
@@ -73,8 +74,16 @@ if(NOT WIN32)
     set(CMAKE_INSTALL_RPATH "/usr/lib/ultralightwebcursor")
 endif()
 
-find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus)
+# ---- Qt -----------------------------------------------------------------
+if(WIN32)
+    find_package(Qt6 6.6 REQUIRED COMPONENTS Core)
+else()
+    find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus)
+endif()
 
+# Shared core: config loading/saving + plugin-path resolution. This object
+# library is consumed by every variant (KWin plugin, X11/Windows standalone
+# engines, and the settings GUI).
 add_library(ultralightwebcursor_core OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.hpp"
@@ -91,23 +100,29 @@ target_include_directories(ultralightwebcursor_core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/header
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath
-      ${GLFW_INCLUDE_DIRS}
 )
 
 target_link_libraries(ultralightwebcursor_core
     PUBLIC
     Qt6::Core
-    Qt6::DBus
-    ${GLFW_LIBRARIES}
 )
+if(NOT WIN32)
+    target_link_libraries(ultralightwebcursor_core PUBLIC Qt6::DBus)
+endif()
 
 # Ensure objects compiled into shared modules are position-independent
 set_target_properties(ultralightwebcursor_core PROPERTIES
     POSITION_INDEPENDENT_CODE ON
 )
 
+# Linux variant selector (asks KWin vs X11 at setup time).
+if(NOT WIN32)
+    add_subdirectory(src/linux)
+endif()
+
+# ---- Desktop environment detection --------------------------------------
 set(FORCE_DESKTOP_ENVIRONMENT "" CACHE STRING
-    " (KDE/GNOME/HYPRLAND/NIRI/SWAY/WINDOWS):"
+    "Force the target desktop environment (KDE/X11/WINDOWS):"
 )
 
 if(WIN32)
@@ -127,70 +142,94 @@ else()
     string(TOUPPER "${_de_raw}" DETECTED_DESKTOP_ENVIRONMENT)
 endif()
 
+# ---- Platform variants --------------------------------------------------
+include(GNUInstallDirs)
+
+if(NOT WIN32)
+    install(FILES GUI/org.ultralightwebcursor.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+endif()
+
 if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
     target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_WINDOWS)
-    add_subdirectory(GUI/windows)
+    add_subdirectory(GUI)
     add_subdirectory(src/windows)
+
+    # Bundle the Ultralight runtime + resources + themes next to the
+    # executables so the standalone engine resolves a portable layout.
+    install(
+        DIRECTORY "${ULTRALIGHT_BIN}/"
+        DESTINATION bin
+        FILES_MATCHING PATTERN "*.dll"
+    )
+    install(
+        DIRECTORY "${ULTRALIGHT_ROOT}/resources"
+        DESTINATION bin/resources
+    )
+    install(
+        DIRECTORY WebCursor/
+        DESTINATION bin
+    )
+elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "KDE")
+    set(KF6_MIN_VERSION "6.0.0")
+
+    find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
+    set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+
+    include(FeatureSummary)
+    include(GNUInstallDirs)
+    include(KDEInstallDirs)
+    include(KDECMakeSettings)
+    include(KDECompilerSettings NO_POLICY_SCOPE)
+
+    find_package(Qt6 6.6 REQUIRED COMPONENTS
+        Core Gui DBus Widgets Qml Quick QuickControls2
+    )
+
+    find_package(KF6 REQUIRED COMPONENTS
+        CoreAddons Config ConfigWidgets I18n Auth
+    )
+
+    find_package(KWin REQUIRED)
+    target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_KWIN)
+    add_subdirectory(GUI)
+    add_subdirectory(src/kwin-plasma)
+
+    install(
+        DIRECTORY "${ULTRALIGHT_BIN}/"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/ultralightwebcursor"
+        FILES_MATCHING PATTERN "*.so*"
+    )
+
+    install(DIRECTORY WebCursor/
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
+    )
+    install(
+        DIRECTORY "${ULTRALIGHT_ROOT}/resources"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
+    )
+
+    feature_summary(
+        WHAT ALL
+        INCLUDE_QUIET_PACKAGES
+        FATAL_ON_MISSING_REQUIRED_PACKAGES
+    )
 else()
+    # X11 and any unrecognised Linux desktop share the same standalone engine.
+    target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
+    add_subdirectory(GUI)
+    add_subdirectory(src/x11)
 
-
-    if(DETECTED_DESKTOP_ENVIRONMENT MATCHES "KDE")
-        set(KF6_MIN_VERSION "6.0.0")
-
-        find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
-        set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
-
-        include(FeatureSummary)
-        include(GNUInstallDirs)
-        include(KDEInstallDirs)
-        include(KDECMakeSettings)
-        include(KDECompilerSettings NO_POLICY_SCOPE)
-
-        find_package(Qt6 6.6 REQUIRED COMPONENTS
-            Core Gui DBus Widgets Qml Quick QuickControls2
-        )
-
-        find_package(KF6 REQUIRED COMPONENTS
-            CoreAddons Config ConfigWidgets KCMUtils I18n Auth
-        )
-
-        find_package(KWin REQUIRED)
-        target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_KWIN)
-        add_subdirectory(src/kwin-plasma)
-        #add_subdirectory(GUI/kwin-plasma)
-
-
-        install(
-            DIRECTORY "${ULTRALIGHT_BIN}/"
-            DESTINATION "${CMAKE_INSTALL_LIBDIR}/ultralightwebcursor"
-            FILES_MATCHING PATTERN "*.so*"
-        )
-
-        install(DIRECTORY WebCursor/
-            DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
-        )
-        install(
-            DIRECTORY "${ULTRALIGHT_ROOT}/resources"
-            DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
-        )
-
-        feature_summary(
-            WHAT ALL
-            INCLUDE_QUIET_PACKAGES
-            FATAL_ON_MISSING_REQUIRED_PACKAGES
-        )
-
-        #elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "HYPRLAND")
-        #   add_subdirectory(GUI/hyprland)
-        #    add_subdirectory(src/hyprland) not now :D
-    elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "X11")
-        target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
-        add_subdirectory(GUI/x11)
-        add_subdirectory(src/x11)
-    else()
-        target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
-        add_subdirectory(GUI/x11)
-        add_subdirectory(src/x11)
-    endif()
-
+    install(
+        DIRECTORY "${ULTRALIGHT_BIN}/"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/ultralightwebcursor"
+        FILES_MATCHING PATTERN "*.so*"
+    )
+    install(DIRECTORY WebCursor/
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/ultralightwebcursor"
+    )
+    install(
+        DIRECTORY "${ULTRALIGHT_ROOT}/resources"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/ultralightwebcursor"
+    )
 endif()
