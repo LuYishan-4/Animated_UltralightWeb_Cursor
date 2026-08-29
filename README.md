@@ -1,10 +1,3 @@
-### ⚠️ Project Status Notice
-
-This project has been officially discontinued and abandoned. All future development and functionality are shifting to [WebKDE-kplugin](https://github.com/LuYishan-4/WebKDE-kplugin). 
-
-Please note that ongoing support and future updates will be strictly limited to **KWin**. 
-
-
 <div align="center">
 <img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/GUI/assets/sakichansakichansakichansakichansakichansakichansakichansakichan.svg" width="200" height="200">
 
