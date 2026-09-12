@@ -1,0 +1,14 @@
+#pragma once
+
+
+namespace UltralightWebCursor::BuildConfig {
+
+inline constexpr auto version = "@PROJECT_VERSION@";
+inline constexpr auto dataRevision = "@UWC_DATA_REVISION@";
+inline constexpr auto installDataDir = "@UWC_INSTALL_DATA_DIR@";
+inline constexpr auto applicationId = "io.github.luyishan4.ultralightwebcursor";
+inline constexpr auto applicationName = "ultralightwebcursor";
+inline constexpr auto engineExecutable = "ultralightwebcursor-engine";
+inline constexpr auto ipcSocketName = "io.github.luyishan4.ultralightwebcursor.engine";
+
+} // namespace UltralightWebCursor::BuildConfig

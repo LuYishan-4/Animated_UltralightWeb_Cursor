@@ -1,19 +1,17 @@
 <div align="center">
-<img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/GUI/assets/sakichansakichansakichansakichansakichansakichansakichansakichan.svg" width="200" height="200">
 
-# Animated_UltralightWeb_Cursor
+<img src="GUI/icons/io.github.luyishan4.ultralightwebcursor.svg" width="128" height="128" alt="Ultralight Web Cursor">
 
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+# Ultralight Web Cursor
+
+**Programmable animated desktop cursors made with HTML, CSS and JavaScript.**
+
 [![AUR](https://img.shields.io/badge/AUR-ultralightwebcursor--git-1793d1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/ultralightwebcursor-git)
-[![Platform](https://img.shields.io/badge/platform-Wayland%20%7C%20KWin-blueviolet)](#)
-[![Made with C++](https://img.shields.io/badge/C%2B%2B-20-00599C?logo=c%2B%2B&logoColor=white)](#)
-[![Ultralight](https://img.shields.io/badge/renderer-Ultralight-orange)](https://ultralig.ht/)
+[![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-4fc3f7)](#platform-support)
+[![C++](https://img.shields.io/badge/C%2B%2B-20-00599c?logo=cplusplus)](#)
+[![Renderer](https://img.shields.io/badge/renderer-Ultralight-f58220)](https://ultralig.ht/)
 
-**English** | [繁體中文](#繁體中文)
-
-  <img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/assets/4lgsd-jb9v1.gif" width="500">
-  
-
+**English** · [繁體中文](#繁體中文)
 
 </div>
 
@@ -21,134 +19,191 @@
 
 ## English
 
-**UltralightWeb Cursor** is a Linux custom animated cursor framework built on **Wayland** and **Ultralight**.
-
-It lets you design cursor effects with plain **HTML, CSS, and JavaScript**. Whatever you render gets converted into a native Wayland/KWin cursor in real time — fully customizable, fully programmable.
-
-The project is split into three independent pieces so each part stays simple and swappable:
-
-| Component | Role |
-|---|---|
-| `kwin-plugin` | The actual KWin Effect — renders your HTML theme and Cs it as the system cursor, globally, across every window |
-| `settings-app` | A small Qt/QML GUI to pick your theme, toggle the effect on/off, and manage settings |
-
+Ultralight Web Cursor renders a transparent, click-through desktop overlay and
+places an Ultralight HTML view at the pointer position. Themes can react to
+movement and mouse clicks without requiring a browser or Electron.
 
 ### Features
 
-- Native Wayland/KWin cursor rendering — works across all windows, not just one app
-- HTML/CSS/JavaScript-based cursor themes
-- Ultralight rendering backend (headless, CPU-rendered — no GPU context conflicts with KWin)
-- Real-time cursor updates, including click/drag reactive effects
-- Transparent cursor rendering
-- Persistent user settings (remembers your last theme/state)
-- Graphical settings app (QML) with live "apply without logout" support
+- HTML/CSS/JavaScript cursor themes
+- Transparent, click-through desktop overlay
+- Bundled theme gallery and trusted-folder import
+- Live theme, size and enable/disable updates
+- Per-user launch-on-login setting
+- Multi-monitor virtual desktop support
+- Standalone Qt Quick settings application
+- Single Windows setup executable produced by CI
 
-### Installation
+### Platform support
 
-**Arch Linux (recommended):**
+| Platform | Status | Notes |
+|---|---|---|
+| Linux X11 | Supported | Uses Qt xcb, Xlib and XFixes |
+| Linux Wayland | XWayland compatibility | Requires XWayland; behavior depends on the compositor |
+| Windows 10/11 x64 | Supported | Installed with the CI-generated setup executable |
+| Native Wayland | Not supported | Standard Wayland does not expose the global pointer APIs this overlay needs |
 
-Please note that this plugin currently only supports KDE.
+### Install on Arch Linux
 
 ```bash
 yay -S ultralightwebcursor-git
 ```
 
-**Manual build (any distro, until packaging matures):**
+Open **Ultralight Web Cursor** from the application launcher. The GUI starts the
+engine when the cursor is enabled. To remove the AUR package:
 
 ```bash
-git clone https://github.com/yourname/UltralightWeb-Cursor.git
-cd UltralightWeb-Cursor
-./build.sh
+yay -Rns ultralightwebcursor-git
 ```
 
-This builds and installs all three components: the KWin plugin, the settings app, and the test daemon.
+Linux packages are intentionally never removed from inside the GUI because
+package-owned files must be managed by pacman.
 
+### Manual Linux build
 
-### Setting
+Requirements include CMake, Qt 6, X11/XFixes, 7-Zip and the dependencies of the
+bundled Ultralight runtime.
 
 ```bash
-/.config/ultralightwebcursor/config.ini
+git clone https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor.git
+cd Animated_UltralightWeb_Cursor
+./build.sh                 # build only
+./build.sh install         # install to /usr/local (sudo)
 ```
 
-   (also searchable from KRunner / the app launcher as **"UltralightWeb Cursor"**)
+Use `PREFIX=/usr ./build.sh install` to install under `/usr`. Build-tree binaries
+are placed in `build-linux/bin/` and include a staged data directory for direct
+testing.
 
-3. Changes apply live via **Apply** — no logout required.
+### Windows
 
-### Roadmap (not implemented yet)
+Every supported push builds `ultralightwebcursor-windows-x64-setup.exe` in
+GitHub Actions. The installer contains the engine, settings application, Qt
+runtime, Ultralight runtime, themes, licenses and an uninstaller.
 
-These are planned, not yet built — contributions welcome:
+Unsigned executables can trigger SmartScreen or Safe Browsing. Release builds
+can be Authenticode-signed by setting the repository secrets
+`WINDOWS_PFX_BASE64` and `WINDOWS_PFX_PASSWORD`. A SHA-256 checksum is published
+next to every installer.
 
-- **Cursor Editor** — a graphical editor for authoring cursor animations
-- **Animation Timeline** — keyframes, frame interpolation, animation curves
-- **Advanced Effects** — particle cursors, glow effects, physics-based animation, shader effects
-- **Theme Marketplace** — theme packages, import/export, community sharing
+### Data and configuration
 
-### Author
+| Data | Linux | Windows |
+|---|---|---|
+| Settings | `~/.config/ultralightwebcursor/config.ini` | `%LOCALAPPDATA%/ultralightwebcursor/config.ini` |
+| Writable themes/resources | `~/.local/share/ultralightwebcursor/` | `%LOCALAPPDATA%/ultralightwebcursor/` |
+| Bundled Linux data | `/usr/share/ultralightwebcursor/` | Installed beside the executables |
 
-**LuYishan**
+Bundled resources are synchronized into the writable per-user data directory.
+Imported themes are never written into `/usr` or `Program Files`.
+
+### Theme format
+
+A theme is a folder containing at least:
+
+```text
+my-theme/
+├── CursorData.json
+└── index.html
+```
+
+CSS, JavaScript, images and audio can live beside those files. See
+`WebCursor/variant1-neon/` for a minimal example.
+
+> [!WARNING]
+> Themes execute JavaScript. Import themes only from authors you trust.
+
+### Development
+
+```bash
+./build.sh build
+ULTRALIGHTWEBCURSOR_DEBUG=1 ./build-linux/bin/ultralightwebcursor-engine
+./build-linux/bin/ultralightwebcursor-gui
+```
+
+The source tree is intentionally split into four focused areas:
+
+```text
+src/config/      configuration, paths, migration and theme metadata
+src/engine/      overlay, IPC, autostart and platform mouse providers
+src/renderer/    Ultralight HTML renderer and JavaScript bridge
+GUI/             standalone Qt Quick settings application
+```
+
+### License
+
+Project source code is MIT licensed. The bundled Ultralight SDK/runtime is
+proprietary and distributed under Ultralight's license and EULA. Both license
+sets are installed with the application; see `sdk/.../license/` after extracting
+the SDK archive.
 
 ---
 
 ## 繁體中文
 
-**UltralightWeb Cursor**是一個基於 **Wayland** 與 **Ultralight** 打造的 Linux 自訂動畫游標框架。
+Ultralight Web Cursor 使用透明、可穿透點擊的桌面覆蓋視窗，在滑鼠位置繪製
+Ultralight HTML 畫面。游標主題可以使用 HTML、CSS 與 JavaScript，並回應移動與
+點擊事件，不需要瀏覽器或 Electron。
 
-你可以直接用 **HTML、CSS、JavaScript** 設計游標特效，渲染出來的畫面會即時轉換成原生的 Wayland/KWin 游標——完全可自訂、完全可程式化。
+### 功能
 
-專案拆成三個各自獨立的部分，讓每個模組單純、可替換：
+- HTML/CSS/JavaScript 動畫游標主題
+- 透明、可穿透點擊的桌面覆蓋視窗
+- 內建主題與可信任資料夾匯入
+- 即時切換主題、尺寸與啟用狀態
+- 使用者層級的登入自動啟動
+- 多螢幕虛擬桌面支援
+- 獨立 Qt Quick 設定程式
+- Windows CI 產生單一安裝用 `.exe`
 
-| 元件 | 作用 |
-|---|---|
-| `kwin-plugin` | 真正的 KWin Effect——渲染你的 HTML 主題並畫成系統游標，跨所有視窗全域生效 |
-| `settings-app` | 小型 Qt/QML 圖形化設定工具，用來選主題、開關特效、管理設定 |
+### 平台
 
+- **Linux X11：**正式支援。
+- **Linux Wayland：**透過 XWayland 相容執行，效果取決於 compositor。
+- **Windows 10/11 x64：**正式支援。
+- **原生 Wayland：**目前不支援；Linux 版本需要 X11 或 XWayland。
 
-###  特色
-
-- 原生 Wayland/KWin 游標渲染——跨所有視窗生效，不只單一 App 內
-- 基於 HTML/CSS/JavaScript 的游標主題
-- Ultralight 渲染後端（headless、CPU 渲染，不會跟 KWin 的 GPU context 打架）
-- 即時游標更新，支援點擊/拖曳互動特效
-- 透明背景游標渲染
-- 使用者設定持久化（記得你上次的主題/開關狀態）
-- 圖形化設定工具（QML），支援「不用登出即可套用」
-
-###  安裝
-
-**Arch Linux（推薦）：**
-
-注意該插件目前僅支援kde
+### Arch Linux 安裝
 
 ```bash
 yay -S ultralightwebcursor-git
 ```
 
-**手動編譯（其他發行版，套件尚未成熟前的替代方案）：**
+安裝後從應用程式選單搜尋 **Ultralight Web Cursor**。移除套件請使用：
 
 ```bash
-git clone https://github.com/yourname/UltralightWeb-Cursor.git
-cd UltralightWeb-Cursor
-./build.sh
+yay -Rns ultralightwebcursor-git
 ```
 
-這樣會一次把三個元件（KWin plugin、設定工具、測試 daemon）都編好並安裝。
+GUI 不會自行刪除 pacman 管理的檔案，避免破壞套件資料庫。
 
-
-
-### 設置
+### 手動編譯
 
 ```bash
-/.config/ultralightwebcursor/config.ini
+git clone https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor.git
+cd Animated_UltralightWeb_Cursor
+./build.sh                 # 只編譯
+./build.sh install         # 安裝到 /usr/local
 ```
 
-   （也可以直接在 KRunner / 應用程式選單搜尋 **「UltralightWeb Cursor」**）
+開發測試：
 
-3. 按下 **套用** 即時生效，不需要登出。
+```bash
+ULTRALIGHTWEBCURSOR_DEBUG=1 ./build-linux/bin/ultralightwebcursor-engine
+./build-linux/bin/ultralightwebcursor-gui
+```
 
+### 資料位置
 
-求大佬發好看的PR我網頁能力有限做的鼠標不太怎麼好看😭😭😭
+Linux 設定檔位於 `~/.config/ultralightwebcursor/config.ini`，可寫入的資源與
+主題位於 `~/.local/share/ultralightwebcursor/`。套件內建資料放在
+`/usr/share/ultralightwebcursor/`，程式會同步到使用者資料夾，不會嘗試寫入
+`/usr`。
 
+> [!WARNING]
+> 游標主題可以執行 JavaScript，請只匯入你信任的主題。
 
-### 作者
+### 授權
 
-**LuYishan**
+專案原始碼採 MIT 授權；內附的 Ultralight SDK/runtime 為專有授權，安裝時會一併
+放入 Ultralight 的 LICENSE、EULA 與 NOTICES。

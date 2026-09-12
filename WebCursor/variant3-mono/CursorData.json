@@ -1,9 +1,10 @@
 {
-  "IconPath": "pri.png",
-  "Author": "LuYishan",
-  "minWidth": "128",
-  "minHeight": "128",
-  "describe": "test",
-    "hotspotX": "64",
-  "hotspotY": "64"
+    "Name": "Monochrome Halo",
+    "IconPath": "pri.png",
+    "Author": "LuYishan",
+    "minWidth": 128,
+    "minHeight": 128,
+    "describe": "A minimal black-and-white halo for distraction-free desktops.",
+    "hotspotX": 64,
+    "hotspotY": 64
 }

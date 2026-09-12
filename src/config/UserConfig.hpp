@@ -1,59 +1,45 @@
 #pragma once
 
-#include <filesystem>
-#include <functional>
-#include <string>
-#include <unordered_map>
-#include <vector>
-namespace UltralightWebCursorM {
+#include <QMap>
+#include <QString>
 
-extern std::filesystem::path g_sdkInitialPath;
-extern std::filesystem::path g_htmlInitialPath;
+namespace UltralightWebCursor {
 
 struct ConfigValues {
-  std::string configver;
-  std::string html;
-  std::string sdk;
-  std::vector<std::string> blacklist;
-  int width;
-  int height;
-  bool enabled;
-  bool enableGpu;
+  QString version;
+  QString htmlPath;
+  QString dataRoot;
+  int width = 128;
+  int height = 128;
+  bool enabled = true;
 };
 
-class UserConfig {
+class UserConfig final {
 public:
-  static UserConfig *instance();
-  void ensureInitialized();
+  static UserConfig &instance();
 
-  ConfigValues values;
-  bool load();
+  const ConfigValues &values() const { return values_; }
+  bool load(QString *errorMessage = nullptr);
+  bool save(QString *errorMessage = nullptr) const;
 
-  bool save();
-  void setKeyValue(const std::string &key, const std::string &path);
-  std::string readKeyValue(const std::string &key) const;
-  std::vector<std::string> getBlacklist() const;
-  void appendBlacklist(const std::string &app);
-  void removeBlacklist(const std::string &app);
-  bool uploadTheme(const std::string &srcPath, const std::string &themeName);
-  bool removeTheme(const std::string &themeName);
-  void setTheme(const std::string &themeName);
-  std::string currentTheme() const;
+  bool setEnabled(bool enabled, QString *errorMessage = nullptr);
+  bool setSize(int width, int height, QString *errorMessage = nullptr);
+  bool setTheme(const QString &themeName, QString *errorMessage = nullptr);
+
+  bool importTheme(const QString &sourceDirectory,
+                   QString *importedThemeName = nullptr,
+                   QString *errorMessage = nullptr);
+  bool removeTheme(const QString &themeName, QString *errorMessage = nullptr);
+
+  QString currentTheme() const;
 
 private:
-  UserConfig();
-  UserConfig(const UserConfig &) = delete;
-  UserConfig &operator=(const UserConfig &) = delete;
-  struct BindItem {
-    std::string key;
-    std::string defaultValue;
-    std::function<void(const std::string &)> updater;
-  };
+  UserConfig() = default;
 
-  std::vector<BindItem> schema_;
-  std::string configPath_;
-  std::unordered_map<std::string, std::string> data_;
+  void applyDefaults();
+  bool selectUsableTheme(const QString &preferredTheme);
+
+  ConfigValues values_;
 };
-#define UserConfigValues                                                       \
-  (::UltralightWebCursorM::UserConfig::instance()->values)
-} // namespace UltralightWebCursorM
+
+} // namespace UltralightWebCursor

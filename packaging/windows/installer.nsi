@@ -15,6 +15,11 @@ Unicode true
   !error "OUT_FILE must be defined (output installer path)"
 !endif
 
+!ifdef APP_ICON
+  !define MUI_ICON "${APP_ICON}"
+  !define MUI_UNICON "${APP_ICON}"
+!endif
+
 !include "MUI2.nsh"
 
 !define APP_NAME "Ultralight Web Cursor"
@@ -33,13 +38,15 @@ VIAddVersionKey "ProductName" "${APP_NAME}"
 VIAddVersionKey "FileDescription" "${APP_NAME} Setup"
 VIAddVersionKey "FileVersion" "${APP_VERSION}"
 VIAddVersionKey "ProductVersion" "${APP_VERSION}"
-VIAddVersionKey "LegalCopyright" "MIT License"
+VIAddVersionKey "CompanyName" "LuYishan"
+VIAddVersionKey "LegalCopyright" "Copyright LuYishan"
 
 Name "${APP_NAME}"
 OutFile "${OUT_FILE}"
 InstallDir "$PROGRAMFILES64\UltralightWebCursor"
 InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
+SetRegView 64
 ManifestDPIAware true
 SetCompressor /SOLID lzma
 
@@ -73,13 +80,16 @@ Section "Ultralight Web Cursor" SecMain
   WriteRegStr HKLM "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
   WriteRegStr HKLM "${UNINST_KEY}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
+  WriteRegStr HKLM "${UNINST_KEY}" "DisplayVersion" "${APP_VERSION}"
+  WriteRegStr HKLM "${UNINST_KEY}" "Publisher" "LuYishan"
+  WriteRegStr HKLM "${UNINST_KEY}" "URLInfoAbout" "https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor"
   WriteRegDWORD HKLM "${UNINST_KEY}" "NoModify" 1
   WriteRegDWORD HKLM "${UNINST_KEY}" "NoRepair" 1
 SectionEnd
 
 Section "Uninstall"
   ; Stop a running instance and drop the HKCU autostart entry the engine wrote.
-  ExecWait '"$SYSDIR\taskkill.exe" /IM ultralightwebcursor_windows.exe /F' $0
+  ExecWait '"$SYSDIR\taskkill.exe" /IM ultralightwebcursor-engine.exe /F' $0
   ExecWait '"$SYSDIR\taskkill.exe" /IM ultralightwebcursor-gui.exe /F' $0
   DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "UltralightWebCursor"
 

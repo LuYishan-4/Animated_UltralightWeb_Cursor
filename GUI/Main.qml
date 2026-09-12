@@ -1,539 +1,469 @@
-// Standalone settings window.
-//
-// Layout and styling are ported from the caelestia-kde-plugins
-// `web-cursor-settings` panel; the Quickshell plugin plumbing (shell palette,
-// SDK/build bootstrap, pkexec install, KWin D-Bus) is replaced by this
-// project's `SettingsBackend` exposed as `appBackend`.
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
+import QtQuick.Controls.Material
 import QtQuick.Dialogs
+import QtQuick.Layouts
 
 ApplicationWindow {
     id: window
 
     visible: true
-    width: 900
-    height: 780
-    minimumWidth: 520
-    minimumHeight: 460
-    title: qsTr("Web Cursor")
-    color: uwcTheme.background
+    width: 980
+    height: 760
+    minimumWidth: 660
+    minimumHeight: 540
+    title: qsTr("Ultralight Web Cursor")
 
-    property var backend: appBackend
+    Material.theme: Material.System
+    Material.accent: Material.LightBlue
 
-    Colors { id: uwcTheme }
+    required property var backend
+    property string pendingRemoval: ""
 
     FolderDialog {
-        id: themeImportDialog
-        title: qsTr("Choose a cursor theme folder")
-        onAccepted: {
-            var path = selectedFolder.toString().replace(/^file:\/\//, "");
-            if (window.backend)
-                window.backend.uploadTheme(path);
+        id: importDialog
+        title: qsTr("Import a cursor theme")
+        onAccepted: window.backend.uploadTheme(selectedFolder)
+    }
+
+    Dialog {
+        id: removeDialog
+        anchors.centerIn: parent
+        modal: true
+        title: qsTr("Remove imported theme?")
+        standardButtons: Dialog.Yes | Dialog.Cancel
+
+        Label {
+            width: 360
+            text: qsTr("The theme “%1” will be permanently removed from your user data.")
+                .arg(window.pendingRemoval)
+            wrapMode: Text.WordWrap
         }
+
+        onAccepted: {
+            window.backend.removeTheme(window.pendingRemoval)
+            window.pendingRemoval = ""
+        }
+        onRejected: window.pendingRemoval = ""
     }
 
     Dialog {
         id: uninstallDialog
         anchors.centerIn: parent
         modal: true
-        title: qsTr("Uninstall Ultralight Web Cursor")
-        standardButtons: Dialog.Yes | Dialog.No
+        title: qsTr("Uninstall Ultralight Web Cursor?")
+        standardButtons: Dialog.Yes | Dialog.Cancel
 
-        Text {
-            text: qsTr("This removes the app, its themes and the autostart entry. Continue?")
-            color: uwcTheme.surfaceText
+        Label {
+            width: 360
+            text: qsTr("Windows will open the application uninstaller. Your user themes and settings are kept unless you remove them manually.")
             wrapMode: Text.WordWrap
         }
 
-        onAccepted: {
-            if (window.backend)
-                window.backend.uninstall();
-        }
+        onAccepted: window.backend.uninstall()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 0
+    header: ToolBar {
+        implicitHeight: 72
 
-        // ---- Header ------------------------------------------------------
         RowLayout {
-            Layout.fillWidth: true
-            Layout.margins: Style.paddingLarge
-            Layout.leftMargin: Style.paddingXLarge
-            spacing: Style.spacingMedium
+            anchors.fill: parent
+            anchors.leftMargin: 22
+            anchors.rightMargin: 22
+            spacing: 14
+
+            Rectangle {
+                Layout.preferredWidth: 44
+                Layout.preferredHeight: 44
+                radius: 13
+                color: Qt.rgba(Material.accent.r, Material.accent.g,
+                               Material.accent.b, 0.16)
+
+                Image {
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    source: Qt.resolvedUrl("icons/io.github.luyishan4.ultralightwebcursor.svg")
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                }
+            }
 
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 0
-                Text {
-                    text: qsTr("Web Cursor")
-                    font.family: Style.fontFamilyHeading
-                    font.pixelSize: Style.fontTitleLarge
-                    font.weight: Font.DemiBold
-                    color: uwcTheme.surfaceText
+                spacing: 1
+
+                Label {
+                    text: qsTr("Ultralight Web Cursor")
+                    font.pixelSize: 18
+                    font.bold: true
                 }
-                Text {
-                    text: qsTr("HTML/CSS cursor rendered by Ultralight")
-                    font.family: Style.fontFamily
-                    font.pixelSize: Style.fontCaption
-                    color: uwcTheme.surfaceVariantText
-                }
-            }
-        }
-
-        // Decorative banner (drawn, so the app needs no artwork assets).
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 140
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: uwcTheme.primaryContainer }
-                GradientStop { position: 1.0; color: uwcTheme.tertiaryContainer }
-            }
-        }
-
-        // ---- Scrollable content -----------------------------------------
-        Flickable {
-            id: contentFlick
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            clip: true
-            contentWidth: width
-            contentHeight: contentLayout.implicitHeight + Style.paddingXLarge
-            boundsBehavior: Flickable.StopAtBounds
-
-            ScrollBar.vertical: ScrollBar {
-                parent: contentFlick
-                anchors.top: contentFlick.top
-                anchors.right: contentFlick.right
-                anchors.bottom: contentFlick.bottom
-                active: contentFlick.contentHeight > contentFlick.height
-                visible: active
-                contentItem: Rectangle {
-                    implicitWidth: 6
-                    radius: 3
-                    color: uwcTheme.primary
+                Label {
+                    text: window.backend.platformName
+                    color: palette.placeholderText
+                    font.pixelSize: 12
                 }
             }
 
-            ColumnLayout {
-                id: contentLayout
-                width: contentFlick.width - Style.paddingXLarge * 2
-                x: Style.paddingXLarge
-                y: Style.paddingMedium
-                spacing: Style.spacingMedium
+            Rectangle {
+                Layout.preferredHeight: 32
+                Layout.preferredWidth: engineStatus.implicitWidth + 26
+                radius: 16
+                color: window.backend.mainProcessConnected
+                    ? Qt.rgba(0.30, 0.69, 0.31, 0.16)
+                    : Qt.rgba(1.0, 0.70, 0.0, 0.16)
 
-                // ---- Enable ----------------------------------------------
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    SwitchRow {
-                        id: enableRow
-                        anchors.fill: parent
-                        text: qsTr("Enable Web Cursor")
-                        subtext: qsTr("Render the selected HTML/CSS cursor across the desktop")
-                        checked: window.backend ? window.backend.enabled : false
-                        colors: uwcTheme
-                        onToggled: on => {
-                            if (!window.backend) return;
-                            on ? window.backend.enable() : window.backend.disable();
-                        }
-                    }
-                    implicitHeight: enableRow.implicitHeight + padding * 2
+                Label {
+                    id: engineStatus
+                    anchors.centerIn: parent
+                    text: window.backend.mainProcessConnected
+                        ? qsTr("● Engine running")
+                        : qsTr("○ Engine stopped")
+                    color: window.backend.mainProcessConnected
+                        ? "#66bb6a" : "#ffb300"
+                    font.pixelSize: 12
+                    font.bold: true
                 }
+            }
 
-                // ---- Theme picker ----------------------------------------
-                RowLayout {
-                    Layout.fillWidth: true
-                    Layout.topMargin: Style.spacingLarge
-
-                    SectionHeader {
-                        Layout.fillWidth: true
-                        text: qsTr("Cursor Theme")
-                        colors: uwcTheme
-                        first: true
-                    }
-                    IconButton {
-                        icon: "add"
-                        colors: uwcTheme
-                        tonal: true
-                        onClicked: themeImportDialog.open()
-                    }
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    RowLayout {
-                        id: currentThemeRow
-                        anchors.fill: parent
-                        spacing: Style.spacingLarge
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 0
-                            Text {
-                                text: qsTr("Current theme")
-                                font.family: Style.fontFamily
-                                font.pixelSize: Style.fontCaption
-                                color: uwcTheme.surfaceVariantText
-                            }
-                            Text {
-                                Layout.fillWidth: true
-                                text: window.backend ? window.backend.currentTheme : ""
-                                font.family: Style.fontFamily
-                                font.pixelSize: Style.fontBodyLarge
-                                color: uwcTheme.surfaceText
-                                elide: Text.ElideRight
-                            }
-                        }
-                        IconButton {
-                            icon: "refresh"
-                            colors: uwcTheme
-                            onClicked: { if (window.backend) window.backend.reload(); }
-                        }
-                    }
-                    implicitHeight: currentThemeRow.implicitHeight + padding * 2
-                }
-
-                Repeater {
-                    model: window.backend ? window.backend.themeList : []
-
-                    delegate: RowCard {
-                        required property string modelData
-                        readonly property var details: window.backend
-                            ? window.backend.getThemeDetails(modelData)
-                            : ({})
-
-                        Layout.fillWidth: true
-                        colors: uwcTheme
-                        implicitHeight: themeRow.implicitHeight + padding * 2
-
-                        RowLayout {
-                            id: themeRow
-                            anchors.fill: parent
-                            spacing: Style.spacingLarge
-
-                            Image {
-                                readonly property real baseSize: 56
-                                Layout.preferredWidth: baseSize
-                                Layout.preferredHeight: baseSize
-                                Layout.alignment: Qt.AlignVCenter
-                                sourceSize.width: 112
-                                sourceSize.height: 112
-                                source: details.iconPath || ""
-                                fillMode: Image.PreserveAspectFit
-                                smooth: true
-                                cache: false
-                                visible: status === Image.Ready
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: modelData
-                                    font.family: Style.fontFamily
-                                    font.pixelSize: Style.fontBody
-                                    color: uwcTheme.surfaceText
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    Layout.fillWidth: true
-                                    visible: (details.describe || "").length > 0
-                                    text: details.describe || ""
-                                    font.family: Style.fontFamily
-                                    font.pixelSize: Style.fontCaption
-                                    color: uwcTheme.surfaceVariantText
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    text: qsTr("By %1 · minimum %2 × %3")
-                                        .arg(details.author || qsTr("Unknown"))
-                                        .arg(details.minWidth || 128)
-                                        .arg(details.minHeight || 128)
-                                    font.family: Style.fontFamily
-                                    font.pixelSize: Style.fontTiny
-                                    color: uwcTheme.surfaceVariantText
-                                }
-                            }
-
-                            IconButton {
-                                readonly property bool active: window.backend
-                                    && window.backend.currentTheme === modelData
-                                icon: active ? "check" : "play_arrow"
-                                colors: uwcTheme
-                                onClicked: {
-                                    if (window.backend) window.backend.useTheme(modelData);
-                                }
-                            }
-                            IconButton {
-                                icon: "folder_open"
-                                colors: uwcTheme
-                                onClicked: {
-                                    if (window.backend) window.backend.openThemeFolder(modelData);
-                                }
-                            }
-                            IconButton {
-                                icon: "delete"
-                                colors: uwcTheme
-                                onClicked: {
-                                    if (window.backend) window.backend.removeTheme(modelData);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ---- Size ------------------------------------------------
-                SectionHeader {
-                    Layout.fillWidth: true
-                    text: qsTr("Size")
-                    colors: uwcTheme
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    StepperRow {
-                        id: widthRow
-                        anchors.fill: parent
-                        text: qsTr("Cursor width")
-                        subtext: qsTr("Render width in pixels")
-                        min: 1
-                        max: 1920
-                        value: window.backend ? window.backend.cursorWidth : 128
-                        colors: uwcTheme
-                        onMoved: value => {
-                            if (window.backend) window.backend.cursorWidth = value;
-                        }
-                    }
-                    implicitHeight: widthRow.implicitHeight + padding * 2
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    StepperRow {
-                        id: heightRow
-                        anchors.fill: parent
-                        text: qsTr("Cursor height")
-                        subtext: qsTr("Render height in pixels")
-                        min: 1
-                        max: 1080
-                        value: window.backend ? window.backend.cursorHeight : 128
-                        colors: uwcTheme
-                        onMoved: value => {
-                            if (window.backend) window.backend.cursorHeight = value;
-                        }
-                    }
-                    implicitHeight: heightRow.implicitHeight + padding * 2
-                }
-
-                // ---- Rendering -------------------------------------------
-                SectionHeader {
-                    Layout.fillWidth: true
-                    text: qsTr("Rendering")
-                    colors: uwcTheme
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    SwitchRow {
-                        id: gpuRow
-                        anchors.fill: parent
-                        text: qsTr("GPU rendering")
-                        subtext: qsTr("Use hardware-accelerated compositing when available")
-                        checked: window.backend ? window.backend.gpuRender : true
-                        colors: uwcTheme
-                        onToggled: on => {
-                            if (window.backend) window.backend.gpuRender = on;
-                        }
-                    }
-                    implicitHeight: gpuRow.implicitHeight + padding * 2
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    SwitchRow {
-                        id: autostartRow
-                        anchors.fill: parent
-                        text: qsTr("Launch on startup")
-                        subtext: qsTr("Automatically start the cursor engine after login")
-                        checked: window.backend ? window.backend.autostart : false
-                        colors: uwcTheme
-                        onToggled: on => {
-                            if (window.backend) window.backend.setAutostart(on);
-                        }
-                    }
-                    implicitHeight: autostartRow.implicitHeight + padding * 2
-                }
-
-                // ---- Ignored applications --------------------------------
-                SectionHeader {
-                    Layout.fillWidth: true
-                    text: qsTr("Ignored Applications")
-                    colors: uwcTheme
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    ColumnLayout {
-                        id: blacklistColumn
-                        anchors.fill: parent
-                        spacing: Style.spacingSmall
-
-                        Repeater {
-                            model: window.backend ? window.backend.blacklist : []
-
-                            delegate: RowLayout {
-                                required property string modelData
-                                Layout.fillWidth: true
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: modelData
-                                    font.family: Style.fontFamily
-                                    font.pixelSize: Style.fontBody
-                                    color: uwcTheme.surfaceText
-                                    elide: Text.ElideRight
-                                }
-                                IconButton {
-                                    icon: "close"
-                                    colors: uwcTheme
-                                    onClicked: {
-                                        if (window.backend) window.backend.removeBlacklist(modelData);
-                                    }
-                                }
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Style.spacingSmall
-
-                            TextField {
-                                id: blacklistInput
-                                Layout.fillWidth: true
-                                placeholderText: qsTr("Window class or application name")
-                                color: uwcTheme.surfaceText
-                                placeholderTextColor: uwcTheme.surfaceVariantText
-                                selectByMouse: true
-                                font.family: Style.fontFamily
-                                font.pixelSize: Style.fontBody
-                                background: Rectangle {
-                                    radius: Style.radiusMedium
-                                    color: uwcTheme.surface
-                                    border.color: uwcTheme.outline
-                                    border.width: 1
-                                }
-                                onAccepted: addBlacklistFromInput()
-                            }
-                            IconButton {
-                                icon: "add"
-                                colors: uwcTheme
-                                tonal: true
-                                onClicked: addBlacklistFromInput()
-                            }
-                        }
-                    }
-                    implicitHeight: blacklistColumn.implicitHeight + padding * 2
-                }
-
-                // ---- Status ----------------------------------------------
-                Text {
-                    Layout.fillWidth: true
-                    visible: window.backend && window.backend.statusMessage.length > 0
-                    text: window.backend ? window.backend.statusMessage : ""
-                    color: uwcTheme.surfaceVariantText
-                    font.family: Style.fontFamily
-                    font.pixelSize: Style.fontCaption
-                    wrapMode: Text.WordWrap
-                }
-
-                // ---- Uninstall -------------------------------------------
-                SectionHeader {
-                    Layout.fillWidth: true
-                    text: qsTr("Danger Zone")
-                    colors: uwcTheme
-                }
-
-                RowCard {
-                    Layout.fillWidth: true
-                    colors: uwcTheme
-                    RowLayout {
-                        id: uninstallRow
-                        anchors.fill: parent
-                        spacing: Style.spacingLarge
-
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 1
-                            Text {
-                                Layout.fillWidth: true
-                                text: qsTr("Uninstall Ultralight Web Cursor")
-                                font.family: Style.fontFamily
-                                font.pixelSize: Style.fontBodyLarge
-                                color: uwcTheme.surfaceText
-                            }
-                            Text {
-                                Layout.fillWidth: true
-                                text: qsTr("Remove the app, themes and autostart entry")
-                                font.family: Style.fontFamily
-                                font.pixelSize: Style.fontCaption
-                                color: uwcTheme.surfaceVariantText
-                                wrapMode: Text.WordWrap
-                            }
-                        }
-
-                        Rectangle {
-                            id: uninstallButton
-                            implicitWidth: uninstallLabel.implicitWidth + Style.paddingLarge * 2
-                            implicitHeight: uninstallLabel.implicitHeight + Style.paddingSmall * 2
-                            radius: Style.radiusMedium
-                            color: uninstallMouse.containsMouse
-                                ? uwcTheme.error
-                                : uwcTheme.errorContainer
-                            Behavior on color { ColorAnimation { duration: Style.animFast } }
-
-                            Text {
-                                id: uninstallLabel
-                                anchors.centerIn: parent
-                                text: qsTr("Uninstall")
-                                font.family: Style.fontFamily
-                                font.pixelSize: Style.fontBody
-                                font.weight: Font.Medium
-                                color: uninstallMouse.containsMouse
-                                    ? uwcTheme.errorText
-                                    : uwcTheme.errorContainerText
-                            }
-
-                            MouseArea {
-                                id: uninstallMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: uninstallDialog.open()
-                            }
-                        }
-                    }
-                    implicitHeight: uninstallRow.implicitHeight + padding * 2
-                }
+            Button {
+                visible: !window.backend.mainProcessConnected
+                text: qsTr("Start engine")
+                highlighted: true
+                onClicked: window.backend.startEngine()
             }
         }
     }
 
-    function addBlacklistFromInput() {
-        if (!window.backend) return;
-        const value = blacklistInput.text.trim();
-        if (value.length === 0) return;
-        window.backend.addBlacklist(value);
-        blacklistInput.clear();
+    ScrollView {
+        anchors.fill: parent
+        contentWidth: availableWidth
+        clip: true
+
+        ColumnLayout {
+            width: Math.min(900, window.width - 48)
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 16
+
+            Item { Layout.preferredHeight: 10 }
+
+            // Primary control -------------------------------------------------
+            Frame {
+                Layout.fillWidth: true
+                padding: 0
+                implicitHeight: 154
+
+                background: Rectangle {
+                    radius: 18
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop {
+                            position: 0
+                            color: Qt.rgba(Material.accent.r, Material.accent.g,
+                                           Material.accent.b, 0.24)
+                        }
+                        GradientStop {
+                            position: 1
+                            color: Qt.rgba(0.55, 0.35, 0.85, 0.18)
+                        }
+                    }
+                    border.color: Qt.rgba(Material.accent.r, Material.accent.g,
+                                          Material.accent.b, 0.38)
+                }
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    spacing: 24
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Label {
+                            text: qsTr("Bring your cursor to life")
+                            font.pixelSize: 24
+                            font.bold: true
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Render programmable HTML, CSS and JavaScript themes as a desktop cursor.")
+                            wrapMode: Text.WordWrap
+                            color: palette.placeholderText
+                        }
+                        Label {
+                            text: qsTr("Changes apply instantly while the engine is running.")
+                            font.pixelSize: 12
+                            color: Material.accent
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 6
+
+                        Switch {
+                            id: enableSwitch
+                            Layout.alignment: Qt.AlignHCenter
+                            checked: window.backend.enabled
+                            Accessible.name: qsTr("Enable animated cursor")
+                            onToggled: checked
+                                ? window.backend.enable()
+                                : window.backend.disable()
+                        }
+                        Label {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: enableSwitch.checked ? qsTr("Enabled") : qsTr("Disabled")
+                            font.bold: true
+                        }
+                    }
+                }
+            }
+
+            StatusBanner {
+                message: window.backend.statusMessage
+                level: window.backend.statusLevel
+            }
+
+            // Themes ----------------------------------------------------------
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    Label {
+                        text: qsTr("Cursor themes")
+                        font.pixelSize: 20
+                        font.bold: true
+                    }
+                    Label {
+                        text: qsTr("Choose a bundled theme or import your own trusted folder.")
+                        color: palette.placeholderText
+                    }
+                }
+
+                Button {
+                    text: qsTr("Open theme folder")
+                    onClicked: window.backend.openDataDirectory()
+                }
+                Button {
+                    text: qsTr("Import theme…")
+                    highlighted: true
+                    onClicked: importDialog.open()
+                }
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: window.backend.themeList.length === 0
+                text: qsTr("No valid themes were found. Reinstall the package or import a theme.")
+                color: palette.placeholderText
+                horizontalAlignment: Text.AlignHCenter
+                padding: 28
+            }
+
+            GridLayout {
+                id: themeGrid
+                Layout.fillWidth: true
+                columns: width >= 760 ? 2 : 1
+                columnSpacing: 14
+                rowSpacing: 14
+
+                Repeater {
+                    model: window.backend.themeList
+
+                    ThemeCard {
+                        id: themeCard
+                        required property string modelData
+
+                        Layout.columnSpan: 1
+                        Layout.fillWidth: true
+                        themeName: modelData
+                        details: window.backend.getThemeDetails(modelData)
+                        current: window.backend.currentTheme === modelData
+                        onApplyRequested: window.backend.useTheme(themeName)
+                        onOpenRequested: window.backend.openThemeFolder(themeName)
+                        onRemoveRequested: {
+                            window.pendingRemoval = themeName
+                            removeDialog.open()
+                        }
+                    }
+                }
+            }
+
+            // Preferences -----------------------------------------------------
+            Label {
+                Layout.topMargin: 8
+                text: qsTr("Preferences")
+                font.pixelSize: 20
+                font.bold: true
+            }
+
+            GridLayout {
+                Layout.fillWidth: true
+                columns: width >= 760 ? 2 : 1
+                columnSpacing: 14
+                rowSpacing: 14
+
+                Frame {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 172
+                    padding: 18
+
+                    background: Rectangle {
+                        radius: 14
+                        color: palette.base
+                        border.color: palette.mid
+                        border.width: 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 10
+
+                        Label {
+                            text: qsTr("Cursor size")
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+                        Label {
+                            text: qsTr("Set an exact render size. Theme minimums are shown on each card.")
+                            color: palette.placeholderText
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+                        Item { Layout.fillHeight: true }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Label { text: qsTr("Width") }
+                            SpinBox {
+                                Layout.fillWidth: true
+                                from: 16
+                                to: 4096
+                                stepSize: 8
+                                editable: true
+                                value: window.backend.cursorWidth
+                                onValueModified: window.backend.cursorWidth = value
+                            }
+                            Label { text: "×" }
+                            Label { text: qsTr("Height") }
+                            SpinBox {
+                                Layout.fillWidth: true
+                                from: 16
+                                to: 4096
+                                stepSize: 8
+                                editable: true
+                                value: window.backend.cursorHeight
+                                onValueModified: window.backend.cursorHeight = value
+                            }
+                        }
+                    }
+                }
+
+                Frame {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 172
+                    padding: 18
+
+                    background: Rectangle {
+                        radius: 14
+                        color: palette.base
+                        border.color: palette.mid
+                        border.width: 1
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 10
+
+                        Label {
+                            text: qsTr("Launch on login")
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+                        Label {
+                            Layout.fillWidth: true
+                            text: qsTr("Start the background cursor engine automatically for this user.")
+                            color: palette.placeholderText
+                            wrapMode: Text.WordWrap
+                        }
+                        Item { Layout.fillHeight: true }
+                        Switch {
+                            text: checked ? qsTr("Starts automatically")
+                                          : qsTr("Manual start")
+                            checked: window.backend.autostart
+                            onToggled: window.backend.setAutostart(checked)
+                        }
+                    }
+                }
+            }
+
+            Frame {
+                Layout.fillWidth: true
+                padding: 16
+                background: Rectangle {
+                    radius: 14
+                    color: Qt.rgba(1.0, 0.70, 0.0, 0.09)
+                    border.color: Qt.rgba(1.0, 0.70, 0.0, 0.35)
+                }
+                RowLayout {
+                    width: parent.width
+                    spacing: 12
+                    Label {
+                        text: "⚠"
+                        font.pixelSize: 20
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("Themes can execute JavaScript. Only import themes from authors you trust.")
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+
+            // About / uninstall ----------------------------------------------
+            Frame {
+                Layout.fillWidth: true
+                Layout.bottomMargin: 24
+                padding: 18
+
+                background: Rectangle {
+                    radius: 14
+                    color: palette.base
+                    border.color: palette.mid
+                    border.width: 1
+                }
+
+                RowLayout {
+                    width: parent.width
+                    spacing: 12
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Label {
+                            text: qsTr("Ultralight Web Cursor %1")
+                                .arg(Qt.application.version)
+                            font.bold: true
+                        }
+                        Label {
+                            text: window.backend.canUninstall
+                                ? qsTr("Installed with the Windows setup program")
+                                : qsTr("Linux packages are managed by pacman / yay")
+                            color: palette.placeholderText
+                        }
+                    }
+
+                    Button {
+                        visible: window.backend.canUninstall
+                        text: qsTr("Uninstall…")
+                        onClicked: uninstallDialog.open()
+                    }
+                }
+            }
+        }
     }
 }

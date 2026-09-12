@@ -1,9 +1,10 @@
 {
-  "IconPath": "pri.png",
-  "Author": "LuYishan",
-  "minWidth": "128",
-  "minHeight": "128",
-  "describe": "test",
-    "hotspotX": "64",
-  "hotspotY": "64"
+    "Name": "Baspark Trail",
+    "IconPath": "pri.png",
+    "Author": "LuYishan",
+    "minWidth": 128,
+    "minHeight": 128,
+    "describe": "An energetic light trail with sparks and expanding click waves.",
+    "hotspotX": 64,
+    "hotspotY": 64
 }

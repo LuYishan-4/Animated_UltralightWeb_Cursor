@@ -1,292 +1,342 @@
 #include "UserConfig.hpp"
-#include "../lib/PluginPath/PluginPath.hpp"
-#include "GlobalConstants.hpp"
-#include <QDebug>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-namespace fs = std::filesystem;
-namespace UltralightWebCursorM {
-fs::path g_sdkInitialPath;
-fs::path g_htmlInitialPath;
 
-static std::vector<std::string> parseCsv(const std::string &str) {
-  std::vector<std::string> res;
-  std::stringstream ss(str);
-  std::string item;
-  while (std::getline(ss, item, ',')) {
-    if (!item.empty()) {
-      res.push_back(item);
-    }
-  }
-  return res;
+#include "AppPaths.hpp"
+#include "BuildConfig.hpp"
+#include "ThemeMetadata.hpp"
+
+#include <QDir>
+#include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
+#include <QSaveFile>
+#include <QStandardPaths>
+#include <QStringList>
+#include <QUuid>
+
+#include <algorithm>
+
+namespace UltralightWebCursor {
+namespace {
+
+void setError(QString *destination, const QString &message) {
+  if (destination)
+    *destination = message;
 }
 
-UserConfig *UserConfig::instance() {
-  static UserConfig inst;
-  return &inst;
+int boundedInteger(const QString &value, int fallback, int minimum,
+                   int maximum) {
+  bool ok = false;
+  const int parsed = value.toInt(&ok);
+  return ok ? std::clamp(parsed, minimum, maximum) : fallback;
 }
 
-UserConfig::UserConfig() {
-  if (GlobalConstants::buildType == BuildType::Windows) {
-    qDebug() << "[UltralightCursorEffect] wwdade";
-    const char *appdata = std::getenv("APPDATA");
-    if (appdata)
-      configPath_ = std::string(appdata) + "/UltralightWebCursor/config.ini";
-  } else {
-    qDebug() << "[UltralightCursorEffect] linuxe";
-    const char *home = std::getenv("HOME");
-    if (home)
-      configPath_ =
-          std::string(home) + "/.config/ultralightwebcursor/config.ini";
-  }
-}
-
-void UserConfig::ensureInitialized() {
-  qDebug() << "[UltralightCursorEffect] e";
-  if (!schema_.empty()) {
-    return;
-  }
-  auto base = UltralightWebCursorM::PluginPath::dataDir();
-  g_sdkInitialPath = base;
-  g_htmlInitialPath = g_sdkInitialPath;
-  qDebug() << "[UltralightCursorEffect] " << base.string();
-  schema_ = {
-      {"configver", "1.0.0",
-       [this](const std::string &v) { values.configver = v; }},
-      {"html", (g_htmlInitialPath / "variant1-neon" / "index.html").string(),
-       [this](const std::string &v) { values.html = v; }},
-      {"sdk", g_sdkInitialPath.string(),
-       [this](const std::string &v) { values.sdk = v; }},
-      {"blacklist", "",
-       [this](const std::string &v) { values.blacklist = parseCsv(v); }},
-      {"width", "128",
-       [this](const std::string &v) {
-         values.width = v.empty() ? 128 : std::stoi(v);
-       }},
-      {"height", "128",
-       [this](const std::string &v) {
-         values.height = v.empty() ? 128 : std::stoi(v);
-       }},
-      {"enabled", "true",
-       [this](const std::string &v) { values.enabled = (v == "true"); }},
-      {"EnableGPU", "true",
-       [this](const std::string &v) { values.enableGpu = (v == "true"); }},
-  };
-}
-bool UserConfig::load() {
-  ensureInitialized();
-  qDebug() << "[UltralightCursorEffect] loaddone";
-  data_.clear();
-  if (configPath_.empty())
+bool copyDirectory(const QString &source, const QString &destination,
+                   QString *errorMessage) {
+  const QDir sourceDir(source);
+  if (!sourceDir.exists() || !QDir().mkpath(destination)) {
+    setError(errorMessage, QStringLiteral("Could not create theme directory"));
     return false;
-  qDebug() << "[UltralightCursorEffect] lmhe";
-  std::ifstream file(configPath_);
-  if (!file.is_open()) {
-    for (const auto &item : schema_) {
-      data_[item.key] = item.defaultValue;
-      item.updater(item.defaultValue);
-    }
-    return save();
   }
-  std::string line;
-  while (std::getline(file, line)) {
-    auto pos = line.find('=');
-    if (pos == std::string::npos)
+
+  QDirIterator iterator(source, QDir::NoDotAndDotDot | QDir::AllEntries,
+                        QDirIterator::Subdirectories);
+  while (iterator.hasNext()) {
+    const QString sourcePath = iterator.next();
+    const QFileInfo info(sourcePath);
+    const QString relativePath = sourceDir.relativeFilePath(sourcePath);
+    const QString destinationPath = QDir(destination).filePath(relativePath);
+
+    if (info.isDir()) {
+      if (!QDir().mkpath(destinationPath)) {
+        setError(errorMessage,
+                 QStringLiteral("Could not create %1").arg(destinationPath));
+        return false;
+      }
       continue;
-    data_[line.substr(0, pos)] = line.substr(pos + 1);
-  }
-  bool needReSave = false;
-  if (data_["configver"] != GlobalConstants::Version) {
-    data_["configver"] = GlobalConstants::Version;
-    needReSave = true;
-  }
-
-  for (const auto &item : schema_) {
-    if (data_.find(item.key) == data_.end()) {
-      data_[item.key] = item.defaultValue;
-      needReSave = true;
     }
-    item.updater(data_[item.key]);
-  }
 
-  if (needReSave)
-    save();
-  return true;
-}
-
-bool UserConfig::save() {
-  if (configPath_.empty())
-    return false;
-  qDebug() << "[UltralightCursorEffect] save";
-  fs::create_directories(fs::path(configPath_).parent_path());
-  std::ofstream file(configPath_);
-  if (!file.is_open())
-    return false;
-  for (const auto &[k, v] : data_) {
-    file << k << "=" << v << "\n";
-  }
-  return true;
-}
-
-void UserConfig::setKeyValue(const std::string &key, const std::string &path) {
-  qDebug() << "[UltralightCursorEffect]se e";
-  data_[key] = path;
-  for (const auto &item : schema_) {
-    if (item.key == key) {
-      item.updater(path);
-      break;
-    }
-  }
-}
-
-std::string UserConfig::readKeyValue(const std::string &key) const {
-  auto it = data_.find(key);
-  if (it == data_.end()) {
-    std::cerr << "[UserConfig] key not found: " << key << "\n";
-    return "";
-  }
-  return it->second;
-}
-
-std::vector<std::string> UserConfig::getBlacklist() const {
-  std::vector<std::string> result;
-  auto it = data_.find("blacklist");
-  if (it == data_.end() || it->second.empty())
-    return result;
-  std::stringstream ss(it->second);
-  std::string item;
-  while (std::getline(ss, item, ',')) {
-    if (!item.empty())
-      result.push_back(item);
-  }
-  return result;
-}
-
-void UserConfig::appendBlacklist(const std::string &app) {
-  if (app.empty())
-    return;
-  std::string current_list = data_["blacklist"];
-  if (current_list.empty()) {
-    setKeyValue("blacklist", app);
-    save();
-    return;
-  }
-  size_t pos = current_list.find(app);
-  while (pos != std::string::npos) {
-    bool match_start = (pos == 0 || current_list[pos - 1] == ',');
-    bool match_end = (pos + app.length() == current_list.length() ||
-                      current_list[pos + app.length()] == ',');
-    if (match_start && match_end)
-      return;
-
-    pos = current_list.find(app, pos + 1);
-  }
-  current_list += "," + app;
-  setKeyValue("blacklist", current_list);
-  save();
-}
-
-void UserConfig::removeBlacklist(const std::string &app) {
-  std::string current_list = data_["blacklist"];
-  if (current_list.empty())
-    return;
-  std::string new_value;
-  std::string token;
-  std::stringstream ss(current_list);
-  while (std::getline(ss, token, ',')) {
-    if (token == app)
+    if (!info.isFile())
       continue;
-    if (!new_value.empty())
-      new_value += ",";
-    new_value += token;
-  }
-  setKeyValue("blacklist", new_value);
-  save();
-}
 
-bool UserConfig::uploadTheme(const std::string &path,
-                             const std::string &themeName) {
-  std::error_code ec;
-  fs::path src(path);
-  if (!fs::exists(src, ec) || ec) {
-    return false;
-  }
-  if (!fs::is_directory(src, ec) || ec) {
-    return false;
-  }
-  fs::path dst = g_sdkInitialPath / themeName;
-  fs::remove_all(dst, ec);
-  // bullshit
-  if (ec) {
-    return false;
-  }
-  fs::create_directories(dst, ec);
-  if (ec) {
-    return false;
-  }
-  qDebug() << "dst exists =" << fs::exists(dst);
-  fs::directory_iterator it(src, ec);
-  if (ec) {
-    return false;
-  }
-  for (; it != fs::directory_iterator(); it.increment(ec)) {
-    if (ec) {
-      return false;
-    }
-    fs::path sourceFile = it->path();
-    fs::path targetFile = dst / sourceFile.filename();
-    qDebug() << "copy:" << sourceFile.string().c_str() << "->"
-             << targetFile.string().c_str();
-    fs::copy(sourceFile, targetFile,
-             fs::copy_options::recursive | fs::copy_options::overwrite_existing,
-             ec);
-    if (ec) {
-      qDebug() << "copy failed:" << ec.message().c_str();
+    QDir().mkpath(QFileInfo(destinationPath).absolutePath());
+    if (!QFile::copy(sourcePath, destinationPath)) {
+      setError(errorMessage,
+               QStringLiteral("Could not copy %1").arg(info.fileName()));
       return false;
     }
   }
   return true;
 }
 
-void UserConfig::setTheme(const std::string &themeName) {
-  std::string htmlPath =
-      (g_htmlInitialPath / themeName / "index.html").string();
-  setKeyValue("html", htmlPath);
-  save();
+QMap<QString, QString> readConfigFile(const QString &fileName) {
+  QMap<QString, QString> values;
+  QFile file(fileName);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    return values;
+
+  while (!file.atEnd()) {
+    const QString line = QString::fromUtf8(file.readLine()).trimmed();
+    if (line.isEmpty() || line.startsWith(QLatin1Char('#')))
+      continue;
+    const qsizetype separator = line.indexOf(QLatin1Char('='));
+    if (separator <= 0)
+      continue;
+    values.insert(line.left(separator).trimmed(),
+                  line.mid(separator + 1).trimmed());
+  }
+  return values;
 }
-bool UserConfig::removeTheme(const std::string &themeName) {
-  if (themeName.empty()) {
+
+} // namespace
+
+UserConfig &UserConfig::instance() {
+  static UserConfig config;
+  return config;
+}
+
+void UserConfig::applyDefaults() {
+  values_.version = QString::fromUtf8(BuildConfig::version);
+  values_.dataRoot = AppPaths::userDataDir();
+  values_.width = 128;
+  values_.height = 128;
+  values_.enabled = true;
+  values_.htmlPath = QDir(values_.dataRoot)
+                         .filePath(QStringLiteral("variant1-neon/index.html"));
+}
+
+bool UserConfig::selectUsableTheme(const QString &preferredTheme) {
+  const QDir data(values_.dataRoot);
+  QString theme = preferredTheme;
+  if (theme.isEmpty() || !AppPaths::isThemeDirectory(data.filePath(theme))) {
+    const QStringList candidates =
+        data.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    theme.clear();
+    for (const QString &candidate : candidates) {
+      if (AppPaths::isThemeDirectory(data.filePath(candidate))) {
+        theme = candidate;
+        break;
+      }
+    }
+  }
+
+  if (theme.isEmpty())
+    return false;
+
+  values_.htmlPath = data.filePath(theme + QStringLiteral("/index.html"));
+  return true;
+}
+
+bool UserConfig::load(QString *errorMessage) {
+  applyDefaults();
+
+  QString provisioningError;
+  const bool provisioned = AppPaths::provisionUserData(&provisioningError);
+  QMap<QString, QString> stored = readConfigFile(AppPaths::configFile());
+#ifdef Q_OS_WIN
+  if (stored.isEmpty()) {
+    QStringList legacyFiles;
+    const QString roamingData = QString::fromLocal8Bit(qgetenv("APPDATA"));
+    if (!roamingData.isEmpty()) {
+      legacyFiles.append(
+          QDir(roamingData)
+              .filePath(QStringLiteral("UltralightWebCursor/config.ini")));
+    }
+    legacyFiles.append(
+        QDir(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation))
+            .filePath(QStringLiteral("ultralightwebcursor/config.ini")));
+    for (const QString &legacyFile : legacyFiles) {
+      if (QDir::cleanPath(legacyFile) ==
+          QDir::cleanPath(AppPaths::configFile()))
+        continue;
+      stored = readConfigFile(legacyFile);
+      if (!stored.isEmpty())
+        break;
+    }
+  }
+#endif
+
+  values_.width =
+      boundedInteger(stored.value(QStringLiteral("width")), 128, 16, 4096);
+  values_.height =
+      boundedInteger(stored.value(QStringLiteral("height")), 128, 16, 4096);
+  if (stored.contains(QStringLiteral("enabled")))
+    values_.enabled =
+        stored.value(QStringLiteral("enabled")) == QStringLiteral("true");
+
+  // Migrate legacy absolute paths by preserving only the selected theme name
+  // and rebasing it into the writable user data directory.
+  const QString oldHtml = stored.value(QStringLiteral("html"));
+  const QString preferredTheme = oldHtml.isEmpty()
+                                     ? QStringLiteral("variant1-neon")
+                                     : QFileInfo(oldHtml).dir().dirName();
+  const bool hasTheme = selectUsableTheme(preferredTheme);
+
+  if (!provisioned || !hasTheme) {
+    setError(errorMessage,
+             !provisioningError.isEmpty()
+                 ? provisioningError
+                 : QStringLiteral("No valid cursor theme is available"));
     return false;
   }
 
-  std::error_code ec;
-  fs::path dst = g_sdkInitialPath / themeName;
+  return save(errorMessage);
+}
 
-  if (!fs::exists(dst, ec) || ec) {
+bool UserConfig::save(QString *errorMessage) const {
+  const QString fileName = AppPaths::configFile();
+  if (!QDir().mkpath(QFileInfo(fileName).absolutePath())) {
+    setError(errorMessage, QStringLiteral("Could not create config directory"));
     return false;
   }
 
-  fs::remove_all(dst, ec);
-  if (ec) {
+  QSaveFile file(fileName);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    setError(errorMessage, QStringLiteral("Could not open config for writing"));
+    return false;
+  }
+
+  const QByteArray content =
+      QByteArray("configver=") + values_.version.toUtf8() + '\n' +
+      "html=" + values_.htmlPath.toUtf8() + '\n' +
+      "sdk=" + values_.dataRoot.toUtf8() + '\n' +
+      "width=" + QByteArray::number(values_.width) + '\n' +
+      "height=" + QByteArray::number(values_.height) + '\n' + "enabled=" +
+      (values_.enabled ? QByteArray("true") : QByteArray("false")) + '\n';
+  if (file.write(content) != content.size() || !file.commit()) {
+    setError(errorMessage, QStringLiteral("Could not save configuration"));
     return false;
   }
   return true;
 }
 
-std::string UserConfig::currentTheme() const {
-  auto it = data_.find("html");
-  if (it == data_.end() || it->second.empty()) {
-    return "default";
-  }
-  std::filesystem::path htmlPath = it->second;
-  auto themePath = htmlPath.parent_path();
-  if (themePath.filename().empty()) {
-    return "default";
-  }
-  return themePath.filename().string();
+bool UserConfig::setEnabled(bool enabled, QString *errorMessage) {
+  values_.enabled = enabled;
+  return save(errorMessage);
 }
 
-} // namespace UltralightWebCursorM
+bool UserConfig::setSize(int width, int height, QString *errorMessage) {
+  values_.width = std::clamp(width, 16, 4096);
+  values_.height = std::clamp(height, 16, 4096);
+  return save(errorMessage);
+}
+
+bool UserConfig::setTheme(const QString &themeName, QString *errorMessage) {
+  if (themeName.isEmpty() || themeName == QStringLiteral(".") ||
+      themeName == QStringLiteral("..") ||
+      themeName.contains(QLatin1Char('/')) ||
+      themeName.contains(QLatin1Char('\\'))) {
+    setError(errorMessage, QStringLiteral("Invalid theme name"));
+    return false;
+  }
+
+  const QString themeDirectory = QDir(values_.dataRoot).filePath(themeName);
+  if (!AppPaths::isThemeDirectory(themeDirectory)) {
+    setError(errorMessage, QStringLiteral("Theme is incomplete or missing"));
+    return false;
+  }
+
+  values_.htmlPath =
+      QDir(themeDirectory).filePath(QStringLiteral("index.html"));
+  return save(errorMessage);
+}
+
+bool UserConfig::importTheme(const QString &sourceDirectory,
+                             QString *importedThemeName,
+                             QString *errorMessage) {
+  const QFileInfo sourceInfo(sourceDirectory);
+  const QString canonicalSource = sourceInfo.canonicalFilePath();
+  const QString themeName = sourceInfo.fileName().trimmed();
+  if (canonicalSource.isEmpty() || !sourceInfo.isDir() ||
+      !AppPaths::isThemeDirectory(canonicalSource)) {
+    setError(errorMessage,
+             QStringLiteral("Select a folder containing index.html and "
+                            "CursorData.json"));
+    return false;
+  }
+  if (themeName.isEmpty() || themeName == QStringLiteral(".") ||
+      themeName == QStringLiteral("..") ||
+      themeName.contains(QLatin1Char('/')) ||
+      themeName.contains(QLatin1Char('\\'))) {
+    setError(errorMessage, QStringLiteral("Invalid theme folder name"));
+    return false;
+  }
+  if (AppPaths::isBuiltInTheme(themeName)) {
+    setError(errorMessage,
+             QStringLiteral("A built-in theme already uses that name"));
+    return false;
+  }
+
+  QDir data(values_.dataRoot);
+  const QString destination = data.filePath(themeName);
+  if (QFileInfo(destination).canonicalFilePath() == canonicalSource) {
+    setError(errorMessage, QStringLiteral("Theme is already installed"));
+    return false;
+  }
+
+  const QString transactionId =
+      QUuid::createUuid().toString(QUuid::WithoutBraces);
+  const QString temporaryName = QStringLiteral(".import-%1").arg(transactionId);
+  const QString backupName = QStringLiteral(".backup-%1").arg(transactionId);
+  const QString temporary = data.filePath(temporaryName);
+  const QString backup = data.filePath(backupName);
+
+  QDir(temporary).removeRecursively();
+  if (!copyDirectory(canonicalSource, temporary, errorMessage) ||
+      !AppPaths::isThemeDirectory(temporary)) {
+    QDir(temporary).removeRecursively();
+    return false;
+  }
+
+  const bool replacing = QFileInfo::exists(destination);
+  if (replacing && !data.rename(themeName, backupName)) {
+    QDir(temporary).removeRecursively();
+    setError(errorMessage, QStringLiteral("Could not replace existing theme"));
+    return false;
+  }
+
+  if (!data.rename(temporaryName, themeName)) {
+    if (replacing)
+      data.rename(backupName, themeName);
+    QDir(temporary).removeRecursively();
+    setError(errorMessage, QStringLiteral("Could not finish theme import"));
+    return false;
+  }
+
+  if (replacing)
+    QDir(backup).removeRecursively();
+  if (importedThemeName)
+    *importedThemeName = themeName;
+  return true;
+}
+
+bool UserConfig::removeTheme(const QString &themeName, QString *errorMessage) {
+  if (themeName.isEmpty() || themeName == QStringLiteral(".") ||
+      themeName == QStringLiteral("..") ||
+      themeName.contains(QLatin1Char('/')) ||
+      themeName.contains(QLatin1Char('\\'))) {
+    setError(errorMessage, QStringLiteral("Invalid theme name"));
+    return false;
+  }
+  if (AppPaths::isBuiltInTheme(themeName)) {
+    setError(errorMessage, QStringLiteral("Built-in themes cannot be removed"));
+    return false;
+  }
+  if (themeName == currentTheme()) {
+    setError(errorMessage,
+             QStringLiteral("Select another theme before removing it"));
+    return false;
+  }
+
+  const QString path = QDir(values_.dataRoot).filePath(themeName);
+  if (!AppPaths::isThemeDirectory(path) || !QDir(path).removeRecursively()) {
+    setError(errorMessage, QStringLiteral("Could not remove the theme"));
+    return false;
+  }
+  return true;
+}
+
+QString UserConfig::currentTheme() const {
+  return QFileInfo(values_.htmlPath).dir().dirName();
+}
+
+} // namespace UltralightWebCursor
