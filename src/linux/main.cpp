@@ -131,10 +131,16 @@ bool createGuiDesktopEntry() {
   file.write("[Desktop Entry]\n");
   file.write("Type=Application\n");
   file.write("Name=Ultralight Web Cursor\n");
+  file.write("GenericName=Cursor Settings\n");
   file.write("Comment=Configure the animated HTML/CSS cursor\n");
   file.write("Exec=ultralightwebcursor-gui\n");
+  file.write("Icon=org.ultralightwebcursor\n");
   file.write("Terminal=false\n");
-  file.write("Categories=Settings;Qt;Graphics;\n");
+  file.write("Categories=Settings;Qt;\n");
+  file.write(
+      "Keywords=cursor;mouse;pointer;animation;theme;web cursor;ultralight;\n");
+  file.write("StartupNotify=true\n");
+  file.write("StartupWMClass=ultralightwebcursor\n");
   file.close();
   return true;
 }

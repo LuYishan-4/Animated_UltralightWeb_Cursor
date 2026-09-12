@@ -18,7 +18,7 @@ struct ConfigValues {
   int width;
   int height;
   bool enabled;
-  bool EnableGPU;
+  bool enableGpu;
 };
 
 class UserConfig {
@@ -54,5 +54,6 @@ private:
   std::string configPath_;
   std::unordered_map<std::string, std::string> data_;
 };
-#define UserConfigimp (::UltralightWebCursorM::UserConfig::instance()->values)
+#define UserConfigValues                                                       \
+  (::UltralightWebCursorM::UserConfig::instance()->values)
 } // namespace UltralightWebCursorM

@@ -3,9 +3,9 @@
 
 enum class BuildType { Kwin, X11, Windows };
 
-class GloablContast {
+class GlobalConstants {
 private:
-  GloablContast() = default;
+  GlobalConstants() = default;
 
 public:
 #if defined(BUILD_TYPE_WINDOWS)

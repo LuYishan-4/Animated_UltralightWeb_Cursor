@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MainCursorStaff.hpp"
+#include "CursorEffectCore.hpp"
 #include <QTimer>
 #include <array>
 #include <core/output.h>
@@ -13,7 +13,7 @@ class GLTexture;
 class EffectWindow;
 
 class KwinCursorEffect : public Effect,
-                         public UltralightWebCursorM::MainCursorStaff {
+                         public UltralightWebCursorM::CursorEffectCore {
   Q_OBJECT
   Q_DISABLE_COPY(KwinCursorEffect)
 

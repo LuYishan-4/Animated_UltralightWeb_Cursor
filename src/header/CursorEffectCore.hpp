@@ -2,7 +2,7 @@
 
 #include "../config/CursorJSON.hpp"
 #include "../config/UserConfig.hpp"
-#include "../lib/BlackList/BlacklistManager.hpp"
+#include "../lib/Blacklist/BlacklistManager.hpp"
 #include "../lib/CrashReport/CrashReport.hpp"
 #include "MouseProvider.hpp"
 #include "UltralightHtmlEffect.hpp"
@@ -16,11 +16,11 @@
 
 namespace UltralightWebCursorM {
 
-class MainCursorStaff {
+class CursorEffectCore {
 
 public:
-  MainCursorStaff() = default;
-  virtual ~MainCursorStaff() = default;
+  CursorEffectCore() = default;
+  virtual ~CursorEffectCore() = default;
 
   bool isWindowBlacklisted(const std::string &windowClass) const {
     return m_blacklist.contains(windowClass);
@@ -41,9 +41,9 @@ public:
   void reloadUserConfig() {
     UltralightWebCursorM::UserConfig::instance()->load();
     UltralightWebCursorM::CursorJSON::instance()->load(
-        std::filesystem::path(UserConfigimp.html).parent_path().string());
+        std::filesystem::path(UserConfigValues.html).parent_path().string());
     if (m_html)
-      m_html->reload(UserConfigimp, CursorJSONImp);
+      m_html->reload(UserConfigValues, CursorJSONImp);
     m_blacklist.setBlacklist(
         UltralightWebCursorM::UserConfig::instance()->getBlacklist());
   }
@@ -76,7 +76,7 @@ protected:
     try {
       UltralightWebCursorM::UserConfig::instance()->load();
       UltralightWebCursorM::CursorJSON::instance()->load(
-          std::filesystem::path(UserConfigimp.html).parent_path().string());
+          std::filesystem::path(UserConfigValues.html).parent_path().string());
       m_html = std::make_unique<UltralightWebCursorM::UltralightHtmlEffect>();
 
       m_mouseProvider = std::make_unique<MouseProviderType>();
@@ -87,7 +87,7 @@ protected:
         return false;
       }
 
-      if (!m_html->initialize(UserConfigimp, CursorJSONImp)) {
+      if (!m_html->initialize(UserConfigValues, CursorJSONImp)) {
         m_html.reset();
         m_mouseProvider.reset();
         m_permanentlyDisabled = true;

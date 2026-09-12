@@ -1,5 +1,5 @@
 #include "PluginPath.hpp"
-#include "GlobalConstas.hpp"
+#include "GlobalConstants.hpp"
 #include <QCoreApplication>
 #include <QDir>
 #include <QStandardPaths>
@@ -8,7 +8,7 @@ namespace UltralightWebCursorM {
 
 std::filesystem::path PluginPath::dataDir() {
   QString path;
-  switch (GloablContast::buildType) {
+  switch (GlobalConstants::buildType) {
   case BuildType::Windows: {
     // Portable first: resources + themes next to the executable.
     const QString exeDir = QCoreApplication::applicationDirPath();

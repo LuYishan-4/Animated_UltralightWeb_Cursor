@@ -7,7 +7,7 @@
 #if defined(_WIN32)
 // Windows has no execinfo/backtrace support. The crash handler is a
 // best-effort diagnostic facility; on Windows we register a no-op so the
-// shared MainCursorStaff code path stays portable across platforms.
+// shared CursorEffectCore code path stays portable across platforms.
 #else
 #include <csignal>
 #include <execinfo.h>

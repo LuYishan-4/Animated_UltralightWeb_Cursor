@@ -7,7 +7,9 @@ if(MSVC)
 else()
     add_compile_options(-fexceptions)
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # KDE compiler settings may inject GCC-only flags (for example
@@ -89,8 +91,8 @@ add_library(ultralightwebcursor_core OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath/PluginPath.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath/PluginPath.hpp"
 )
 
 target_include_directories(ultralightwebcursor_core
@@ -99,7 +101,7 @@ target_include_directories(ultralightwebcursor_core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/config
     ${CMAKE_CURRENT_SOURCE_DIR}/src/header
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath
 )
 
 target_link_libraries(ultralightwebcursor_core
@@ -148,6 +150,8 @@ include(GNUInstallDirs)
 if(NOT WIN32)
     install(FILES GUI/org.ultralightwebcursor.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+    install(FILES GUI/icons/org.ultralightwebcursor.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
 endif()
 
 if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
@@ -162,9 +166,11 @@ if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
         DESTINATION bin
         FILES_MATCHING PATTERN "*.dll"
     )
+    # install(DIRECTORY) appends the source's last path component, so
+    # DESTINATION bin resolves to bin/resources/ (not bin/resources/resources).
     install(
         DIRECTORY "${ULTRALIGHT_ROOT}/resources"
-        DESTINATION bin/resources
+        DESTINATION bin
     )
     install(
         DIRECTORY WebCursor/

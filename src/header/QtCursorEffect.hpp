@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MainCursorStaff.hpp"
+#include "CursorEffectCore.hpp"
 
 #include <QBackingStore>
 #include <QEvent>
@@ -26,7 +26,7 @@ namespace UltralightWebCursorM {
 // KWin hosts the same rendering through KwinCursorEffect (a KWin::Effect
 // plugin). Here we drive a transparent, click-through, always-on-top QWindow
 // and repaint the HTML cursor into it each frame.
-class QtCursorEffect : public QObject, public MainCursorStaff {
+class QtCursorEffect : public QObject, public CursorEffectCore {
   Q_OBJECT
 
 public:
@@ -39,6 +39,7 @@ public:
 
 protected:
   bool event(QEvent *event) override;
+  bool eventFilter(QObject *watched, QEvent *event) override;
 
 private Q_SLOTS:
   void onTick();
