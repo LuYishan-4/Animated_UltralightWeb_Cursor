@@ -9,6 +9,9 @@ int main(int argc, char **argv) {
   QGuiApplication app(argc, argv);
   QCoreApplication::setOrganizationName(QStringLiteral("UltralightWebCursor"));
   QCoreApplication::setApplicationName(QStringLiteral("ultralightwebcursor"));
+  // Associate the window with the installed launcher entry / icon.
+  QGuiApplication::setDesktopFileName(
+      QStringLiteral("org.ultralightwebcursor"));
 
   QQmlApplicationEngine engine;
   SettingsBackend backend;

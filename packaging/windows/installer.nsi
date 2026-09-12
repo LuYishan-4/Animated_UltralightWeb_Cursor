@@ -21,11 +21,26 @@ Unicode true
 !define APP_EXE "bin\ultralightwebcursor-gui.exe"
 !define UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\UltralightWebCursor"
 
+; Version metadata (also fed to the PE header) makes the installer look like a
+; normal, well-formed product rather than a generic packer output, which helps
+; with SmartScreen/Safe Browsing reputation.
+!ifndef APP_VERSION
+  !define APP_VERSION "1.0.2"
+!endif
+
+VIProductVersion "${APP_VERSION}.0"
+VIAddVersionKey "ProductName" "${APP_NAME}"
+VIAddVersionKey "FileDescription" "${APP_NAME} Setup"
+VIAddVersionKey "FileVersion" "${APP_VERSION}"
+VIAddVersionKey "ProductVersion" "${APP_VERSION}"
+VIAddVersionKey "LegalCopyright" "MIT License"
+
 Name "${APP_NAME}"
 OutFile "${OUT_FILE}"
 InstallDir "$PROGRAMFILES64\UltralightWebCursor"
 InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
+ManifestDPIAware true
 SetCompressor /SOLID lzma
 
 !define MUI_ABORTWARNING

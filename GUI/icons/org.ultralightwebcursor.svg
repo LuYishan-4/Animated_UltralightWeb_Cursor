@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="cursorGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a8c7fa"/>
+      <stop offset="1" stop-color="#d0bcff"/>
+    </linearGradient>
+  </defs>
+  <path d="M72 24 L72 200 L114 158 L142 220 L172 206 L144 146 L204 146 Z"
+        fill="url(#cursorGradient)"
+        stroke="#101418"
+        stroke-width="10"
+        stroke-linejoin="round"
+        stroke-linecap="round"/>
+</svg>

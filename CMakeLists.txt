@@ -150,6 +150,8 @@ include(GNUInstallDirs)
 if(NOT WIN32)
     install(FILES GUI/org.ultralightwebcursor.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+    install(FILES GUI/icons/org.ultralightwebcursor.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
 endif()
 
 if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")

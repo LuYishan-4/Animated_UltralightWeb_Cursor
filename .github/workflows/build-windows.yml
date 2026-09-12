@@ -11,6 +11,11 @@ jobs:
     build-windows:
         runs-on: windows-latest
 
+        env:
+            # Optional: add these repository secrets to code-sign the installer.
+            WINDOWS_PFX_BASE64: ${{ secrets.WINDOWS_PFX_BASE64 }}
+            WINDOWS_PFX_PASSWORD: ${{ secrets.WINDOWS_PFX_PASSWORD }}
+
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -73,6 +78,20 @@ jobs:
                   }
                   if (-not (Test-Path $makensis)) { throw "makensis not found" }
                   & $makensis /DSTAGE_DIR="$PWD\stage" /DOUT_FILE="$PWD\ultralightwebcursor-windows-x64-setup.exe" "packaging\windows\installer.nsi"
+
+            # Optional code signing. Unsigned, low-reputation .exe downloads are what
+            # Chromium's Safe Browsing / Windows SmartScreen flag; a certificate is
+            # the only real fix. Inert until the secrets above are configured.
+            - name: Sign installer
+              if: ${{ env.WINDOWS_PFX_BASE64 != '' }}
+              shell: pwsh
+              run: |
+                  $pfx = Join-Path $env:RUNNER_TEMP "cert.pfx"
+                  [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_PFX_BASE64))
+                  $signtool = (Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+                    Sort-Object FullName -Descending | Select-Object -First 1).FullName
+                  if (-not $signtool) { throw "signtool.exe not found" }
+                  & $signtool sign /fd SHA256 /f $pfx /p $env:WINDOWS_PFX_PASSWORD /tr http://timestamp.digicert.com /td SHA256 "ultralightwebcursor-windows-x64-setup.exe"
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4

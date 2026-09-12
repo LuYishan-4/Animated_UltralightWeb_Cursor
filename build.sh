@@ -88,11 +88,21 @@ cmake --build "$BUILD_DIR" --parallel
 echo "Installing $VARIANT variant (sudo required)..."
 sudo cmake --install "$BUILD_DIR"
 
+# Refresh the application launcher database so the settings entry is
+# immediately searchable instead of waiting for a session reload.
+if command -v update-desktop-database >/dev/null 2>&1; then
+    sudo update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+fi
+if command -v kbuildsycoca6 >/dev/null 2>&1; then
+    kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+fi
+
 echo
 echo "Done. Installed the $VARIANT variant."
+echo "Settings app: search \"Ultralight Web Cursor\" in the launcher/KRunner,"
+echo "or run: ultralightwebcursor-gui"
 if [ "$VARIANT" = "kde" ]; then
     echo "The KWin effect will be available after a re-login (or load it from System Settings)."
 else
-    echo "Run 'ultralightwebcursor-install' to finish the X11 setup, or launch the
- settings app."
+    echo "The X11 engine starts on login; launch the settings app to pick a theme."
 fi

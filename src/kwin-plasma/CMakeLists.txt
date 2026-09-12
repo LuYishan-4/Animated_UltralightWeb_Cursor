@@ -4,7 +4,7 @@ kcoreaddons_add_plugin(
 )
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(EPOXY REQUIRED epoxy)
+pkg_check_modules(EPOXY REQUIRED IMPORTED_TARGET epoxy)
 
 
 target_sources(ultralightwebcursor PRIVATE
