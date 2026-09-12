@@ -11,16 +11,15 @@ target_sources(ultralightwebcursor PRIVATE
     main.cpp
     ../lib/UltralightHtmlEffect.cpp
     KwinMouseProvider.cpp
-    ../lib/BlackList/BlacklistManager.cpp
+    ../lib/Blacklist/BlacklistManager.cpp
     ../header/KwinCursorEffect.hpp
     ../header/KwinMouseProvider.hpp
     ../header/UltralightHtmlEffect.hpp
-    ../lib/BlackList/BlacklistManager.hpp
+    ../lib/Blacklist/BlacklistManager.hpp
     ../lib/CrashReport/CrashReport.hpp
-    #../../dep/glad/src/glad.c
     ../lib/UltralightPl/WebListener.hpp
     ../lib/WebCall/WebCall.hpp
-    ../header/MainCursorStaff.hpp
+    ../header/CursorEffectCore.hpp
      $<TARGET_OBJECTS:ultralightwebcursor_core>
 )
 target_include_directories(ultralightwebcursor

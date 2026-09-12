@@ -5,17 +5,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 6.6 REQUIRED COMPONENTS Core Gui Widgets Network)
 
-add_executable(ultralightwebcursor_windows
+# qt_add_executable builds a GUI-subsystem binary on Windows, so the overlay
+# engine never flashes a console window (important for autostart and when the
+# settings app spawns it).
+qt_add_executable(ultralightwebcursor_windows
     main.cpp
     ../lib/QtCursorEffect.cpp
     ../lib/SharedCursorRender.hpp
     ../header/QtCursorEffect.hpp
     QtMouseProvider.cpp
     ../header/QtMouseProvider.hpp
-    ../header/MainCursorStaff.hpp
+    ../header/CursorEffectCore.hpp
     ../lib/UltralightHtmlEffect.cpp
     ../lib/UltralightPl/WebListener.hpp
-    ../lib/BlackList/BlacklistManager.cpp
+    ../lib/Blacklist/BlacklistManager.cpp
     ../lib/WebCall/WebCall.hpp
     ../lib/Ipc/IpcServer.cpp
     ../lib/Ipc/IpcServer.hpp
@@ -44,6 +47,7 @@ target_link_libraries(ultralightwebcursor_windows PRIVATE
 if(WIN32)
     target_compile_definitions(ultralightwebcursor_windows PRIVATE WIN32_LEAN_AND_MEAN)
     target_link_libraries(ultralightwebcursor_windows PRIVATE user32)
+    set_target_properties(ultralightwebcursor_windows PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 install(TARGETS ultralightwebcursor_windows RUNTIME DESTINATION bin)

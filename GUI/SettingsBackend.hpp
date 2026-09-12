@@ -60,6 +60,7 @@ public:
   Q_INVOKABLE QVariantMap getThemeDetails(const QString &name);
   Q_INVOKABLE void addBlacklist(const QString &app);
   Q_INVOKABLE void removeBlacklist(const QString &app);
+  Q_INVOKABLE void uninstall();
 
 public Q_SLOTS:
   void enable();
@@ -85,6 +86,8 @@ private:
   void notifyMainProcess(const QString &command,
                          const QVariantMap &payload = {});
   void ensureConnected();
+  void ensureMainProcessRunning();
+  QString engineExecutablePath() const;
 
   bool enabled_ = true;
   QStringList blacklist_;

@@ -11,7 +11,7 @@
 
 **English** | [繁體中文](#繁體中文)
 
-  <img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/asstes/4lgsd-jb9v1.gif" width="500">
+  <img src="https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/blob/main/assets/4lgsd-jb9v1.gif" width="500">
   
 
 

@@ -1,6 +1,6 @@
 #include "UserConfig.hpp"
-#include "../lib/Quick/PluginPath/PluginPath.hpp"
-#include "GlobalConstas.hpp"
+#include "../lib/PluginPath/PluginPath.hpp"
+#include "GlobalConstants.hpp"
 #include <QDebug>
 #include <cstdlib>
 #include <filesystem>
@@ -30,7 +30,7 @@ UserConfig *UserConfig::instance() {
 }
 
 UserConfig::UserConfig() {
-  if (GloablContast::buildType == BuildType::Windows) {
+  if (GlobalConstants::buildType == BuildType::Windows) {
     qDebug() << "[UltralightCursorEffect] wwdade";
     const char *appdata = std::getenv("APPDATA");
     if (appdata)
@@ -73,7 +73,7 @@ void UserConfig::ensureInitialized() {
       {"enabled", "true",
        [this](const std::string &v) { values.enabled = (v == "true"); }},
       {"EnableGPU", "true",
-       [this](const std::string &v) { values.EnableGPU = (v == "true"); }},
+       [this](const std::string &v) { values.enableGpu = (v == "true"); }},
   };
 }
 bool UserConfig::load() {
@@ -99,8 +99,8 @@ bool UserConfig::load() {
     data_[line.substr(0, pos)] = line.substr(pos + 1);
   }
   bool needReSave = false;
-  if (data_["configver"] != GloablContast::Version) {
-    data_["configver"] = GloablContast::Version;
+  if (data_["configver"] != GlobalConstants::Version) {
+    data_["configver"] = GlobalConstants::Version;
     needReSave = true;
   }
 

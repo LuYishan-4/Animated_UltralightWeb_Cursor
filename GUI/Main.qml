@@ -34,6 +34,25 @@ ApplicationWindow {
         }
     }
 
+    Dialog {
+        id: uninstallDialog
+        anchors.centerIn: parent
+        modal: true
+        title: qsTr("Uninstall Ultralight Web Cursor")
+        standardButtons: Dialog.Yes | Dialog.No
+
+        Text {
+            text: qsTr("This removes the app, its themes and the autostart entry. Continue?")
+            color: uwcTheme.surfaceText
+            wrapMode: Text.WordWrap
+        }
+
+        onAccepted: {
+            if (window.backend)
+                window.backend.uninstall();
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -436,6 +455,75 @@ ApplicationWindow {
                     font.family: Style.fontFamily
                     font.pixelSize: Style.fontCaption
                     wrapMode: Text.WordWrap
+                }
+
+                // ---- Uninstall -------------------------------------------
+                SectionHeader {
+                    Layout.fillWidth: true
+                    text: qsTr("Danger Zone")
+                    colors: uwcTheme
+                }
+
+                RowCard {
+                    Layout.fillWidth: true
+                    colors: uwcTheme
+                    RowLayout {
+                        id: uninstallRow
+                        anchors.fill: parent
+                        spacing: Style.spacingLarge
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+                            Text {
+                                Layout.fillWidth: true
+                                text: qsTr("Uninstall Ultralight Web Cursor")
+                                font.family: Style.fontFamily
+                                font.pixelSize: Style.fontBodyLarge
+                                color: uwcTheme.surfaceText
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: qsTr("Remove the app, themes and autostart entry")
+                                font.family: Style.fontFamily
+                                font.pixelSize: Style.fontCaption
+                                color: uwcTheme.surfaceVariantText
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+
+                        Rectangle {
+                            id: uninstallButton
+                            implicitWidth: uninstallLabel.implicitWidth + Style.paddingLarge * 2
+                            implicitHeight: uninstallLabel.implicitHeight + Style.paddingSmall * 2
+                            radius: Style.radiusMedium
+                            color: uninstallMouse.containsMouse
+                                ? uwcTheme.error
+                                : uwcTheme.errorContainer
+                            Behavior on color { ColorAnimation { duration: Style.animFast } }
+
+                            Text {
+                                id: uninstallLabel
+                                anchors.centerIn: parent
+                                text: qsTr("Uninstall")
+                                font.family: Style.fontFamily
+                                font.pixelSize: Style.fontBody
+                                font.weight: Font.Medium
+                                color: uninstallMouse.containsMouse
+                                    ? uwcTheme.errorText
+                                    : uwcTheme.errorContainerText
+                            }
+
+                            MouseArea {
+                                id: uninstallMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: uninstallDialog.open()
+                            }
+                        }
+                    }
+                    implicitHeight: uninstallRow.implicitHeight + padding * 2
                 }
             }
         }

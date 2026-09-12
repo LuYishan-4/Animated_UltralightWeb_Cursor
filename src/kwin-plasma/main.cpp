@@ -94,10 +94,10 @@ void KwinCursorEffect::disable() {
 
 void KwinCursorEffect::reloadHtml() {
   UltralightWebCursorM::UserConfig::instance()->load();
-  UltralightWebCursorM::CursorJSON::instance()->load(UserConfigimp.html);
+  UltralightWebCursorM::CursorJSON::instance()->load(UserConfigValues.html);
   if (!m_html)
     return;
-  m_html->reload(UserConfigimp, CursorJSONImp);
+  m_html->reload(UserConfigValues, CursorJSONImp);
   effects->addRepaintFull();
 }
 

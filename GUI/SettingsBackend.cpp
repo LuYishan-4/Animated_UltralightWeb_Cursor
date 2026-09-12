@@ -1,11 +1,13 @@
 #include "SettingsBackend.hpp"
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QProcess>
 #include <QUrl>
 
 #include <filesystem>
@@ -109,15 +111,15 @@ void SettingsBackend::setStatusMessage(const QString &message) {
 void SettingsBackend::reload() {
   UltralightWebCursorM::UserConfig::instance()->load();
 
-  enabled_ = UserConfigimp.enabled;
-  cursorWidth_ = UserConfigimp.width;
-  cursorHeight_ = UserConfigimp.height;
-  gpuRender_ = UserConfigimp.EnableGPU;
+  enabled_ = UserConfigValues.enabled;
+  cursorWidth_ = UserConfigValues.width;
+  cursorHeight_ = UserConfigValues.height;
+  gpuRender_ = UserConfigValues.enableGpu;
   currentTheme_ =
       QString::fromStdString(UserConfig::instance()->currentTheme());
 
   blacklist_.clear();
-  for (const auto &item : UserConfigimp.blacklist)
+  for (const auto &item : UserConfigValues.blacklist)
     blacklist_ << QString::fromStdString(item);
 
   loadThemes();
@@ -280,6 +282,8 @@ bool SettingsBackend::pathExists(const QString &path) const {
 void SettingsBackend::enable() {
   setEnabled(true);
   save();
+  // Bring the engine up if it is not running, then enable it.
+  ensureMainProcessRunning();
   notifyMainProcess(QStringLiteral("enable"));
   setStatusMessage(QStringLiteral("Enabled"));
 }
@@ -296,6 +300,111 @@ void SettingsBackend::reconfigureSystem() {
 }
 
 void SettingsBackend::quit() { notifyMainProcess(QStringLiteral("quit")); }
+
+QString SettingsBackend::engineExecutablePath() const {
+#if defined(BUILD_TYPE_WINDOWS)
+  return QCoreApplication::applicationDirPath() +
+         QStringLiteral("/ultralightwebcursor_windows.exe");
+#elif defined(BUILD_TYPE_X11)
+  return QCoreApplication::applicationDirPath() +
+         QStringLiteral("/ultralightwebcursor_x11");
+#else
+  return QString();
+#endif
+}
+
+void SettingsBackend::ensureMainProcessRunning() {
+#if defined(BUILD_TYPE_KWIN)
+  // The KWin variant runs inside the compositor; there is nothing to spawn.
+#else
+  ensureConnected();
+  if (ipcSocket_.state() == QLocalSocket::ConnectedState)
+    return;
+
+  const QString executable = engineExecutablePath();
+  if (executable.isEmpty() || !QFileInfo::exists(executable)) {
+    setStatusMessage(QStringLiteral("Cursor engine executable not found"));
+    return;
+  }
+
+  if (!QProcess::startDetached(executable, {QStringLiteral("--silent")})) {
+    setStatusMessage(QStringLiteral("Could not start the cursor engine"));
+    return;
+  }
+
+  // Wait for the engine to create its IPC server, then reconnect.
+  for (int attempt = 0;
+       attempt < 10 && ipcSocket_.state() != QLocalSocket::ConnectedState;
+       ++attempt) {
+    ensureConnected();
+  }
+#endif
+}
+
+void SettingsBackend::uninstall() {
+#if defined(BUILD_TYPE_WINDOWS)
+  const QString uninstaller =
+      QDir(QCoreApplication::applicationDirPath())
+          .absoluteFilePath(QStringLiteral("../uninstall.exe"));
+  if (!QFileInfo::exists(uninstaller)) {
+    setStatusMessage(QStringLiteral("Uninstaller not found"));
+    return;
+  }
+  QProcess::startDetached(uninstaller, {});
+  setStatusMessage(QStringLiteral("Uninstalling..."));
+  QCoreApplication::quit();
+#elif defined(BUILD_TYPE_KWIN) || defined(BUILD_TYPE_X11)
+  const QDir executableDir(QCoreApplication::applicationDirPath());
+  const QString prefix =
+      QDir::cleanPath(executableDir.absoluteFilePath(QStringLiteral("..")));
+  const bool supported = prefix == QStringLiteral("/usr") ||
+                         prefix == QStringLiteral("/usr/local") ||
+                         prefix == QDir::homePath() + QStringLiteral("/.local");
+  if (!supported) {
+    setStatusMessage(
+        QStringLiteral("Uninstall is only available for installed builds"));
+    return;
+  }
+
+  // User-level files first (no privileges required).
+  QFile::remove(
+      QDir::homePath() +
+      QStringLiteral("/.config/autostart/ultralightwebcursor.desktop"));
+  QFile::remove(QDir::homePath() +
+                QStringLiteral("/.local/share/applications/"
+                               "org.ultralightwebcursor.desktop"));
+  QDir(QDir::homePath() + QStringLiteral("/.local/share/ultralightwebcursor"))
+      .removeRecursively();
+  QDir(QDir::homePath() + QStringLiteral("/.config/ultralightwebcursor"))
+      .removeRecursively();
+
+  const QString script = QStringLiteral(
+      "prefix=\"$1\"; "
+      "pkill -f ultralightwebcursor_x11 >/dev/null 2>&1; "
+      "rm -rf \"$prefix/bin/ultralightwebcursor-gui\" "
+      "\"$prefix/bin/ultralightwebcursor_x11\" "
+      "\"$prefix/bin/ultralightwebcursor-install\" "
+      "\"$prefix/lib/ultralightwebcursor\" "
+      "\"$prefix/lib64/ultralightwebcursor\" "
+      "\"$prefix/share/ultralightwebcursor\" "
+      "\"$prefix/share/kwin/effects/ultralightwebcursor\" "
+      "\"$prefix/share/applications/org.ultralightwebcursor.desktop\" "
+      "\"$prefix/share/icons/hicolor/scalable/apps/"
+      "org.ultralightwebcursor.svg\"; "
+      "rm -f "
+      "\"$prefix\"/lib*/plugins/kwin/effects/plugins/ultralightwebcursor.so "
+      "\"$prefix\"/lib*/kwin/effects/plugins/ultralightwebcursor.so");
+  if (!QProcess::startDetached(QStringLiteral("pkexec"),
+                               {QStringLiteral("sh"), QStringLiteral("-c"),
+                                script, QStringLiteral("--"), prefix})) {
+    setStatusMessage(QStringLiteral("Could not launch the uninstaller"));
+    return;
+  }
+  setStatusMessage(
+      QStringLiteral("Uninstall started (authorization required)"));
+  QCoreApplication::quit();
+#endif
+}
 
 void SettingsBackend::setAutostart(bool value) {
   autostart_ = value;

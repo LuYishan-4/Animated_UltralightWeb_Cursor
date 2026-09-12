@@ -91,8 +91,8 @@ add_library(ultralightwebcursor_core OBJECT
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.hpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath/PluginPath.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath/PluginPath.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath/PluginPath.hpp"
 )
 
 target_include_directories(ultralightwebcursor_core
@@ -101,7 +101,7 @@ target_include_directories(ultralightwebcursor_core
     ${CMAKE_CURRENT_SOURCE_DIR}/src/config
     ${CMAKE_CURRENT_SOURCE_DIR}/src/header
     ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/Quick/PluginPath
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath
 )
 
 target_link_libraries(ultralightwebcursor_core
