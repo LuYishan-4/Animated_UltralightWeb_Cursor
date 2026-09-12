@@ -46,7 +46,6 @@ OutFile "${OUT_FILE}"
 InstallDir "$PROGRAMFILES64\UltralightWebCursor"
 InstallDirRegKey HKLM "${UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
-SetRegView 64
 ManifestDPIAware true
 SetCompressor /SOLID lzma
 
@@ -65,7 +64,14 @@ SetCompressor /SOLID lzma
 !insertmacro MUI_LANGUAGE "English"
 !insertmacro MUI_LANGUAGE "TradChinese"
 
+Function .onInit
+  ; NSIS directives at global scope are compile-time only.  Select the native
+  ; registry view before the directory page looks up a prior installation.
+  SetRegView 64
+FunctionEnd
+
 Section "Ultralight Web Cursor" SecMain
+  SetRegView 64
   SetOutPath "$INSTDIR"
   File /r "${STAGE_DIR}\*.*"
 
@@ -88,6 +94,7 @@ Section "Ultralight Web Cursor" SecMain
 SectionEnd
 
 Section "Uninstall"
+  SetRegView 64
   ; Stop a running instance and drop the HKCU autostart entry the engine wrote.
   ExecWait '"$SYSDIR\taskkill.exe" /IM ultralightwebcursor-engine.exe /F' $0
   ExecWait '"$SYSDIR\taskkill.exe" /IM ultralightwebcursor-gui.exe /F' $0
