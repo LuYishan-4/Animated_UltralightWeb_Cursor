@@ -21,6 +21,11 @@ if(DETECTED_DESKTOP_ENVIRONMENT MATCHES "KDE")
     list(APPEND GUI_LINK_LIBS Qt6::DBus)
 endif()
 
+# Place QML modules under the standard ':/qt/qml' resource prefix. Without
+# this, Qt 6 uses ':/<Module>' (pre-QTP0001 behavior), which the QML engine can
+# fail to resolve from a deployed/runnable bundle.
+qt_policy(SET QTP0001 NEW)
+
 qt_add_executable(ultralightwebcursor-gui main.cpp)
 
 qt_add_qml_module(ultralightwebcursor-gui

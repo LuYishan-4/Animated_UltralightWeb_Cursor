@@ -164,9 +164,11 @@ if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
         DESTINATION bin
         FILES_MATCHING PATTERN "*.dll"
     )
+    # install(DIRECTORY) appends the source's last path component, so
+    # DESTINATION bin resolves to bin/resources/ (not bin/resources/resources).
     install(
         DIRECTORY "${ULTRALIGHT_ROOT}/resources"
-        DESTINATION bin/resources
+        DESTINATION bin
     )
     install(
         DIRECTORY WebCursor/
