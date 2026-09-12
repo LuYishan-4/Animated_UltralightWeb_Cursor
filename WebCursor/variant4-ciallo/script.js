@@ -110,7 +110,7 @@ function iconParticle() {
 }
 
 // x, y are the host's real desktop mouse coordinates (see
-// UltralightHtmlEffect::move in the C++ side) -- used here only to derive
+// HtmlRenderer::move on the C++ side) -- used here only to derive
 // movement direction, never as an absolute position on this page.
 // pressed indicates whether the mouse button is currently held down.
 window.moveCursor = function (x, y, pressed) {

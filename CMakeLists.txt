@@ -1,69 +1,83 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 
-project(cursor-ani LANGUAGES C CXX)
-
-if(MSVC)
-    add_compile_options(/EHsc)
-else()
-    add_compile_options(-fexceptions)
-endif()
-if(NOT MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
-endif()
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# KDE compiler settings may inject GCC-only flags (for example
-# -mno-direct-extern-access) that older/system clangd versions cannot parse
-# from compile_commands.json. When configuring with Clang, filter that flag out
-# so the generated compilation database remains clangd-compatible.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    string(REPLACE " -mno-direct-extern-access" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-endif()
+project(UltralightWebCursor VERSION 1.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+include(GNUInstallDirs)
 
-if(WIN32)
-    set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-win-x64")
-else()
-    set(ULTRALIGHT_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64")
+if(NOT WIN32 AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "Supported platforms are Linux (X11/XWayland) and Windows")
 endif()
 
+function(uwc_enable_warnings target)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /permissive- /EHsc)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endfunction()
+
+# ---- Ultralight SDK -------------------------------------------------------
+if(WIN32)
+    set(ULTRALIGHT_ROOT
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-win-x64")
+else()
+    set(ULTRALIGHT_ROOT
+        "${CMAKE_CURRENT_SOURCE_DIR}/sdk/ultralight-free-sdk-1.4.0-linux-x64")
+endif()
 set(ULTRALIGHT_BIN "${ULTRALIGHT_ROOT}/bin")
 
 if(NOT EXISTS "${ULTRALIGHT_ROOT}/include/AppCore/App.h")
-    message(FATAL_ERROR "Ultralight SDK not found: ${ULTRALIGHT_ROOT}")
+    message(FATAL_ERROR
+        "Ultralight SDK not found at ${ULTRALIGHT_ROOT}. Run ./build.sh first.")
+endif()
+if(NOT EXISTS "${ULTRALIGHT_ROOT}/resources/cacert.pem" OR
+   NOT EXISTS "${ULTRALIGHT_ROOT}/resources/icudt67l.dat" OR
+   NOT EXISTS "${ULTRALIGHT_ROOT}/license/EULA.txt")
+    message(FATAL_ERROR "Ultralight SDK resources or license files are incomplete")
 endif()
 
-function(ultralight_import_library target_name lib_basename)
-    add_library(${target_name} SHARED IMPORTED)
+foreach(_uwc_library AppCore Ultralight UltralightCore WebCore)
+    if(WIN32)
+        if(NOT EXISTS "${ULTRALIGHT_BIN}/${_uwc_library}.dll" OR
+           NOT EXISTS "${ULTRALIGHT_ROOT}/lib/${_uwc_library}.lib")
+            message(FATAL_ERROR "Missing Ultralight library: ${_uwc_library}")
+        endif()
+    elseif(NOT EXISTS "${ULTRALIGHT_BIN}/lib${_uwc_library}.so")
+        message(FATAL_ERROR "Missing Ultralight library: ${_uwc_library}")
+    endif()
+endforeach()
 
+function(ultralight_import_library target_name library_name)
+    add_library(${target_name} SHARED IMPORTED GLOBAL)
     if(WIN32)
         set_target_properties(${target_name} PROPERTIES
-            IMPORTED_LOCATION "${ULTRALIGHT_BIN}/${lib_basename}.dll"
-            IMPORTED_IMPLIB   "${ULTRALIGHT_ROOT}/lib/${lib_basename}.lib"
+            IMPORTED_LOCATION "${ULTRALIGHT_BIN}/${library_name}.dll"
+            IMPORTED_IMPLIB "${ULTRALIGHT_ROOT}/lib/${library_name}.lib"
             INTERFACE_INCLUDE_DIRECTORIES "${ULTRALIGHT_ROOT}/include"
         )
     else()
         set_target_properties(${target_name} PROPERTIES
-            IMPORTED_LOCATION "${ULTRALIGHT_BIN}/lib${lib_basename}.so"
+            IMPORTED_LOCATION "${ULTRALIGHT_BIN}/lib${library_name}.so"
             INTERFACE_INCLUDE_DIRECTORIES "${ULTRALIGHT_ROOT}/include"
         )
     endif()
 endfunction()
 
-ultralight_import_library(Ultralight::Ultralight     Ultralight)
+ultralight_import_library(Ultralight::Ultralight Ultralight)
 ultralight_import_library(Ultralight::UltralightCore UltralightCore)
-ultralight_import_library(Ultralight::AppCore        AppCore)
-ultralight_import_library(Ultralight::WebCore        WebCore)
+ultralight_import_library(Ultralight::AppCore AppCore)
+ultralight_import_library(Ultralight::WebCore WebCore)
 
-add_library(Ultralight::SDK INTERFACE IMPORTED)
+add_library(Ultralight::SDK INTERFACE IMPORTED GLOBAL)
 target_link_libraries(Ultralight::SDK INTERFACE
     Ultralight::Ultralight
     Ultralight::UltralightCore
@@ -71,171 +85,110 @@ target_link_libraries(Ultralight::SDK INTERFACE
     Ultralight::WebCore
 )
 
-if(NOT WIN32)
-    set(CMAKE_BUILD_RPATH "${ULTRALIGHT_BIN}")
-    set(CMAKE_INSTALL_RPATH "/usr/lib/ultralightwebcursor")
+# ---- Shared application core ---------------------------------------------
+find_package(Qt6 6.6 REQUIRED COMPONENTS Core)
+
+set(UWC_INSTALL_DATA_DIR
+    "${CMAKE_INSTALL_FULL_DATADIR}/ultralightwebcursor")
+set(UWC_DATA_REVISION "${PROJECT_VERSION}")
+find_package(Git QUIET)
+if(Git_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        OUTPUT_VARIABLE _uwc_git_revision
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+    )
+    if(_uwc_git_revision)
+        string(APPEND UWC_DATA_REVISION "+g${_uwc_git_revision}")
+    endif()
 endif()
-
-# ---- Qt -----------------------------------------------------------------
-if(WIN32)
-    find_package(Qt6 6.6 REQUIRED COMPONENTS Core)
-else()
-    find_package(Qt6 6.6 REQUIRED COMPONENTS Core DBus)
-endif()
-
-# Shared core: config loading/saving + plugin-path resolution. This object
-# library is consumed by every variant (KWin plugin, X11/Windows standalone
-# engines, and the settings GUI).
-add_library(ultralightwebcursor_core OBJECT
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/CursorJSON.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/UserConfig.hpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath/PluginPath.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath/PluginPath.hpp"
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config/BuildConfig.hpp.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated/BuildConfig.hpp"
+    @ONLY
 )
-
-target_include_directories(ultralightwebcursor_core
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/config
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/header
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/lib/PluginPath
-)
-
-target_link_libraries(ultralightwebcursor_core
-    PUBLIC
-    Qt6::Core
-)
-if(NOT WIN32)
-    target_link_libraries(ultralightwebcursor_core PUBLIC Qt6::DBus)
-endif()
-
-# Ensure objects compiled into shared modules are position-independent
-set_target_properties(ultralightwebcursor_core PROPERTIES
-    POSITION_INDEPENDENT_CODE ON
-)
-
-# Linux variant selector (asks KWin vs X11 at setup time).
-if(NOT WIN32)
-    add_subdirectory(src/linux)
-endif()
-
-# ---- Desktop environment detection --------------------------------------
-set(FORCE_DESKTOP_ENVIRONMENT "" CACHE STRING
-    "Force the target desktop environment (KDE/X11/WINDOWS):"
-)
+file(WRITE "${CMAKE_BINARY_DIR}/uwc-version.txt" "${PROJECT_VERSION}\n")
 
 if(WIN32)
-    set(DETECTED_DESKTOP_ENVIRONMENT "WINDOWS")
-elseif(FORCE_DESKTOP_ENVIRONMENT)
-    string(TOUPPER "${FORCE_DESKTOP_ENVIRONMENT}" DETECTED_DESKTOP_ENVIRONMENT)
-    message(STATUS "Desktop environment forced to: ${DETECTED_DESKTOP_ENVIRONMENT}")
-else()
-    set(_de_raw "$ENV{XDG_CURRENT_DESKTOP}")
-    if(NOT _de_raw)
-        set(_de_raw "$ENV{XDG_SESSION_DESKTOP}")
-    endif()
-    if(NOT _de_raw)
-        set(_de_raw "$ENV{DESKTOP_SESSION}")
-    endif()
-
-    string(TOUPPER "${_de_raw}" DETECTED_DESKTOP_ENVIRONMENT)
+    set(UWC_WINDOWS_ICON
+        "${CMAKE_CURRENT_SOURCE_DIR}/GUI/icons/UltralightWebCursor.ico")
+    set(UWC_WINDOWS_RESOURCE
+        "${CMAKE_CURRENT_BINARY_DIR}/generated/UltralightWebCursor.rc")
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/GUI/windows-version.rc.in"
+        "${UWC_WINDOWS_RESOURCE}"
+        @ONLY
+    )
 endif()
 
-# ---- Platform variants --------------------------------------------------
-include(GNUInstallDirs)
+add_library(ultralightwebcursor-core STATIC
+    src/config/AppPaths.cpp
+    src/config/AppPaths.hpp
+    src/config/ThemeMetadata.cpp
+    src/config/ThemeMetadata.hpp
+    src/config/UserConfig.cpp
+    src/config/UserConfig.hpp
+    src/engine/Autostart.cpp
+    src/engine/Autostart.hpp
+)
 
-if(NOT WIN32)
-    install(FILES GUI/org.ultralightwebcursor.desktop
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
-    install(FILES GUI/icons/org.ultralightwebcursor.svg
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps)
-endif()
+target_include_directories(ultralightwebcursor-core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/config"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated"
+)
+target_link_libraries(ultralightwebcursor-core PUBLIC Qt6::Core)
+uwc_enable_warnings(ultralightwebcursor-core)
 
-if(WIN32 OR DETECTED_DESKTOP_ENVIRONMENT MATCHES "WINDOWS")
-    target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_WINDOWS)
-    add_subdirectory(GUI)
-    add_subdirectory(src/windows)
+add_subdirectory(GUI)
+add_subdirectory(src/engine)
 
-    # Bundle the Ultralight runtime + resources + themes next to the
-    # executables so the standalone engine resolves a portable layout.
-    install(
-        DIRECTORY "${ULTRALIGHT_BIN}/"
-        DESTINATION bin
-        FILES_MATCHING PATTERN "*.dll"
-    )
-    # install(DIRECTORY) appends the source's last path component, so
-    # DESTINATION bin resolves to bin/resources/ (not bin/resources/resources).
-    install(
-        DIRECTORY "${ULTRALIGHT_ROOT}/resources"
-        DESTINATION bin
-    )
-    install(
-        DIRECTORY WebCursor/
-        DESTINATION bin
-    )
-elseif(DETECTED_DESKTOP_ENVIRONMENT MATCHES "KDE")
-    set(KF6_MIN_VERSION "6.0.0")
-
-    find_package(ECM ${KF6_MIN_VERSION} REQUIRED NO_MODULE)
-    set(CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
-
-    include(FeatureSummary)
-    include(GNUInstallDirs)
-    include(KDEInstallDirs)
-    include(KDECMakeSettings)
-    include(KDECompilerSettings NO_POLICY_SCOPE)
-
-    find_package(Qt6 6.6 REQUIRED COMPONENTS
-        Core Gui DBus Widgets Qml Quick QuickControls2
-    )
-
-    find_package(KF6 REQUIRED COMPONENTS
-        CoreAddons Config ConfigWidgets I18n Auth
-    )
-
-    find_package(KWin REQUIRED)
-    target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_KWIN)
-    add_subdirectory(GUI)
-    add_subdirectory(src/kwin-plasma)
-
-    install(
-        DIRECTORY "${ULTRALIGHT_BIN}/"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/ultralightwebcursor"
-        FILES_MATCHING PATTERN "*.so*"
-    )
-
+# ---- Installation ---------------------------------------------------------
+if(WIN32)
+    install(DIRECTORY "${ULTRALIGHT_BIN}/"
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        FILES_MATCHING PATTERN "*.dll")
+    install(DIRECTORY "${ULTRALIGHT_ROOT}/resources"
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
     install(DIRECTORY WebCursor/
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
-    )
-    install(
-        DIRECTORY "${ULTRALIGHT_ROOT}/resources"
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/kwin/effects/ultralightwebcursor"
-    )
-
-    feature_summary(
-        WHAT ALL
-        INCLUDE_QUIET_PACKAGES
-        FATAL_ON_MISSING_REQUIRED_PACKAGES
-    )
+        DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES LICENSE
+        DESTINATION licenses/UltralightWebCursor)
+    install(DIRECTORY "${ULTRALIGHT_ROOT}/license/"
+        DESTINATION licenses/Ultralight)
+    install(FILES "${ULTRALIGHT_ROOT}/license/NOTICES.md"
+        DESTINATION licenses/Ultralight
+        RENAME NOTICES.txt)
 else()
-    # X11 and any unrecognised Linux desktop share the same standalone engine.
-    target_compile_definitions(ultralightwebcursor_core PUBLIC BUILD_TYPE_X11)
-    add_subdirectory(GUI)
-    add_subdirectory(src/x11)
-
-    install(
-        DIRECTORY "${ULTRALIGHT_BIN}/"
+    install(DIRECTORY "${ULTRALIGHT_BIN}/"
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/ultralightwebcursor"
-        FILES_MATCHING PATTERN "*.so*"
-    )
+        FILES_MATCHING PATTERN "*.so*")
     install(DIRECTORY WebCursor/
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/ultralightwebcursor"
-    )
-    install(
-        DIRECTORY "${ULTRALIGHT_ROOT}/resources"
-        DESTINATION "${CMAKE_INSTALL_DATADIR}/ultralightwebcursor"
-    )
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/ultralightwebcursor")
+    install(DIRECTORY "${ULTRALIGHT_ROOT}/resources"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/ultralightwebcursor")
+
+    install(FILES
+        GUI/io.github.luyishan4.ultralightwebcursor.desktop
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+    install(FILES
+        GUI/io.github.luyishan4.ultralightwebcursor.metainfo.xml
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/metainfo")
+    install(FILES
+        GUI/icons/io.github.luyishan4.ultralightwebcursor.svg
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps")
+
+    set(UWC_LICENSE_INSTALL_DIR
+        "${CMAKE_INSTALL_DATADIR}/licenses/ultralightwebcursor"
+        CACHE PATH "Relative directory used to install application licenses")
+    install(FILES LICENSE
+        DESTINATION "${UWC_LICENSE_INSTALL_DIR}")
+    install(DIRECTORY "${ULTRALIGHT_ROOT}/license/"
+        DESTINATION "${UWC_LICENSE_INSTALL_DIR}/Ultralight")
+    install(FILES "${ULTRALIGHT_ROOT}/license/NOTICES.md"
+        DESTINATION "${UWC_LICENSE_INSTALL_DIR}/Ultralight"
+        RENAME NOTICES.txt)
 endif()

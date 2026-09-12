@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.luyishan4.ultralightwebcursor</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Ultralight Web Cursor</name>
+  <summary>Programmable HTML, CSS and JavaScript desktop cursor</summary>
+
+  <description>
+    <p>
+      Ultralight Web Cursor renders animated cursor themes made with HTML, CSS
+      and JavaScript in a transparent desktop overlay.
+    </p>
+    <p>
+      The settings application can select bundled themes, import trusted theme
+      folders, change the render size, and control per-user startup.
+    </p>
+    <p>
+      The Linux engine requires X11 or XWayland. Windows is supported through
+      the standalone installer.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.luyishan4.ultralightwebcursor.desktop</launchable>
+  <provides>
+    <binary>ultralightwebcursor-gui</binary>
+    <binary>ultralightwebcursor-engine</binary>
+  </provides>
+
+  <url type="homepage">https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor</url>
+  <url type="bugtracker">https://github.com/LuYishan-4/Animated_UltralightWeb_Cursor/issues</url>
+  <developer id="io.github.luyishan4">
+    <name>LuYishan</name>
+  </developer>
+
+  <releases>
+    <release version="1.1.0" date="2026-09-12">
+      <description>
+        <p>Unified Linux and Windows standalone engine with a redesigned settings application.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+</component>

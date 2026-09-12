@@ -1,103 +1,99 @@
 #pragma once
 
-#include "../src/config/CursorJSON.hpp"
-#include "../src/config/UserConfig.hpp"
-
+#include <QJsonObject>
+#include <QList>
 #include <QLocalSocket>
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVariant>
+#include <QTimer>
+#include <QUrl>
 #include <QVariantMap>
 
-class SettingsBackend : public QObject {
+class SettingsBackend final : public QObject {
   Q_OBJECT
 
-  Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
-  Q_PROPERTY(
-      QString statusMessage READ statusMessage NOTIFY statusMessageChanged)
-  Q_PROPERTY(QStringList blacklist READ blacklist NOTIFY blacklistChanged)
+  Q_PROPERTY(bool enabled READ enabled NOTIFY enabledChanged)
+  Q_PROPERTY(QString statusMessage READ statusMessage NOTIFY statusChanged)
+  Q_PROPERTY(QString statusLevel READ statusLevel NOTIFY statusChanged)
   Q_PROPERTY(QStringList themeList READ themeList NOTIFY themeListChanged)
   Q_PROPERTY(QString currentTheme READ currentTheme NOTIFY currentThemeChanged)
   Q_PROPERTY(int cursorWidth READ cursorWidth WRITE setCursorWidth NOTIFY
                  cursorWidthChanged)
   Q_PROPERTY(int cursorHeight READ cursorHeight WRITE setCursorHeight NOTIFY
                  cursorHeightChanged)
-  Q_PROPERTY(
-      bool gpuRender READ gpuRender WRITE setGpuRender NOTIFY gpuRenderChanged)
-  Q_PROPERTY(
-      bool autostart READ autostart WRITE setAutostart NOTIFY autostartChanged)
+  Q_PROPERTY(bool autostart READ autostart NOTIFY autostartChanged)
   Q_PROPERTY(bool mainProcessConnected READ mainProcessConnected NOTIFY
                  mainProcessConnectedChanged)
+  Q_PROPERTY(QString platformName READ platformName CONSTANT)
+  Q_PROPERTY(QString dataDirectory READ dataDirectory CONSTANT)
+  Q_PROPERTY(bool canUninstall READ canUninstall CONSTANT)
 
 public:
   explicit SettingsBackend(QObject *parent = nullptr);
 
-  bool enabled() const;
-  QString statusMessage() const;
-  QStringList blacklist() const;
-  QStringList themeList() const;
-  QString currentTheme() const;
-  int cursorWidth() const;
-  int cursorHeight() const;
-  bool gpuRender() const;
-  bool autostart() const;
+  bool enabled() const { return enabled_; }
+  QString statusMessage() const { return statusMessage_; }
+  QString statusLevel() const { return statusLevel_; }
+  QStringList themeList() const { return themeList_; }
+  QString currentTheme() const { return currentTheme_; }
+  int cursorWidth() const { return cursorWidth_; }
+  int cursorHeight() const { return cursorHeight_; }
+  bool autostart() const { return autostart_; }
   bool mainProcessConnected() const;
+  QString platformName() const;
+  QString dataDirectory() const;
+  bool canUninstall() const;
 
-  void setEnabled(bool value);
   void setCursorWidth(int value);
   void setCursorHeight(int value);
-  void setGpuRender(bool value);
 
-  Q_INVOKABLE void save();
   Q_INVOKABLE void reload();
+  Q_INVOKABLE void enable();
+  Q_INVOKABLE void disable();
+  Q_INVOKABLE void startEngine();
   Q_INVOKABLE void setAutostart(bool value);
-  Q_INVOKABLE bool pathExists(const QString &path) const;
-  Q_INVOKABLE bool uploadTheme(const QString &path);
+  Q_INVOKABLE void uploadTheme(const QUrl &folderUrl);
   Q_INVOKABLE void useTheme(const QString &name);
-  Q_INVOKABLE bool removeTheme(const QString &name);
+  Q_INVOKABLE void removeTheme(const QString &name);
   Q_INVOKABLE void openThemeFolder(const QString &name);
-  Q_INVOKABLE QVariantMap getThemeDetails(const QString &name);
-  Q_INVOKABLE void addBlacklist(const QString &app);
-  Q_INVOKABLE void removeBlacklist(const QString &app);
+  Q_INVOKABLE void openDataDirectory();
+  Q_INVOKABLE QVariantMap getThemeDetails(const QString &name) const;
   Q_INVOKABLE void uninstall();
-
-public Q_SLOTS:
-  void enable();
-  void disable();
-  void reconfigureSystem();
-  void quit();
 
 Q_SIGNALS:
   void enabledChanged();
-  void statusMessageChanged();
-  void blacklistChanged();
+  void statusChanged();
   void themeListChanged();
   void currentThemeChanged();
   void cursorWidthChanged();
   void cursorHeightChanged();
-  void gpuRenderChanged();
   void autostartChanged();
   void mainProcessConnectedChanged();
 
 private:
-  void setStatusMessage(const QString &message);
+  void setStatus(const QString &message,
+                 const QString &level = QStringLiteral("info"));
   void loadThemes();
-  void notifyMainProcess(const QString &command,
-                         const QVariantMap &payload = {});
-  void ensureConnected();
-  void ensureMainProcessRunning();
-  QString engineExecutablePath() const;
+  void connectToEngine();
+  void sendCommand(const QString &command, const QJsonObject &payload = {},
+                   bool startIfStopped = true);
+  void flushPendingCommands();
+  void persistSize();
 
   bool enabled_ = true;
-  QStringList blacklist_;
-  QStringList themeList_;
-  QString currentTheme_;
+  bool autostart_ = false;
   int cursorWidth_ = 128;
   int cursorHeight_ = 128;
-  bool gpuRender_ = true;
-  bool autostart_ = true;
+  QString currentTheme_;
+  QStringList themeList_;
   QString statusMessage_;
+  QString statusLevel_ = QStringLiteral("info");
 
   QLocalSocket ipcSocket_;
+  QTimer reconnectTimer_;
+  QTimer sizeSaveTimer_;
+  QList<QJsonObject> pendingCommands_;
+  int reconnectAttempts_ = 0;
+  bool engineStartRequested_ = false;
 };

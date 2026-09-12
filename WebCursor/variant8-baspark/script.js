@@ -1,4 +1,4 @@
-// Ported from the KWin BasparkEffect (C++/OpenGL) animation model:
+// Baspark animation model:
 // a fading multi-stroke trail while dragging, an expanding "boom" ring
 // with three rotating dash segments on click, and triangular sparks that
 // fly outward with velocity/friction/rotation and fade out. Rendered here
@@ -13,16 +13,17 @@ if (!canvas || !ctx) {
     // so it's obvious in devtools/console what to check: make sure
     // index.html actually has <canvas id="fx"> (not an old <div id="cursor">
     // left over from a previous variant).
-    console.error("[baspark] #fx canvas not found -- check that index.html matches this script.js");
+    console.error(
+        "[baspark] #fx canvas not found -- check that index.html matches this script.js",
+    );
 }
 
-const COLOR = { r: 170, g: 90, b: 255 }; 
+const COLOR = { r: 170, g: 90, b: 255 };
 const SCALE = 1;
 const MAX_TRAIL = 40;
 
 // ---- click sound (lazy + fully isolated, see previous notes: never
 // construct Audio at top-level script scope -- some WebKit builds throw) ----
-
 
 // ---- auto-hide / game-mode (see earlier variants for rationale) ----
 const IDLE_TIMEOUT_MS = 10000;
@@ -65,9 +66,12 @@ document.addEventListener("fullscreenchange", () => {
 // the trail/spark simulation (like the original desktop-wide effect has),
 // we keep a virtual point that starts at the center and gets nudged by the
 // real movement's direction + speed, clamped to stay inside the canvas.
-let vx = 64, vy = 64;
-let lastRawX = null, lastRawY = null;
-let lastMoveVX = vx, lastMoveVY = vy; // for distance-based trail spacing, like m_lastMousePos
+let vx = 64,
+    vy = 64;
+let lastRawX = null,
+    lastRawY = null;
+let lastMoveVX = vx,
+    lastMoveVY = vy; // for distance-based trail spacing, like m_lastMousePos
 
 const MOVE_SCALE = 0.35; // how strongly real movement nudges the virtual point
 const PAD = 10;
@@ -85,8 +89,8 @@ function nudgeVirtualPosition(rawX, rawY) {
 
 // ---- state (1:1 with the C++ side) ----
 let mouseDown = false;
-let trail = [];  // { x, y, life }
-let waves = [];  // { x, y, life, maxLife, r, ring: { ang, rs, life, maxLife, segs: [{off,len}] } }
+let trail = []; // { x, y, life }
+let waves = []; // { x, y, life, maxLife, r, ring: { ang, rs, life, maxLife, segs: [{off,len}] } }
 let sparks = []; // { x, y, vx, vy, rot, rs, size, a, f }
 
 function rand() {
@@ -110,7 +114,8 @@ function createBoom(x, y) {
     for (let i = 0; i < 8; i++) {
         const a = rand() * Math.PI * 2;
         sparks.push({
-            x, y,
+            x,
+            y,
             vx: Math.cos(a) * (4.8 + rand() * 2),
             vy: Math.sin(a) * (4.8 + rand() * 2),
             rot: rand() * Math.PI * 2,
@@ -218,8 +223,12 @@ function drawWave(w) {
 }
 
 function drawSpark(s) {
-    const cR = Math.cos(s.rot), sR = Math.sin(s.rot);
-    const rot = (px, py) => [s.x + (px * cR - py * sR), s.y + (px * sR + py * cR)];
+    const cR = Math.cos(s.rot),
+        sR = Math.sin(s.rot);
+    const rot = (px, py) => [
+        s.x + (px * cR - py * sR),
+        s.y + (px * sR + py * cR),
+    ];
     const p0 = rot(0, -s.size);
     const p1 = rot(s.size * 0.6, s.size * 0.6);
     const p2 = rot(-s.size * 0.6, s.size * 0.6);
@@ -262,7 +271,7 @@ requestAnimationFrame(loop);
 
 // ---- input handling ----
 // x, y are the host's real desktop mouse coordinates (see
-// UltralightHtmlEffect::move in the C++ side); handleMove nudges a virtual
+// HtmlRenderer::move on the C++ side); handleMove nudges a virtual
 // local point that trail/spark/wave effects are actually drawn around.
 function handleMove(rawX, rawY) {
     resetIdleTimer();

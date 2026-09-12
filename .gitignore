@@ -1,47 +1,34 @@
+# Build output
 build/
-.clanged
-ultralight-free-sdk-1.4.0-linux-x64/
-ultralight-free-sdk-1.4.0-win-x64/
-.zed/
+build-*/
 pkg/
 .cache/
-build-hyprland/
-build-gnome/
-build-windows/
-build-niri/
-build-kde/
-build-sway/
-build-x11/
-build-zed/
-# Prerequisites
-*.d
 
-# Compiled Object files
+# Extracted proprietary SDKs (archives remain tracked)
+ultralight-free-sdk-1.4.0-linux-x64/
+ultralight-free-sdk-1.4.0-win-x64/
+
+# Editor-local state
+.zed/
+.clanged
+
+# Compiler output
+*.d
 *.slo
 *.lo
 *.o
 *.obj
-
-# Precompiled Headers
 *.gch
 *.pch
-
-# Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
 *.mod
 *.smod
-
-# Compiled Static libraries
 *.lai
 *.la
 *.a
 *.lib
-
-# Executables
 *.exe
 *.out
 *.app

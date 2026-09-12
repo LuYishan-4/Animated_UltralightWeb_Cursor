@@ -1,462 +1,406 @@
 #include "SettingsBackend.hpp"
 
+#include "AppPaths.hpp"
+#include "Autostart.hpp"
+#include "BuildConfig.hpp"
+#include "ThemeMetadata.hpp"
+#include "UserConfig.hpp"
+
+#include <QCollator>
 #include <QCoreApplication>
-#include <QDebug>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
-#include <QJsonObject>
 #include <QProcess>
-#include <QUrl>
 
-#include <filesystem>
+#include <algorithm>
+#include <utility>
 
-#if defined(BUILD_TYPE_KWIN)
-#include <QDBusConnection>
-#include <QDBusInterface>
-#endif
-
-using namespace UltralightWebCursorM;
-
-namespace {
-
-constexpr auto kIpcSocketName = "ultralightwebcursor_ipc";
-constexpr int kIpcConnectTimeoutMs = 500;
-
-namespace fs = std::filesystem;
-
-bool hasThemeLayout(const fs::path &dir) {
-  return fs::exists(dir / "CursorData.json") && fs::exists(dir / "index.html");
-}
-
-} // namespace
+using namespace UltralightWebCursor;
 
 SettingsBackend::SettingsBackend(QObject *parent) : QObject(parent) {
-  connect(&ipcSocket_, &QLocalSocket::connected, this,
-          [this]() { Q_EMIT mainProcessConnectedChanged(); });
-  connect(&ipcSocket_, &QLocalSocket::disconnected, this,
-          [this]() { Q_EMIT mainProcessConnectedChanged(); });
+  reconnectTimer_.setInterval(250);
+  reconnectTimer_.setSingleShot(false);
+  sizeSaveTimer_.setInterval(220);
+  sizeSaveTimer_.setSingleShot(true);
 
-#if !defined(BUILD_TYPE_KWIN)
-  ensureConnected();
-#endif
+  connect(&ipcSocket_, &QLocalSocket::connected, this, [this] {
+    engineStartRequested_ = false;
+    reconnectAttempts_ = 0;
+    reconnectTimer_.stop();
+    Q_EMIT mainProcessConnectedChanged();
+    flushPendingCommands();
+    setStatus(QStringLiteral("Cursor engine is running"),
+              QStringLiteral("success"));
+  });
+  connect(&ipcSocket_, &QLocalSocket::disconnected, this,
+          [this] { Q_EMIT mainProcessConnectedChanged(); });
+  connect(&reconnectTimer_, &QTimer::timeout, this, [this] {
+    if (mainProcessConnected()) {
+      reconnectTimer_.stop();
+      return;
+    }
+    if (++reconnectAttempts_ > 20) {
+      reconnectTimer_.stop();
+      engineStartRequested_ = false;
+      pendingCommands_.clear();
+      setStatus(QStringLiteral("The cursor engine did not respond"),
+                QStringLiteral("error"));
+      return;
+    }
+    connectToEngine();
+  });
+  connect(&sizeSaveTimer_, &QTimer::timeout, this,
+          &SettingsBackend::persistSize);
 
   reload();
-}
-
-bool SettingsBackend::enabled() const { return enabled_; }
-QString SettingsBackend::statusMessage() const { return statusMessage_; }
-QStringList SettingsBackend::blacklist() const { return blacklist_; }
-QString SettingsBackend::currentTheme() const { return currentTheme_; }
-int SettingsBackend::cursorWidth() const { return cursorWidth_; }
-int SettingsBackend::cursorHeight() const { return cursorHeight_; }
-bool SettingsBackend::gpuRender() const { return gpuRender_; }
-bool SettingsBackend::autostart() const { return autostart_; }
-
-QStringList SettingsBackend::themeList() const {
-  const_cast<SettingsBackend *>(this)->loadThemes();
-  return themeList_;
+  connectToEngine();
+  if (enabled_)
+    QTimer::singleShot(0, this, &SettingsBackend::startEngine);
 }
 
 bool SettingsBackend::mainProcessConnected() const {
-#if defined(BUILD_TYPE_KWIN)
-  return QDBusConnection::sessionBus().isConnected();
-#else
   return ipcSocket_.state() == QLocalSocket::ConnectedState;
+}
+
+QString SettingsBackend::platformName() const {
+#ifdef Q_OS_WIN
+  return QStringLiteral("Windows");
+#else
+  return QStringLiteral("Linux · X11/XWayland");
 #endif
 }
 
-void SettingsBackend::setEnabled(bool value) {
-  if (enabled_ == value)
-    return;
-  enabled_ = value;
-  Q_EMIT enabledChanged();
+QString SettingsBackend::dataDirectory() const {
+  return AppPaths::userDataDir();
 }
 
-void SettingsBackend::setCursorWidth(int value) {
-  if (cursorWidth_ == value)
-    return;
-  cursorWidth_ = value;
-  Q_EMIT cursorWidthChanged();
-  save();
-  reconfigureSystem();
+bool SettingsBackend::canUninstall() const {
+#ifdef Q_OS_WIN
+  return QFileInfo::exists(QDir(QCoreApplication::applicationDirPath())
+                               .filePath(QStringLiteral("../uninstall.exe")));
+#else
+  // Package-managed Linux installs must be removed with pacman/paru/yay.
+  return false;
+#endif
 }
 
-void SettingsBackend::setCursorHeight(int value) {
-  if (cursorHeight_ == value)
-    return;
-  cursorHeight_ = value;
-  Q_EMIT cursorHeightChanged();
-  save();
-  reconfigureSystem();
-}
-
-void SettingsBackend::setGpuRender(bool value) {
-  if (gpuRender_ == value)
-    return;
-  gpuRender_ = value;
-  Q_EMIT gpuRenderChanged();
-  save();
-  reconfigureSystem();
-}
-
-void SettingsBackend::setStatusMessage(const QString &message) {
-  if (statusMessage_ == message)
+void SettingsBackend::setStatus(const QString &message, const QString &level) {
+  if (statusMessage_ == message && statusLevel_ == level)
     return;
   statusMessage_ = message;
-  Q_EMIT statusMessageChanged();
+  statusLevel_ = level;
+  Q_EMIT statusChanged();
 }
 
 void SettingsBackend::reload() {
-  UltralightWebCursorM::UserConfig::instance()->load();
+  QString error;
+  UserConfig &config = UserConfig::instance();
+  if (!config.load(&error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
+  }
 
-  enabled_ = UserConfigValues.enabled;
-  cursorWidth_ = UserConfigValues.width;
-  cursorHeight_ = UserConfigValues.height;
-  gpuRender_ = UserConfigValues.enableGpu;
-  currentTheme_ =
-      QString::fromStdString(UserConfig::instance()->currentTheme());
-
-  blacklist_.clear();
-  for (const auto &item : UserConfigValues.blacklist)
-    blacklist_ << QString::fromStdString(item);
-
+  const ConfigValues &values = config.values();
+  enabled_ = values.enabled;
+  cursorWidth_ = values.width;
+  cursorHeight_ = values.height;
+  currentTheme_ = config.currentTheme();
+  autostart_ = isAutostartEnabled(AppPaths::engineExecutablePath());
+  if (!autostart_ && isAutostartEnabled())
+    unregisterAutostart();
   loadThemes();
 
   Q_EMIT enabledChanged();
-  Q_EMIT blacklistChanged();
-  Q_EMIT currentThemeChanged();
   Q_EMIT cursorWidthChanged();
   Q_EMIT cursorHeightChanged();
-  Q_EMIT gpuRenderChanged();
+  Q_EMIT currentThemeChanged();
+  Q_EMIT autostartChanged();
 
-  setStatusMessage(QStringLiteral("Loaded"));
-}
-
-void SettingsBackend::save() {
-  auto *uc = UltralightWebCursorM::UserConfig::instance();
-  uc->setKeyValue("enabled", enabled_ ? "true" : "false");
-  uc->setKeyValue("width", std::to_string(cursorWidth_));
-  uc->setKeyValue("height", std::to_string(cursorHeight_));
-  uc->setKeyValue("EnableGPU", gpuRender_ ? "true" : "false");
-
-  if (uc->save())
-    setStatusMessage(QStringLiteral("Saved"));
-  else
-    setStatusMessage(QStringLiteral("Save failed"));
-}
-
-void SettingsBackend::addBlacklist(const QString &app) {
-  UltralightWebCursorM::UserConfig::instance()->appendBlacklist(
-      app.toStdString());
-  reload();
-  reconfigureSystem();
-}
-
-void SettingsBackend::removeBlacklist(const QString &app) {
-  UltralightWebCursorM::UserConfig::instance()->removeBlacklist(
-      app.toStdString());
-  reload();
-  reconfigureSystem();
+  setStatus(QStringLiteral("Settings are ready"), QStringLiteral("success"));
 }
 
 void SettingsBackend::loadThemes() {
-  QStringList newThemes;
-  const fs::path dir = g_sdkInitialPath;
-  std::error_code ec;
-  if (fs::exists(dir)) {
-    fs::directory_iterator it(dir, ec);
-    const fs::directory_iterator end;
-    while (!ec && it != end) {
-      const fs::directory_entry entry = *it;
-      if (entry.is_directory() && hasThemeLayout(entry.path()))
-        newThemes << QString::fromStdString(entry.path().filename().string());
-      it.increment(ec);
-    }
+  QStringList themes;
+  const QDir data(AppPaths::userDataDir());
+  for (const QString &name :
+       data.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
+    if (AppPaths::isThemeDirectory(data.filePath(name)))
+      themes.append(name);
   }
 
-  if (themeList_ != newThemes) {
-    themeList_ = newThemes;
+  QCollator collator;
+  collator.setNumericMode(true);
+  std::sort(themes.begin(), themes.end(),
+            [&collator](const QString &left, const QString &right) {
+              return collator.compare(left, right) < 0;
+            });
+
+  if (themeList_ != themes) {
+    themeList_ = themes;
     Q_EMIT themeListChanged();
   }
 }
 
-bool SettingsBackend::uploadTheme(const QString &path) {
-  const QDir srcDir(QDir::cleanPath(path));
-  if (!srcDir.exists()) {
-    setStatusMessage(QStringLiteral("Folder not found"));
-    return false;
-  }
-
-  const fs::path src = fs::path(path.toStdString());
-  if (!hasThemeLayout(src)) {
-    setStatusMessage(
-        QStringLiteral("Selected folder is not a valid cursor theme"));
-    return false;
-  }
-
-  const QString name = srcDir.dirName();
-  const bool ok = UltralightWebCursorM::UserConfig::instance()->uploadTheme(
-      path.toStdString(), name.toStdString());
-
-  if (!ok) {
-    setStatusMessage(QStringLiteral("Upload failed"));
-    return false;
-  }
-
-  loadThemes();
-  setStatusMessage(QStringLiteral("Theme uploaded successfully"));
-  return true;
+void SettingsBackend::setCursorWidth(int value) {
+  value = std::clamp(value, 16, 4096);
+  if (cursorWidth_ == value)
+    return;
+  cursorWidth_ = value;
+  Q_EMIT cursorWidthChanged();
+  sizeSaveTimer_.start();
 }
 
-void SettingsBackend::useTheme(const QString &name) {
-  UltralightWebCursorM::UserConfig::instance()->setTheme(name.toStdString());
-  reload();
-  reconfigureSystem();
+void SettingsBackend::setCursorHeight(int value) {
+  value = std::clamp(value, 16, 4096);
+  if (cursorHeight_ == value)
+    return;
+  cursorHeight_ = value;
+  Q_EMIT cursorHeightChanged();
+  sizeSaveTimer_.start();
 }
 
-bool SettingsBackend::removeTheme(const QString &name) {
-  if (name.isEmpty())
-    return false;
-
-  const bool ok = UltralightWebCursorM::UserConfig::instance()->removeTheme(
-      name.toStdString());
-
-  if (!ok) {
-    setStatusMessage(QStringLiteral("Remove failed"));
-    return false;
+void SettingsBackend::persistSize() {
+  QString error;
+  if (!UserConfig::instance().setSize(cursorWidth_, cursorHeight_, &error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
   }
-
-  loadThemes();
-  setStatusMessage(QStringLiteral("Theme removed successfully"));
-  return true;
-}
-
-void SettingsBackend::openThemeFolder(const QString &name) {
-  const fs::path p = g_sdkInitialPath / name.toStdString();
-  QDesktopServices::openUrl(
-      QUrl::fromLocalFile(QString::fromStdString(p.string())));
-}
-
-QVariantMap SettingsBackend::getThemeDetails(const QString &name) {
-  QVariantMap details;
-  details[QStringLiteral("iconPath")] = QString();
-  details[QStringLiteral("author")] = QStringLiteral("Unknown");
-  details[QStringLiteral("describe")] = QString();
-  details[QStringLiteral("minWidth")] = 128;
-  details[QStringLiteral("minHeight")] = 128;
-
-  if (name.isEmpty())
-    return details;
-
-  const fs::path themePath = g_sdkInitialPath / name.toStdString();
-  if (!UltralightWebCursorM::CursorJSON::instance()->load(themePath.string()))
-    return details;
-
-  const auto values = UltralightWebCursorM::CursorJSON::instance()->values;
-  const QString rawIconPath = QString::fromStdString(values.IconPath);
-  QString fullIconUrl;
-
-  if (!rawIconPath.isEmpty()) {
-    const QFileInfo info(rawIconPath);
-    const QString absolute = info.isAbsolute()
-                                 ? rawIconPath
-                                 : QString::fromStdString(themePath.string()) +
-                                       QLatin1Char('/') + rawIconPath;
-    fullIconUrl = QUrl::fromLocalFile(absolute).toString();
-  }
-
-  details[QStringLiteral("iconPath")] = fullIconUrl;
-  details[QStringLiteral("author")] = QString::fromStdString(values.Author);
-  details[QStringLiteral("describe")] = QString::fromStdString(values.describe);
-  details[QStringLiteral("minWidth")] = values.minWidth;
-  details[QStringLiteral("minHeight")] = values.minHeight;
-  return details;
-}
-
-bool SettingsBackend::pathExists(const QString &path) const {
-  return QFileInfo::exists(path);
+  if (enabled_)
+    sendCommand(QStringLiteral("reload"));
+  setStatus(QStringLiteral("Cursor size updated"), QStringLiteral("success"));
 }
 
 void SettingsBackend::enable() {
-  setEnabled(true);
-  save();
-  // Bring the engine up if it is not running, then enable it.
-  ensureMainProcessRunning();
-  notifyMainProcess(QStringLiteral("enable"));
-  setStatusMessage(QStringLiteral("Enabled"));
+  QString error;
+  if (!UserConfig::instance().setEnabled(true, &error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
+  }
+  if (!enabled_) {
+    enabled_ = true;
+    Q_EMIT enabledChanged();
+  }
+  sendCommand(QStringLiteral("enable"));
+  setStatus(QStringLiteral("Starting cursor engine…"));
 }
 
 void SettingsBackend::disable() {
-  setEnabled(false);
-  save();
-  notifyMainProcess(QStringLiteral("disable"));
-  setStatusMessage(QStringLiteral("Disabled"));
+  QString error;
+  if (!UserConfig::instance().setEnabled(false, &error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
+  }
+  if (enabled_) {
+    enabled_ = false;
+    Q_EMIT enabledChanged();
+  }
+  if (mainProcessConnected())
+    sendCommand(QStringLiteral("disable"), {}, false);
+  setStatus(QStringLiteral("Cursor disabled"), QStringLiteral("success"));
 }
 
-void SettingsBackend::reconfigureSystem() {
-  notifyMainProcess(QStringLiteral("reload"));
-}
-
-void SettingsBackend::quit() { notifyMainProcess(QStringLiteral("quit")); }
-
-QString SettingsBackend::engineExecutablePath() const {
-#if defined(BUILD_TYPE_WINDOWS)
-  return QCoreApplication::applicationDirPath() +
-         QStringLiteral("/ultralightwebcursor_windows.exe");
-#elif defined(BUILD_TYPE_X11)
-  return QCoreApplication::applicationDirPath() +
-         QStringLiteral("/ultralightwebcursor_x11");
-#else
-  return QString();
-#endif
-}
-
-void SettingsBackend::ensureMainProcessRunning() {
-#if defined(BUILD_TYPE_KWIN)
-  // The KWin variant runs inside the compositor; there is nothing to spawn.
-#else
-  ensureConnected();
-  if (ipcSocket_.state() == QLocalSocket::ConnectedState)
+void SettingsBackend::startEngine() {
+  if (mainProcessConnected()) {
+    setStatus(QStringLiteral("Cursor engine is already running"),
+              QStringLiteral("success"));
+    return;
+  }
+  if (engineStartRequested_)
     return;
 
-  const QString executable = engineExecutablePath();
-  if (executable.isEmpty() || !QFileInfo::exists(executable)) {
-    setStatusMessage(QStringLiteral("Cursor engine executable not found"));
+  const QString executable = AppPaths::engineExecutablePath();
+  if (!QFileInfo::exists(executable)) {
+    setStatus(QStringLiteral("Cursor engine executable was not found"),
+              QStringLiteral("error"));
     return;
   }
 
   if (!QProcess::startDetached(executable, {QStringLiteral("--silent")})) {
-    setStatusMessage(QStringLiteral("Could not start the cursor engine"));
+    setStatus(QStringLiteral("Could not start the cursor engine"),
+              QStringLiteral("error"));
     return;
   }
 
-  // Wait for the engine to create its IPC server, then reconnect.
-  for (int attempt = 0;
-       attempt < 10 && ipcSocket_.state() != QLocalSocket::ConnectedState;
-       ++attempt) {
-    ensureConnected();
-  }
-#endif
+  engineStartRequested_ = true;
+  reconnectAttempts_ = 0;
+  reconnectTimer_.start();
+  connectToEngine();
+  setStatus(QStringLiteral("Connecting to cursor engine…"));
 }
 
-void SettingsBackend::uninstall() {
-#if defined(BUILD_TYPE_WINDOWS)
-  const QString uninstaller =
-      QDir(QCoreApplication::applicationDirPath())
-          .absoluteFilePath(QStringLiteral("../uninstall.exe"));
-  if (!QFileInfo::exists(uninstaller)) {
-    setStatusMessage(QStringLiteral("Uninstaller not found"));
+void SettingsBackend::connectToEngine() {
+  if (ipcSocket_.state() == QLocalSocket::ConnectedState ||
+      ipcSocket_.state() == QLocalSocket::ConnectingState)
     return;
-  }
-  QProcess::startDetached(uninstaller, {});
-  setStatusMessage(QStringLiteral("Uninstalling..."));
-  QCoreApplication::quit();
-#elif defined(BUILD_TYPE_KWIN) || defined(BUILD_TYPE_X11)
-  const QDir executableDir(QCoreApplication::applicationDirPath());
-  const QString prefix =
-      QDir::cleanPath(executableDir.absoluteFilePath(QStringLiteral("..")));
-  const bool supported = prefix == QStringLiteral("/usr") ||
-                         prefix == QStringLiteral("/usr/local") ||
-                         prefix == QDir::homePath() + QStringLiteral("/.local");
-  if (!supported) {
-    setStatusMessage(
-        QStringLiteral("Uninstall is only available for installed builds"));
+  ipcSocket_.abort();
+  ipcSocket_.connectToServer(QString::fromUtf8(BuildConfig::ipcSocketName),
+                             QIODevice::WriteOnly);
+}
+
+void SettingsBackend::sendCommand(const QString &command,
+                                  const QJsonObject &payload,
+                                  bool startIfStopped) {
+  const QJsonObject message{{QStringLiteral("command"), command},
+                            {QStringLiteral("payload"), payload}};
+  if (mainProcessConnected()) {
+    ipcSocket_.write(QJsonDocument(message).toJson(QJsonDocument::Compact));
+    ipcSocket_.write("\n");
+    ipcSocket_.flush();
     return;
   }
 
-  // User-level files first (no privileges required).
-  QFile::remove(
-      QDir::homePath() +
-      QStringLiteral("/.config/autostart/ultralightwebcursor.desktop"));
-  QFile::remove(QDir::homePath() +
-                QStringLiteral("/.local/share/applications/"
-                               "org.ultralightwebcursor.desktop"));
-  QDir(QDir::homePath() + QStringLiteral("/.local/share/ultralightwebcursor"))
-      .removeRecursively();
-  QDir(QDir::homePath() + QStringLiteral("/.config/ultralightwebcursor"))
-      .removeRecursively();
+  pendingCommands_.append(message);
+  connectToEngine();
+  if (startIfStopped)
+    startEngine();
+}
 
-  const QString script = QStringLiteral(
-      "prefix=\"$1\"; "
-      "pkill -f ultralightwebcursor_x11 >/dev/null 2>&1; "
-      "rm -rf \"$prefix/bin/ultralightwebcursor-gui\" "
-      "\"$prefix/bin/ultralightwebcursor_x11\" "
-      "\"$prefix/bin/ultralightwebcursor-install\" "
-      "\"$prefix/lib/ultralightwebcursor\" "
-      "\"$prefix/lib64/ultralightwebcursor\" "
-      "\"$prefix/share/ultralightwebcursor\" "
-      "\"$prefix/share/kwin/effects/ultralightwebcursor\" "
-      "\"$prefix/share/applications/org.ultralightwebcursor.desktop\" "
-      "\"$prefix/share/icons/hicolor/scalable/apps/"
-      "org.ultralightwebcursor.svg\"; "
-      "rm -f "
-      "\"$prefix\"/lib*/plugins/kwin/effects/plugins/ultralightwebcursor.so "
-      "\"$prefix\"/lib*/kwin/effects/plugins/ultralightwebcursor.so");
-  if (!QProcess::startDetached(QStringLiteral("pkexec"),
-                               {QStringLiteral("sh"), QStringLiteral("-c"),
-                                script, QStringLiteral("--"), prefix})) {
-    setStatusMessage(QStringLiteral("Could not launch the uninstaller"));
+void SettingsBackend::flushPendingCommands() {
+  if (!mainProcessConnected())
     return;
+  for (const QJsonObject &message : std::as_const(pendingCommands_)) {
+    ipcSocket_.write(QJsonDocument(message).toJson(QJsonDocument::Compact));
+    ipcSocket_.write("\n");
   }
-  setStatusMessage(
-      QStringLiteral("Uninstall started (authorization required)"));
-  QCoreApplication::quit();
-#endif
+  pendingCommands_.clear();
+  ipcSocket_.flush();
 }
 
 void SettingsBackend::setAutostart(bool value) {
+  QString error;
+  const bool success =
+      value ? registerAutostart(AppPaths::engineExecutablePath(), &error)
+            : unregisterAutostart(&error);
+  if (!success) {
+    setStatus(error, QStringLiteral("error"));
+    Q_EMIT autostartChanged();
+    return;
+  }
+
   autostart_ = value;
   Q_EMIT autostartChanged();
-  notifyMainProcess(QStringLiteral("setAutostart"),
-                    {{QStringLiteral("enabled"), value}});
+  setStatus(value ? QStringLiteral("Launch on login enabled")
+                  : QStringLiteral("Launch on login disabled"),
+            QStringLiteral("success"));
 }
 
-void SettingsBackend::ensureConnected() {
-  if (ipcSocket_.state() == QLocalSocket::ConnectedState)
+void SettingsBackend::uploadTheme(const QUrl &folderUrl) {
+  if (!folderUrl.isLocalFile()) {
+    setStatus(QStringLiteral("Only local theme folders can be imported"),
+              QStringLiteral("error"));
     return;
-  if (ipcSocket_.state() != QLocalSocket::UnconnectedState)
-    ipcSocket_.abort();
-  ipcSocket_.connectToServer(QLatin1String(kIpcSocketName));
-  ipcSocket_.waitForConnected(kIpcConnectTimeoutMs);
-}
-
-void SettingsBackend::notifyMainProcess(const QString &command,
-                                        const QVariantMap &payload) {
-#if defined(BUILD_TYPE_KWIN)
-  if (command == QStringLiteral("setAutostart") ||
-      command == QStringLiteral("quit"))
-    return;
-
-  QString method;
-  if (command == QStringLiteral("enable"))
-    method = QStringLiteral("enable");
-  else if (command == QStringLiteral("disable"))
-    method = QStringLiteral("disable");
-  else
-    method = QStringLiteral("reloadHtml");
-
-  QDBusInterface iface(QStringLiteral("org.kde.KWin"),
-                       QStringLiteral("/UltralightCursor"),
-                       QStringLiteral("org.kde.kwin.KWin.KwinCursorEffect"),
-                       QDBusConnection::sessionBus());
-  if (iface.isValid()) {
-    iface.call(method);
-  } else {
-    setStatusMessage(QStringLiteral("KWin effect not reachable"));
   }
+
+  QString importedName;
+  QString error;
+  UserConfig &config = UserConfig::instance();
+  if (!config.importTheme(folderUrl.toLocalFile(), &importedName, &error) ||
+      !config.setTheme(importedName, &error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
+  }
+
+  currentTheme_ = importedName;
+  loadThemes();
+  Q_EMIT currentThemeChanged();
+  if (enabled_)
+    sendCommand(QStringLiteral("reload"));
+  setStatus(QStringLiteral("Theme imported and applied"),
+            QStringLiteral("success"));
+}
+
+void SettingsBackend::useTheme(const QString &name) {
+  QString error;
+  if (!UserConfig::instance().setTheme(name, &error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
+  }
+  currentTheme_ = name;
+  Q_EMIT currentThemeChanged();
+  if (enabled_)
+    sendCommand(QStringLiteral("reload"));
+  setStatus(QStringLiteral("Theme applied"), QStringLiteral("success"));
+}
+
+void SettingsBackend::removeTheme(const QString &name) {
+  QString error;
+  if (!UserConfig::instance().removeTheme(name, &error)) {
+    setStatus(error, QStringLiteral("error"));
+    return;
+  }
+  loadThemes();
+  setStatus(QStringLiteral("Theme removed"), QStringLiteral("success"));
+}
+
+void SettingsBackend::openThemeFolder(const QString &name) {
+  if (name.isEmpty() || name.contains(QLatin1Char('/')) ||
+      name.contains(QLatin1Char('\\')))
+    return;
+  QDesktopServices::openUrl(
+      QUrl::fromLocalFile(QDir(AppPaths::userDataDir()).filePath(name)));
+}
+
+void SettingsBackend::openDataDirectory() {
+  QDesktopServices::openUrl(QUrl::fromLocalFile(AppPaths::userDataDir()));
+}
+
+QVariantMap SettingsBackend::getThemeDetails(const QString &name) const {
+  QVariantMap result{{QStringLiteral("displayName"), name},
+                     {QStringLiteral("iconPath"), QString()},
+                     {QStringLiteral("author"), QStringLiteral("Unknown")},
+                     {QStringLiteral("description"), QString()},
+                     {QStringLiteral("minWidth"), 128},
+                     {QStringLiteral("minHeight"), 128},
+                     {QStringLiteral("builtIn"), true},
+                     {QStringLiteral("removable"), false}};
+
+  if (name.isEmpty() || name.contains(QLatin1Char('/')) ||
+      name.contains(QLatin1Char('\\')))
+    return result;
+
+  const QString themeDirectory = QDir(AppPaths::userDataDir()).filePath(name);
+  ThemeMetadata metadata;
+  if (!ThemeMetadataReader::load(themeDirectory, metadata))
+    return result;
+
+  QString iconUrl;
+  if (!metadata.iconPath.isEmpty()) {
+    const QFileInfo icon(metadata.iconPath);
+    const QString iconFile =
+        icon.isAbsolute() ? metadata.iconPath
+                          : QDir(themeDirectory).filePath(metadata.iconPath);
+    iconUrl = QUrl::fromLocalFile(iconFile).toString();
+  }
+
+  const bool builtIn = AppPaths::isBuiltInTheme(name);
+  result[QStringLiteral("displayName")] =
+      metadata.displayName.isEmpty() ? name : metadata.displayName;
+  result[QStringLiteral("iconPath")] = iconUrl;
+  result[QStringLiteral("author")] = metadata.author;
+  result[QStringLiteral("description")] = metadata.description;
+  result[QStringLiteral("minWidth")] = metadata.minWidth;
+  result[QStringLiteral("minHeight")] = metadata.minHeight;
+  result[QStringLiteral("builtIn")] = builtIn;
+  result[QStringLiteral("removable")] = !builtIn && name != currentTheme_;
+  return result;
+}
+
+void SettingsBackend::uninstall() {
+#ifdef Q_OS_WIN
+  const QString uninstaller = QDir(QCoreApplication::applicationDirPath())
+                                  .filePath(QStringLiteral("../uninstall.exe"));
+  if (!QFileInfo::exists(uninstaller) ||
+      !QProcess::startDetached(uninstaller, {})) {
+    setStatus(QStringLiteral("Could not start the uninstaller"),
+              QStringLiteral("error"));
+    return;
+  }
+  QCoreApplication::quit();
 #else
-  ensureConnected();
-  if (ipcSocket_.state() != QLocalSocket::ConnectedState) {
-    setStatusMessage(QStringLiteral("Main process not reachable"));
-    return;
-  }
-
-  QJsonObject obj{
-      {QStringLiteral("command"), command},
-      {QStringLiteral("payload"), QJsonObject::fromVariantMap(payload)}};
-  ipcSocket_.write(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-  ipcSocket_.flush();
+  setStatus(QStringLiteral("Remove this package with: yay -Rns "
+                           "ultralightwebcursor-git"),
+            QStringLiteral("info"));
 #endif
 }
