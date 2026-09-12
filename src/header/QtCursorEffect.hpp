@@ -39,6 +39,7 @@ public:
 
 protected:
   bool event(QEvent *event) override;
+  bool eventFilter(QObject *watched, QEvent *event) override;
 
 private Q_SLOTS:
   void onTick();
