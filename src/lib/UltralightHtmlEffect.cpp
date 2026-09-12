@@ -101,7 +101,8 @@ bool UltralightHtmlEffect::ensureInitialized() {
   webcall = std::make_shared<WebCall>();
   webcall->view_ = view_;
   renderer_initialized_ = true;
-  return load(html_value_.html_path_);
+  // path::string_type is std::wstring on Windows, so convert explicitly.
+  return load(html_value_.html_path_.string());
 }
 
 bool UltralightHtmlEffect::load(const std::string &path) {
@@ -147,7 +148,7 @@ void UltralightHtmlEffect::reload(const ConfigValues &uconfig,
                  .html_path_ = uconfig.html};
   if (!view_)
     return;
-  UltralightHtmlEffect::load(html_value_.html_path_);
+  UltralightHtmlEffect::load(html_value_.html_path_.string());
   UltralightHtmlEffect::resize(html_value_.width_, html_value_.height_);
 }
 

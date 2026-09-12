@@ -7,7 +7,9 @@ if(MSVC)
 else()
     add_compile_options(-fexceptions)
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -rdynamic")
+endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # KDE compiler settings may inject GCC-only flags (for example
