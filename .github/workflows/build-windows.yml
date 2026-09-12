@@ -1,67 +1,82 @@
 name: Build Windows
 
 on:
-  push:
-  workflow_dispatch:
+    push:
+    workflow_dispatch:
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+    build-windows:
+        runs-on: windows-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: "6.7.3"
-          target: "desktop"
-          modules: "qtdeclarative qtquickcontrols2"
-          cache: true
+            - name: Install Qt
+              uses: jurplel/install-qt-action@v4
+              with:
+                  version: "6.7.3"
+                  target: "desktop"
+                  arch: "win64_msvc2019_64"
+                  # Qt Quick / QML / QuickControls2 are part of the default Qt 6
+                  # archives (qtbase, qtdeclarative, ...). They are not listable as
+                  # `modules`, so requesting them there makes aqt fail while parsing
+                  # the package XML.
+                  cache: true
 
-      # The Ultralight SDK archives are committed flat (no top-level folder),
-      # so extract directly into the directory CMake expects.
-      - name: Extract Ultralight SDK
-        shell: pwsh
-        run: 7z x "sdk/ultralight-free-sdk-1.4.0-win-x64.7z" "-osdk/ultralight-free-sdk-1.4.0-win-x64"
+            # The Ultralight SDK archives are committed flat (no top-level folder),
+            # so extract directly into the directory CMake expects.
+            - name: Extract Ultralight SDK
+              shell: pwsh
+              run: 7z x "sdk/ultralight-free-sdk-1.4.0-win-x64.7z" "-osdk/ultralight-free-sdk-1.4.0-win-x64"
 
-      - name: Configure
-        shell: pwsh
-        run: >
-          cmake -S . -B build-windows
-          -DCMAKE_BUILD_TYPE=Release
-          -DFORCE_DESKTOP_ENVIRONMENT=windows
-          -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+            - name: Configure
+              shell: pwsh
+              # install-qt-action exports QT_ROOT_DIR pointing at the Qt install
+              # (it does not set Qt6_DIR), so use that as the CMake prefix.
+              run: >
+                  cmake -S . -B build-windows
+                  -DCMAKE_BUILD_TYPE=Release
+                  -DFORCE_DESKTOP_ENVIRONMENT=windows
+                  -DCMAKE_PREFIX_PATH="$env:QT_ROOT_DIR"
 
-      - name: Build
-        shell: pwsh
-        run: cmake --build build-windows --config Release --parallel
+            - name: Build
+              shell: pwsh
+              run: cmake --build build-windows --config Release --parallel
 
-      - name: Stage portable install
-        shell: pwsh
-        run: cmake --install build-windows --config Release --prefix "$PWD/stage"
+            - name: Stage portable install
+              shell: pwsh
+              run: cmake --install build-windows --config Release --prefix "$PWD/stage"
 
-      - name: Package
-        shell: pwsh
-        run: >
-          Compress-Archive -Path "stage/bin/*"
-          -DestinationPath "ultralightwebcursor-windows-x64.zip" -Force
+            # The CMake install only stages our own Ultralight DLLs and data; pull in
+            # the Qt runtime, platform plugin and QML modules so the zip runs on a
+            # machine without Qt installed.
+            - name: Deploy Qt runtime
+              shell: pwsh
+              run: |
+                  windeployqt --release --qmldir GUI "stage/bin/ultralightwebcursor-gui.exe"
+                  windeployqt --release "stage/bin/ultralightwebcursor_windows.exe"
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ultralightwebcursor-windows-x64
-          path: ultralightwebcursor-windows-x64.zip
-          if-no-files-found: error
+            - name: Package
+              shell: pwsh
+              run: >
+                  Compress-Archive -Path "stage/bin/*"
+                  -DestinationPath "ultralightwebcursor-windows-x64.zip" -Force
 
-      # Publish a GitHub Release when a tag (e.g. v1.0.2) is pushed.
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ultralightwebcursor-windows-x64.zip
-          generate_release_notes: true
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ultralightwebcursor-windows-x64
+                  path: ultralightwebcursor-windows-x64.zip
+                  if-no-files-found: error
+
+            # Publish a GitHub Release when a tag (e.g. v1.0.2) is pushed.
+            - name: Publish release
+              if: startsWith(github.ref, 'refs/tags/')
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: ultralightwebcursor-windows-x64.zip
+                  generate_release_notes: true
