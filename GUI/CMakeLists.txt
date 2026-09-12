@@ -28,12 +28,22 @@ qt_policy(SET QTP0001 NEW)
 
 qt_add_executable(ultralightwebcursor-gui main.cpp)
 
+# `pragma Singleton` alone is not picked up when generating the module, so mark
+# Style.qml explicitly to register it as a QML singleton.
+set_source_files_properties(Style.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(ultralightwebcursor-gui
     URI WebCursorGui
     VERSION 1.0
     QML_FILES
         Main.qml
-        Uistaff.qml
+        Colors.qml
+        IconButton.qml
+        RowCard.qml
+        SectionHeader.qml
+        Style.qml
+        StepperRow.qml
+        SwitchRow.qml
 )
 
 target_sources(ultralightwebcursor-gui PRIVATE
