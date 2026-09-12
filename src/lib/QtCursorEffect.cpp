@@ -87,7 +87,10 @@ QtCursorEffect::QtCursorEffect(QObject *parent) : QObject(parent) {
   HWND hwnd = reinterpret_cast<HWND>(m_viewWindow->winId());
   LONG exStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
   SetWindowLong(hwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED);
-  SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
+  // Do NOT call SetLayeredWindowAttributes() here. It switches the window to
+  // uniform-alpha mode, after which every subsequent UpdateLayeredWindow call
+  // (which Qt uses to push the per-pixel-alpha backing store) fails with
+  // ERROR_INVALID_PARAMETER.
 #elif defined(__linux__) || defined(Q_OS_LINUX)
   Display *dpy = XOpenDisplay(nullptr);
   if (dpy) {
