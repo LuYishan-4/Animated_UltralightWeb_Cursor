@@ -1,6 +1,5 @@
 <div align="center">
 
-<img src="GUI/icons/io.github.luyishan4.ultralightwebcursor.svg" width="128" height="128" alt="Ultralight Web Cursor">
 
 # Ultralight Web Cursor
 
