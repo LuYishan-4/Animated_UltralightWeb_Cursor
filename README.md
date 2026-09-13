@@ -9,7 +9,7 @@
 [![AUR](https://img.shields.io/badge/AUR-ultralightwebcursor--git-1793d1?logo=arch-linux&logoColor=white)](https://aur.archlinux.org/packages/ultralightwebcursor-git)
 [![Platforms](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-4fc3f7)](#platform-support)
 [![C++](https://img.shields.io/badge/C%2B%2B-20-00599c?logo=cplusplus)](#)
-[![Renderer](https://img.shields.io/badge/renderer-Ultralight-f58220)](https://ultralig.ht/)
+
 
 **English** · [繁體中文](#繁體中文)
 
